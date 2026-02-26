@@ -37,6 +37,7 @@ public class AgendaService {
         LocalDateTime inicio = novo.getDataHoraInicio();
         LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos()); // Soma os minutos
 
+        novo.setValorFinal(servicoCompleto.getPreco()); // copia o valor do servico do cliente
         // Guarda a hora calculada dentro do agendamento
         novo.setDataHoraFim(fim);
         novo.setStatus("CONFIRMADO");
@@ -165,5 +166,14 @@ public class AgendaService {
         // 3. Salva a atualização
         agendamentoRepository.save(agendamento);
         System.out.println("💰 Serviço concluído com sucesso! ID: " + id);
+    }
+
+    public void atualizarValor(Long id, java.math.BigDecimal novoValor) {
+        Agendamento agendamento = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado!"));
+
+        agendamento.setValorFinal(novoValor);
+        agendamentoRepository.save(agendamento);
+        System.out.println("💸 Valor do agendamento " + id + " alterado para: " + novoValor);
     }
 }

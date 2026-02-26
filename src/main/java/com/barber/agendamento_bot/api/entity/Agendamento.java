@@ -21,6 +21,7 @@ public class Agendamento {
     private LocalDateTime dataHoraInicio;
     private LocalDateTime dataHoraFim;
     private String status;
+    private java.math.BigDecimal valorFinal;
 
     // 1. O Construtor vazio é TUDO que o Spring e o Postman precisam!
     // Apague o outro construtor que fazia o cálculo.
@@ -47,4 +48,7 @@ public class Agendamento {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public java.math.BigDecimal getValorFinal() { return valorFinal; }
+    public void setValorFinal(java.math.BigDecimal valorFinal) { this.valorFinal = valorFinal; }
 }

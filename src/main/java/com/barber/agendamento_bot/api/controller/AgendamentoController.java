@@ -68,4 +68,11 @@ public class AgendamentoController {
         agendaService.concluirAgendamento(id);
         return "💰 Agendamento marcado como concluído!";
     }
+
+    // A URL vai ficar tipo: /api/agendamentos/1/valor?novoValor=60.00
+    @PutMapping("/{id}/valor")
+    public String alterarValor(@PathVariable Long id, @RequestParam java.math.BigDecimal novoValor) {
+        agendaService.atualizarValor(id, novoValor);
+        return "💸 Valor alterado com sucesso!";
+    }
 }
