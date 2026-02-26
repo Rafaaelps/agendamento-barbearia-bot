@@ -1,6 +1,7 @@
 package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
+import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
 import com.barber.agendamento_bot.api.service.AgendaService;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,13 @@ public class AgendamentoController {
             return "❌ Este horário já está ocupado. Por favor, escolha outro.";
         }
     }
+
+    @PostMapping("/bloqueios")
+    public String criarBloqueio(@RequestBody BloqueioAgenda bloqueio) {
+        agendaService.adicionarBloqueio(bloqueio);
+        return "✅ Horário bloqueado com sucesso! Motivo: " + bloqueio.getMotivo();
+    }
+
     // Usamos @GetMapping porque o Postman vai apenas PEDIR uma informação, não salvar nada novo.
     // A URL final será: /api/agendamentos/livres
     @GetMapping("/livres")
@@ -53,5 +61,11 @@ public class AgendamentoController {
     public String cancelar(@PathVariable Long id) {
         agendaService.cancelarAgendamento(id);
         return "Agendamento cancelado com sucesso!";
+    }
+
+    @PutMapping("/{id}/concluir")
+    public String concluir(@PathVariable Long id) {
+        agendaService.concluirAgendamento(id);
+        return "💰 Agendamento marcado como concluído!";
     }
 }

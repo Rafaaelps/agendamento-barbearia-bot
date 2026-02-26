@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financeiro - Barbearia</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="#">💈 Bahian Barber Bot</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="index.html">📅 Agenda do Dia</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="financeiro.html">💰 Financeiro</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 class="mb-4">Visão Financeira</h2>
+
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm border-success border-start border-5">
+        <div class="card-body">
+          <h5 class="text-muted">Faturamento Total</h5>
+          <h2 class="text-success fw-bold" id="valor-faturamento">R$ 0,00</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm border-primary border-start border-5">
+        <div class="card-body">
+          <h5 class="text-muted">Serviços Concluídos</h5>
+          <h2 class="text-primary fw-bold" id="qtd-servicos">0</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">Extrato de Serviços</h5>
+    </div>
+    <div class="card-body">
+      <table class="table table-hover align-middle text-center">
+        <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Serviço</th>
+          <th>Valor Recebido</th>
+        </tr>
+        </thead>
+        <tbody id="tabela-extrato">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function carregarFinanceiro() {
+    try {
+      const resposta = await fetch('/api/agendamentos');
+      const todosAgendamentos = await resposta.json();
+
+      // 1. Filtra APENAS os serviços que o barbeiro marcou como "CONCLUIDO"
+      const concluidos = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO');
+
+      // 2. Calcula a soma total do dinheiro
+      let faturamentoTotal = 0;
+      const corpoTabela = document.getElementById('tabela-extrato');
+      corpoTabela.innerHTML = '';
+
+      if (concluidos.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="4" class="text-muted py-4">Nenhum serviço concluído ainda.</td></tr>';
+      }
+
+      concluidos.forEach(agendamento => {
+        // Soma o preço do serviço ao total
+        const preco = agendamento.servicoEscolhido.preco;
+        faturamentoTotal += preco;
+
+        // Formata a data e o valor para o padrão brasileiro
+        const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleDateString('pt-BR');
+        const valorFormatado = preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        // Cria a linha na tabela de extrato
+        const linha = `
+                    <tr>
+                        <td class="text-muted">${dataFormatada}</td>
+                        <td><strong>${agendamento.nomeCliente}</strong></td>
+                        <td>${agendamento.servicoEscolhido.nome}</td>
+                        <td class="text-success fw-bold">${valorFormatado}</td>
+                    </tr>
+                `;
+        corpoTabela.innerHTML += linha;
+      });
+
+      // 3. Atualiza os Cards gigantes lá no topo da tela
+      document.getElementById('qtd-servicos').innerText = concluidos.length;
+      document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    } catch (erro) {
+      console.error("Erro ao buscar dados financeiros:", erro);
+    }
+  }
+
+  // Chama a função assim que a tela abre
+  carregarFinanceiro();
+</script>
+</body>
+</html>

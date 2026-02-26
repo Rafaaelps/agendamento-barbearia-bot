@@ -1,9 +1,12 @@
 package com.barber.agendamento_bot.api.service;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
+import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
 import com.barber.agendamento_bot.api.entity.Servico;
 import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
+import com.barber.agendamento_bot.api.repository.BloqueioAgendaRepository;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -17,10 +20,12 @@ public class AgendaService {
 
     private final AgendamentoRepository agendamentoRepository;
     private final ServicoRepository servicoRepository;
+    private final BloqueioAgendaRepository bloqueioAgendaRepository;
 
-    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository) {
+    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository) {
         this.agendamentoRepository = agendamentoRepository;
         this.servicoRepository = servicoRepository;
+        this.bloqueioAgendaRepository = bloqueioAgendaRepository;
     }
 
     public boolean tentarAgendar(Agendamento novo) {
@@ -36,20 +41,34 @@ public class AgendaService {
         novo.setDataHoraFim(fim);
         novo.setStatus("CONFIRMADO");
 
+        // Novas regras de agendamento
+
+        // REGRA 1: Dias de folga fixos (Não atende de Domingo)
+        if (inicio.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            System.out.println("❌ Lamento, domingo não tem atendimento.");
+            return false;
+        }
+
+        // REGRA 2: Bloqueios manuais (Verifica se o barbeiro travou esse horário)
+        if (bloqueioAgendaRepository.existsByDataHoraBloqueada(inicio)) {
+            System.out.println("❌ Horário já ocupado por outro cliente.");
+            return false;
+        }
+        // =========================================================
+
         // 3. Busca os agendamentos já existentes para checar conflito
         List<Agendamento> noBanco = agendamentoRepository.findByStatusNot("CANCELADO");
 
         for (Agendamento existente : noBanco) {
-
             // Agora sim! Ele compara usando as variáveis que acabamos de calcular, e não um valor nulo.
             if (inicio.isBefore(existente.getDataHoraFim()) &&
                     fim.isAfter(existente.getDataHoraInicio())) {
-                System.out.println("❌ Horário já ocupado.");
+                System.out.println("❌ Horário já ocupado por outro cliente.");
                 return false;
             }
         }
 
-        // 4. Se passou pelo For sem conflito, salva no PostgreSQL!
+        // 4. Se passou pelo For e por todas as regras sem conflito, salva no PostgreSQL!
         agendamentoRepository.save(novo);
         return true;
     }
@@ -125,5 +144,26 @@ public class AgendaService {
             return lista.get(0); // Devolve o primeiro que encontrar
         }
         return null; // Se a lista estiver vazia, retorna nulo
+    }
+
+
+    // MÉTOD PARA O BARBEIRO BLOQUEAR HORÁRIOS
+
+    public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
+        System.out.println("🔒 Bloqueando agenda para: " + novoBloqueio.getDataHoraBloqueada() + " | Motivo: " + novoBloqueio.getMotivo());
+        return bloqueioAgendaRepository.save(novoBloqueio);
+    }
+
+    public void concluirAgendamento(Long id) {
+        // 1. Busca o agendamento no banco de dados
+        Agendamento agendamento = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado!"));
+
+        // 2. Muda o status para concluído
+        agendamento.setStatus("CONCLUIDO");
+
+        // 3. Salva a atualização
+        agendamentoRepository.save(agendamento);
+        System.out.println("💰 Serviço concluído com sucesso! ID: " + id);
     }
 }
