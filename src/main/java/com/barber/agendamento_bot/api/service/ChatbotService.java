@@ -15,9 +15,8 @@ public class ChatbotService {
 
     private final SessaoBotRepository sessaoRepository;
     private final AgendaService agendaService;
-    private final ServicoRepository servicoRepository; // ✨ 1. INJETAMOS O BANCO DE SERVIÇOS AQUI
+    private final ServicoRepository servicoRepository;
 
-    // ✨ 2. ATUALIZAMOS O CONSTRUTOR
     public ChatbotService(SessaoBotRepository sessaoRepository, AgendaService agendaService, ServicoRepository servicoRepository) {
         this.sessaoRepository = sessaoRepository;
         this.agendaService = agendaService;
@@ -29,8 +28,24 @@ public class ChatbotService {
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
         String respostaDoRobo = "";
 
-        // Transforma o texto em minúsculo para facilitar se o cliente digitar "Sim" ou "SIM"
+        // Transforma o texto em minúsculo para facilitar validações
         String textoLimpo = textoRecebido.toLowerCase().trim();
+
+        // =======================================================
+        // 🚨 A VÁLVULA DE ESCAPE (O RESET)
+        // Se o cliente digitar "cancelar" ou "sair" em qualquer momento,
+        // o robô esquece tudo e volta pro começo!
+        // =======================================================
+        if (textoLimpo.equals("cancelar") || textoLimpo.equals("sair")) {
+            sessao.setPassoAtual("MENU_INICIAL");
+            sessao.setNomeClienteTemporario(null);
+            sessao.setIdServicoTemporario(null);
+            sessao.setDataTemporaria(null);
+            sessao.setIdAgendamentoTemporario(null); // Limpa também o ID do cancelamento se houver
+            sessaoRepository.save(sessao);
+            return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
+        }
+        // =======================================================
 
         switch (sessao.getPassoAtual()) {
 
@@ -73,9 +88,6 @@ public class ChatbotService {
                 sessao.setIdAgendamentoTemporario(null);
                 break;
 
-            // =========================================================================
-            // ✨ 3. A MÁGICA DINÂMICA COMEÇA AQUI!
-            // =========================================================================
             case "ESPERANDO_NOME":
                 sessao.setNomeClienteTemporario(textoRecebido);
 
@@ -116,7 +128,6 @@ public class ChatbotService {
                     respostaDoRobo = "⚠️ Não entendi. Por favor, digite apenas o NÚMERO correspondente ao serviço desejado.";
                 }
                 break;
-            // =========================================================================
 
             case "ESPERANDO_DATA":
                 sessao.setDataTemporaria(textoLimpo);
@@ -153,7 +164,7 @@ public class ChatbotService {
                         sessao.setIdServicoTemporario(null);
                         sessao.setDataTemporaria(null);
                     } else {
-                        respostaDoRobo = "❌ Poxa, esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário:";
+                        respostaDoRobo = "❌ Esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário:";
                     }
                 } catch (java.time.format.DateTimeParseException e) {
                     respostaDoRobo = "⚠️ Ops, não entendi o formato. Certifique-se de que o dia foi digitado como DD/MM (ex: 28/02) no passo anterior, e a hora com dois pontos (ex: 14:30). Vamos tentar o horário de novo:";
