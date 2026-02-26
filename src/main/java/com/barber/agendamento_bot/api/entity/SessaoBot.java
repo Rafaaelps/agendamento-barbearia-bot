@@ -18,6 +18,7 @@ public class SessaoBot {
     // Campos temporários para guardar as respostas do cliente
     private String nomeClienteTemporario;
     private Long idServicoTemporario;
+    private String dataTemporaria;
 
     public SessaoBot() {}
 
@@ -41,5 +42,8 @@ public class SessaoBot {
 
     public Long getIdAgendamentoTemporario() { return idAgendamentoTemporario; }
     public void setIdAgendamentoTemporario(Long idAgendamentoTemporario) { this.idAgendamentoTemporario = idAgendamentoTemporario; }
+
+    public String getDataTemporaria() { return dataTemporaria; }
+    public void setDataTemporaria(String dataTemporaria) { this.dataTemporaria = dataTemporaria; }
 
 }

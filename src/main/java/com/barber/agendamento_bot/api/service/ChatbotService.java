@@ -6,16 +6,12 @@ import com.barber.agendamento_bot.api.entity.SessaoBot;
 import com.barber.agendamento_bot.api.repository.SessaoBotRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
 
 @Service
 public class ChatbotService {
 
     private final SessaoBotRepository sessaoRepository;
-    private final AgendaService agendaService; // 1. O Chef de Cozinha chegou!
+    private final AgendaService agendaService;
 
     public ChatbotService(SessaoBotRepository sessaoRepository, AgendaService agendaService) {
         this.sessaoRepository = sessaoRepository;
@@ -89,17 +85,40 @@ public class ChatbotService {
             case "ESPERANDO_SERVICO":
                 if (textoLimpo.equals("1") || textoLimpo.equals("2")) {
                     sessao.setIdServicoTemporario(Long.parseLong(textoLimpo));
-                    respostaDoRobo = "Perfeito. Digite o horário que deseja para hoje (ex: 14:30):";
-                    sessao.setPassoAtual("ESPERANDO_HORARIO");
+
+                    // Em vez de pedir a hora, agora pedimos o dia!
+                    respostaDoRobo = "Perfeito. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: 28/02):";
+                    sessao.setPassoAtual("ESPERANDO_DATA");
                 } else {
                     respostaDoRobo = "Não entendi. Por favor, digite 1 para Corte ou 2 para Barba.";
                 }
                 break;
 
+
+            case "ESPERANDO_DATA":
+                // Vamos guardar o texto que o cliente digitou (ex: "28/02")
+                sessao.setDataTemporaria(textoLimpo);
+
+                respostaDoRobo = "Certo! E qual o horário? (ex: 14:30):";
+                sessao.setPassoAtual("ESPERANDO_HORARIO");
+                break;
+
             case "ESPERANDO_HORARIO":
                 try {
+                    // 1. Pegamos a hora que o cliente acabou de digitar
                     java.time.LocalTime horaDigitada = java.time.LocalTime.parse(textoLimpo);
-                    java.time.LocalDateTime dataHoraCompleta = java.time.LocalDateTime.of(java.time.LocalDate.now(), horaDigitada);
+
+                    // 2. Pegamos aquele dia que estava guardado na memória (ex: "28/02")
+                    String diaMes = sessao.getDataTemporaria();
+                    // Adicionamos o ano atual para o Java conseguir entender a data completa
+                    int anoAtual = java.time.LocalDate.now().getYear();
+
+                    // O formato fica tipo "28/02/2026"
+                    java.time.format.DateTimeFormatter formatadorData = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    java.time.LocalDate dataDigitada = java.time.LocalDate.parse(diaMes + "/" + anoAtual, formatadorData);
+
+                    // 3. Juntamos o dia e a hora perfeitos!
+                    java.time.LocalDateTime dataHoraCompleta = java.time.LocalDateTime.of(dataDigitada, horaDigitada);
 
                     Agendamento novoAgendamento = new Agendamento();
                     novoAgendamento.setTelefoneCliente(sessao.getTelefone());
@@ -113,15 +132,17 @@ public class ChatbotService {
                     boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
 
                     if (sucesso) {
-                        respostaDoRobo = "✅ Tudo certo, " + sessao.getNomeClienteTemporario() + "! Seu agendamento para as " + textoLimpo + " está confirmado.";
+                        respostaDoRobo = "✅ Tudo certo, " + sessao.getNomeClienteTemporario() + "! Seu agendamento para " + diaMes + " às " + textoLimpo + " está confirmadíssimo.";
                         sessao.setPassoAtual("MENU_INICIAL");
+                        // Limpa a memória
                         sessao.setNomeClienteTemporario(null);
                         sessao.setIdServicoTemporario(null);
+                        sessao.setDataTemporaria(null);
                     } else {
-                        respostaDoRobo = "❌ Esse horário já está ocupado. Por favor, digite outro horário:";
+                        respostaDoRobo = "❌ Poxa, esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário:";
                     }
                 } catch (java.time.format.DateTimeParseException e) {
-                    respostaDoRobo = "⚠️ Formato inválido! Por favor, digite a hora com dois pontos. Exemplo: 14:30";
+                    respostaDoRobo = "⚠️ Ops, não entendi o formato. Certifique-se de que o dia foi digitado como DD/MM (ex: 28/02) no passo anterior, e a hora com dois pontos (ex: 14:30). Vamos tentar o horário de novo:";
                 }
                 break;
 
