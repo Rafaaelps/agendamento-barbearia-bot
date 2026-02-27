@@ -2,9 +2,11 @@ package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.service.ChatbotService;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -16,6 +18,7 @@ import java.util.Map;
 public class WebhookController {
 
     private final ChatbotService chatbotService;
+    private final ObjectMapper objectMapper = new ObjectMapper(); // Ferramenta para ler JSON com segurança
 
     // =========================================================================
     // ⚠️ ATENÇÃO: COLOQUE AQUI OS DADOS DA SUA EVOLUTION API
@@ -28,66 +31,74 @@ public class WebhookController {
         this.chatbotService = chatbotService;
     }
 
+    // Mudamos de JsonNode para String bruta para o Java NUNCA dar erro 500 na entrada
     @PostMapping
-    public String receberMensagemDaEvolution(@RequestBody JsonNode payload) {
-
-        System.out.println("🚨 BATEU NO WEBHOOK! O que chegou: " + payload.toString());
+    public ResponseEntity<String> receberMensagemDaEvolution(@RequestBody(required = false) String payloadString) {
 
         try {
-            // 1. Verifica se é um evento de mensagem recebida (ignora status de leitura, etc)
-            if (payload.has("event") && payload.get("event").asText().equals("messages.upsert")) {
-
-                JsonNode data = payload.get("data");
-
-                // 2. Se a mensagem foi enviada pelo próprio bot (fromMe = true), ignoramos para não dar loop!
-                if (data.get("key").get("fromMe").asBoolean()) {
-                    return "OK";
-                }
-
-                // 3. Garimpa o ID de quem enviou
-                String remoteJid = data.get("key").get("remoteJid").asText();
-
-                // =======================================================
-                // ✨ PASSO 2.5: O ESCUDO ANTI-GRUPOS E STATUS
-                // Se a mensagem vier de um grupo (@g.us) ou status (@broadcast), o Java ignora na hora!
-                // =======================================================
-                if (remoteJid.contains("@g.us") || remoteJid.contains("@broadcast")) {
-                    return "OK";
-                }
-
-                // Extrai apenas o número do telefone
-                String telefone = remoteJid.replace("@s.whatsapp.net", "");
-
-                // 4. Garimpa o Texto da mensagem (pode vir em 'conversation' ou 'extendedTextMessage')
-                String textoMensagem = "";
-                JsonNode message = data.get("message");
-
-                if (message != null) {
-                    if (message.has("conversation")) {
-                        textoMensagem = message.get("conversation").asText();
-                    } else if (message.has("extendedTextMessage")) {
-                        textoMensagem = message.get("extendedTextMessage").get("text").asText();
-                    }
-                }
-
-                // Se tiver texto, manda pro cérebro processar
-                if (!textoMensagem.isEmpty()) {
-                    System.out.println("📩 Mensagem recebida de " + telefone + ": " + textoMensagem);
-
-                    String respostaDoRobo = chatbotService.processarMensagem(telefone, textoMensagem);
-
-                    // 5. DISPARA A RESPOSTA DE VOLTA PARA O WHATSAPP DO CLIENTE!
-                    enviarMensagemParaEvolution(remoteJid, respostaDoRobo);
-                }
+            // 1. Escudo anti-vazio
+            if (payloadString == null || payloadString.isEmpty()) {
+                return ResponseEntity.ok("OK"); // Devolve 200 para acalmar a Evolution
             }
+
+            // Vai imprimir na tela preta do Render DE QUALQUER JEITO!
+            System.out.println("🚨 BATEU NO WEBHOOK BRUTO: " + payloadString);
+
+            // 2. Converte o texto em JSON manualmente e com segurança
+            JsonNode payload = objectMapper.readTree(payloadString);
+
+            // 3. A Evolution pode mandar o dado dentro de "data" ou direto na raiz. Vamos cobrir os dois!
+            JsonNode data = payload;
+            if (payload.has("data")) {
+                data = payload.get("data");
+            }
+
+            // 4. Se não for uma mensagem de texto válida, a gente ignora e devolve 200
+            if (!data.has("key") || !data.has("message")) {
+                return ResponseEntity.ok("OK");
+            }
+
+            // 5. O Escudo Anti-Loop (Ignora mensagens enviadas pelo próprio robô)
+            if (data.get("key").has("fromMe") && data.get("key").get("fromMe").asBoolean()) {
+                return ResponseEntity.ok("OK");
+            }
+
+            // 6. Extrai quem mandou (E bloqueia Grupos e Status)
+            String remoteJid = data.get("key").get("remoteJid").asText();
+            if (remoteJid.contains("@g.us") || remoteJid.contains("@broadcast")) {
+                return ResponseEntity.ok("OK");
+            }
+
+            // Limpa o número de telefone
+            String telefone = remoteJid.replace("@s.whatsapp.net", "");
+
+            // 7. Garimpa o Texto da mensagem
+            String textoMensagem = "";
+            JsonNode message = data.get("message");
+
+            if (message.has("conversation")) {
+                textoMensagem = message.get("conversation").asText();
+            } else if (message.has("extendedTextMessage") && message.get("extendedTextMessage").has("text")) {
+                textoMensagem = message.get("extendedTextMessage").get("text").asText();
+            }
+
+            // 8. Manda pro cérebro pensar e responde!
+            if (!textoMensagem.isEmpty()) {
+                System.out.println("📩 Mensagem extraída com sucesso de " + telefone + ": " + textoMensagem);
+                String respostaDoRobo = chatbotService.processarMensagem(telefone, textoMensagem);
+                enviarMensagemParaEvolution(remoteJid, respostaDoRobo);
+            }
+
         } catch (Exception e) {
-            System.err.println("Erro ao processar webhook da Evolution: " + e.getMessage());
+            // Se der qualquer erro no código, ele imprime o erro mas DEVOLVE 200 PRA EVOLUTION NÃO TRAVAR!
+            System.err.println("❌ ERRO INTERNO AO LER A MENSAGEM: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        return "OK"; // Sempre devolvemos OK rápido para a Evolution não travar
+        // Devolve o HTTP 200 (Sucesso)
+        return ResponseEntity.ok("OK");
     }
 
-    // Método que faz a requisição HTTP (POST) para a Evolution enviar a mensagem
     private void enviarMensagemParaEvolution(String numeroDestino, String textoParaEnviar) {
         RestTemplate restTemplate = new RestTemplate();
 
@@ -95,7 +106,6 @@ public class WebhookController {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("apikey", EVOLUTION_API_KEY);
 
-        // Monta o corpinho que a Evolution exige para enviar texto
         Map<String, Object> body = new HashMap<>();
         body.put("number", numeroDestino);
 
@@ -103,7 +113,6 @@ public class WebhookController {
         textMessage.put("text", textoParaEnviar);
         body.put("textMessage", textMessage);
 
-        // Simula que o robô está "digitando..." por 1 segundo para ficar mais natural!
         Map<String, Object> options = new HashMap<>();
         options.put("delay", 1200);
         options.put("presence", "composing");
@@ -113,9 +122,9 @@ public class WebhookController {
 
         try {
             restTemplate.postForEntity(EVOLUTION_URL, request, String.class);
-            System.out.println("✅ Resposta enviada com sucesso!");
+            System.out.println("✅ Resposta disparada para a Evolution com sucesso!");
         } catch (Exception e) {
-            System.err.println("❌ Falha ao enviar resposta via Evolution: " + e.getMessage());
+            System.err.println("❌ Falha ao tentar enviar mensagem de volta: " + e.getMessage());
         }
     }
 }
