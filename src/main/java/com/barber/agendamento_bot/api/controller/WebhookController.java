@@ -30,6 +30,9 @@ public class WebhookController {
 
     @PostMapping
     public String receberMensagemDaEvolution(@RequestBody JsonNode payload) {
+
+        System.out.println("🚨 BATEU NO WEBHOOK! O que chegou: " + payload.toString());
+
         try {
             // 1. Verifica se é um evento de mensagem recebida (ignora status de leitura, etc)
             if (payload.has("event") && payload.get("event").asText().equals("messages.upsert")) {
