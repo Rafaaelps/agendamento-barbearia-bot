@@ -41,8 +41,18 @@ public class WebhookController {
                     return "OK";
                 }
 
-                // 3. Garimpa o Telefone (vem no formato 5511999999999@s.whatsapp.net)
+                // 3. Garimpa o ID de quem enviou
                 String remoteJid = data.get("key").get("remoteJid").asText();
+
+                // =======================================================
+                // ✨ PASSO 2.5: O ESCUDO ANTI-GRUPOS E STATUS
+                // Se a mensagem vier de um grupo (@g.us) ou status (@broadcast), o Java ignora na hora!
+                // =======================================================
+                if (remoteJid.contains("@g.us") || remoteJid.contains("@broadcast")) {
+                    return "OK";
+                }
+
+                // Extrai apenas o número do telefone
                 String telefone = remoteJid.replace("@s.whatsapp.net", "");
 
                 // 4. Garimpa o Texto da mensagem (pode vir em 'conversation' ou 'extendedTextMessage')
