@@ -55,6 +55,11 @@ public class AgendamentoController {
         return agendaService.listarTodosOsAgendamentos();
     }
 
+    @GetMapping("/bloqueios")
+    public java.util.List<BloqueioAgenda> listarBloqueios() {
+        return agendaService.listarBloqueios();
+    }
+
     // Usamos @PutMapping porque estamos ATUALIZANDO um dado existente, não criando um novo.
     // A URL vai ficar tipo: /api/agendamentos/1/cancelar
     @PutMapping("/{id}/cancelar")

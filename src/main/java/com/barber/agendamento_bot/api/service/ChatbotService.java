@@ -33,15 +33,13 @@ public class ChatbotService {
 
         // =======================================================
         // 🚨 A VÁLVULA DE ESCAPE (O RESET)
-        // Se o cliente digitar "cancelar" ou "sair" em qualquer momento,
-        // o robô esquece tudo e volta pro começo!
         // =======================================================
         if (textoLimpo.equals("cancelar") || textoLimpo.equals("sair")) {
             sessao.setPassoAtual("MENU_INICIAL");
             sessao.setNomeClienteTemporario(null);
             sessao.setIdServicoTemporario(null);
             sessao.setDataTemporaria(null);
-            sessao.setIdAgendamentoTemporario(null); // Limpa também o ID do cancelamento se houver
+            sessao.setIdAgendamentoTemporario(null);
             sessaoRepository.save(sessao);
             return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
         }
@@ -91,12 +89,9 @@ public class ChatbotService {
             case "ESPERANDO_NOME":
                 sessao.setNomeClienteTemporario(textoRecebido);
 
-                // Vai no banco (pgAdmin) e busca todos os serviços disponíveis
                 List<Servico> listaServicos = servicoRepository.findAll();
-
                 StringBuilder menuServicos = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar para hoje?\n\n");
 
-                // Monta a lista automaticamente lendo o banco de dados
                 for (Servico s : listaServicos) {
                     menuServicos.append(s.getId()).append(" - ").append(s.getNome())
                             .append(" (R$ ").append(s.getPreco()).append(")\n");
@@ -108,31 +103,39 @@ public class ChatbotService {
 
             case "ESPERANDO_SERVICO":
                 try {
-                    // Tenta transformar o texto do cliente em um número (ID)
                     Long idEscolhido = Long.parseLong(textoLimpo);
-
-                    // Vai no banco verificar se existe um serviço com esse ID exato
                     Optional<Servico> servicoEncontrado = servicoRepository.findById(idEscolhido);
 
                     if (servicoEncontrado.isPresent()) {
-                        // SUCESSO! O serviço existe.
                         sessao.setIdServicoTemporario(idEscolhido);
                         respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.get().getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: 28/02):";
                         sessao.setPassoAtual("ESPERANDO_DATA");
                     } else {
-                        // O cliente digitou um número que não existe no banco
                         respostaDoRobo = "❌ Número inválido. Por favor, olhe o menu acima e digite o número correto do serviço.";
                     }
                 } catch (NumberFormatException e) {
-                    // O cliente digitou texto (ex: "corte") em vez do número
                     respostaDoRobo = "⚠️ Não entendi. Por favor, digite apenas o NÚMERO correspondente ao serviço desejado.";
                 }
                 break;
 
             case "ESPERANDO_DATA":
-                sessao.setDataTemporaria(textoLimpo);
-                respostaDoRobo = "Certo! E qual o horário? (ex: 14:30):";
-                sessao.setPassoAtual("ESPERANDO_HORARIO");
+                try {
+                    // ✨ NOVIDADE: Tenta simular a data antes de salvar na memória!
+                    int anoAtual = java.time.LocalDate.now().getYear();
+                    java.time.format.DateTimeFormatter formatadorData = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+                    // Se o cliente digitou "27:02", o Java vai estourar um erro AQUI e pular pro "catch"
+                    java.time.LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
+
+                    // Se não deu erro, a data é válida! Salvamos e avançamos.
+                    sessao.setDataTemporaria(textoLimpo);
+                    respostaDoRobo = "Certo! E qual o horário? (ex: 14:30):";
+                    sessao.setPassoAtual("ESPERANDO_HORARIO");
+
+                } catch (java.time.format.DateTimeParseException e) {
+                    // O cliente errou o formato. O robô avisa e o passo CONTINUA sendo "ESPERANDO_DATA"
+                    respostaDoRobo = "⚠️ Formato de data inválido! Por favor, digite o dia e o mês separados por barra (ex: 28/02):";
+                }
                 break;
 
             case "ESPERANDO_HORARIO":
@@ -164,10 +167,11 @@ public class ChatbotService {
                         sessao.setIdServicoTemporario(null);
                         sessao.setDataTemporaria(null);
                     } else {
-                        respostaDoRobo = "❌ Esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário:";
+                        respostaDoRobo = "❌ Esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário livre:";
                     }
                 } catch (java.time.format.DateTimeParseException e) {
-                    respostaDoRobo = "⚠️ Ops, não entendi o formato. Certifique-se de que o dia foi digitado como DD/MM (ex: 28/02) no passo anterior, e a hora com dois pontos (ex: 14:30). Vamos tentar o horário de novo:";
+                    // Como a data já foi validada no passo anterior, se der erro aqui, a culpa é da HORA!
+                    respostaDoRobo = "⚠️ Formato de horário inválido! Por favor, digite a hora com dois pontos (ex: 14:30):";
                 }
                 break;
 

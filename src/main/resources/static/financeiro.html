@@ -5,14 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Financeiro - Barbearia</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    @media (max-width: 767.98px) {
+      .tabela-mobile thead { display: none; }
+      .tabela-mobile tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+      }
+      .tabela-mobile tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        border-bottom: 1px solid #dee2e6;
+        padding: 0.75rem 1rem;
+      }
+      .tabela-mobile tbody td:last-child { border-bottom: none; }
+      .tabela-mobile tbody td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: #6c757d;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        margin-right: 1rem;
+        text-align: left;
+      }
+    }
+  </style>
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
   <div class="container">
-    <a class="navbar-brand" href="./index.html">💈 Bahian Barber Bot</a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav me-auto">
+    <a class="navbar-brand fw-bold" href="#">💈 Barbearia Bot</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNavegacao">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="menuNavegacao">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-2 mt-lg-0">
         <li class="nav-item">
           <a class="nav-link" href="index.html">📅 Agenda do Dia</a>
         </li>
@@ -26,39 +61,39 @@
 
 <div class="container">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <h2 class="mb-0">Visão Financeira</h2>
-    <div class="d-flex align-items-center shadow-sm p-2 bg-white rounded border">
-      <label for="filtro-mes" class="me-2 fw-bold text-secondary mb-0">Filtrar por Mês:</label>
-      <input type="month" id="filtro-mes" class="form-control form-control-sm w-auto fw-bold text-primary" onchange="carregarFinanceiro()">
+    <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border w-100 w-md-auto">
+      <label for="filtro-mes" class="me-2 fw-bold text-secondary mb-0 text-nowrap">Mês:</label>
+      <input type="month" id="filtro-mes" class="form-control border-0 p-0 fw-bold text-primary flex-grow-1" onchange="carregarFinanceiro()">
     </div>
   </div>
 
-  <div class="row mb-4">
-    <div class="col-md-6">
-      <div class="card shadow-sm border-success border-start border-5">
+  <div class="row mb-4 g-3">
+    <div class="col-12 col-md-6">
+      <div class="card shadow-sm border-0 border-success border-start border-5 h-100">
         <div class="card-body">
-          <h5 class="text-muted">Faturamento do Mês</h5>
-          <h2 class="text-success fw-bold" id="valor-faturamento">R$ 0,00</h2>
+          <h6 class="text-muted text-uppercase mb-1">Faturamento Mensal</h6>
+          <h2 class="text-success fw-bold mb-0" id="valor-faturamento">R$ 0,00</h2>
         </div>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card shadow-sm border-primary border-start border-5">
+    <div class="col-12 col-md-6">
+      <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
         <div class="card-body">
-          <h5 class="text-muted">Serviços Concluídos (Mês)</h5>
-          <h2 class="text-primary fw-bold" id="qtd-servicos">0</h2>
+          <h6 class="text-muted text-uppercase mb-1">Serviços Concluídos</h6>
+          <h2 class="text-primary fw-bold mb-0" id="qtd-servicos">0</h2>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card shadow-sm">
-    <div class="card-header bg-white">
-      <h5 class="mb-0">Extrato de Serviços</h5>
+  <div class="card shadow-sm border-0 mb-5 bg-transparent bg-md-white">
+    <div class="card-header bg-white py-3 d-none d-md-block rounded-top">
+      <h5 class="mb-0 fw-bold">Extrato Detalhado</h5>
     </div>
-    <div class="card-body">
-      <table class="table table-hover align-middle text-center">
+    <div class="card-body p-0 p-md-3">
+      <table class="table table-hover align-middle text-center tabela-mobile mb-0">
         <thead class="table-light">
         <tr>
           <th>Data e Hora</th>
@@ -75,17 +110,13 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ✨ NOVIDADE 1: Assim que a tela abre, define o filtro para o mês atual
   document.addEventListener("DOMContentLoaded", () => {
     const dataHoje = new Date();
     const ano = dataHoje.getFullYear();
-    // O mês em JS começa no 0, então somamos 1. O padStart garante o zero à esquerda (ex: "02")
     const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
-
-    // Define o valor do input (formato YYYY-MM, ex: "2026-02")
     document.getElementById('filtro-mes').value = `${ano}-${mes}`;
-
     carregarFinanceiro();
   });
 
@@ -93,18 +124,12 @@
     try {
       const resposta = await fetch('/api/agendamentos');
       const todosAgendamentos = await resposta.json();
-
-      // Pega o mês que está selecionado no filtro (ex: "2026-02")
       const mesEscolhido = document.getElementById('filtro-mes').value;
 
-      // ✨ NOVIDADE 2: Filtra os concluídos E que começam com o ano/mês escolhido
       let concluidos = todosAgendamentos.filter(ag => {
         return ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido);
       });
 
-      // ✨ NOVIDADE 3: A SOLUÇÃO DO BUG!
-      // Força a ordenação pela Data e Hora (do mais recente para o mais antigo),
-      // ignorando a bagunça que o banco de dados faz ao editar.
       concluidos.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
 
       let faturamentoTotal = 0;
@@ -112,36 +137,34 @@
       corpoTabela.innerHTML = '';
 
       if (concluidos.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4">Nenhum serviço concluído neste mês.</td></tr>';
+        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
         document.getElementById('qtd-servicos').innerText = '0';
         document.getElementById('valor-faturamento').innerText = 'R$ 0,00';
         return;
       }
 
       concluidos.forEach(agendamento => {
-        // Pega o valor final editado, ou o preço original se não foi editado
         const valorCobrado = agendamento.valorFinal != null ? agendamento.valorFinal : agendamento.servicoEscolhido.preco;
         faturamentoTotal += valorCobrado;
 
-        // Agora mostramos a data E a hora no extrato para ficar mais organizado
         const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         const valorFormatado = valorCobrado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+        // ✨ ADICIONAMOS O data-label AQUI TAMBÉM
         const linha = `
                     <tr>
-                        <td class="text-muted">${dataFormatada}</td>
-                        <td><strong>${agendamento.nomeCliente}</strong></td>
-                        <td>${agendamento.servicoEscolhido.nome}</td>
-                        <td class="text-success fw-bold">${valorFormatado}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="editarValor(${agendamento.id}, ${valorCobrado})">✏️ Editar</button>
+                        <td data-label="Data/Hora" class="text-muted">${dataFormatada}</td>
+                        <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
+                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome}</td>
+                        <td data-label="Valor" class="text-success fw-bold">${valorFormatado}</td>
+                        <td data-label="Ações">
+                            <button class="btn btn-sm btn-outline-secondary w-100 w-md-auto" onclick="editarValor(${agendamento.id}, ${valorCobrado})">✏️ Editar</button>
                         </td>
                     </tr>
                 `;
         corpoTabela.innerHTML += linha;
       });
 
-      // Atualiza os painéis gigantes no topo
       document.getElementById('qtd-servicos').innerText = concluidos.length;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 

@@ -50,10 +50,22 @@ public class AgendaService {
             return false;
         }
 
-        // REGRA 2: Bloqueios manuais (Verifica se o barbeiro travou esse horário)
-        if (bloqueioAgendaRepository.existsByDataHoraBloqueada(inicio)) {
-            System.out.println("❌ Horário já ocupado por outro cliente.");
-            return false;
+        // =========================================================
+        // REGRA 2: Bloqueios manuais (Verifica se o barbeiro travou um PERÍODO)
+        // =========================================================
+        List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAll();
+        for (BloqueioAgenda bloqueio : bloqueios) {
+
+            // ✨ ESCUDO CONTRA DADOS VELHOS OU CORROMPIDOS:
+            // Se o bloqueio não tiver Início ou Fim definido, pula para o próximo!
+            if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) {
+                continue;
+            }
+
+            if (inicio.isBefore(bloqueio.getDataHoraFim()) && fim.isAfter(bloqueio.getDataHoraInicio())) {
+                System.out.println("❌ Agendamento recusado: Cai dentro do bloqueio de " + bloqueio.getMotivo());
+                return false;
+            }
         }
         // =========================================================
 
@@ -151,7 +163,7 @@ public class AgendaService {
     // MÉTOD PARA O BARBEIRO BLOQUEAR HORÁRIOS
 
     public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
-        System.out.println("🔒 Bloqueando agenda para: " + novoBloqueio.getDataHoraBloqueada() + " | Motivo: " + novoBloqueio.getMotivo());
+        System.out.println("🔒 Bloqueando agenda de: " + novoBloqueio.getDataHoraInicio() + " até " + novoBloqueio.getDataHoraFim() + " | Motivo: " + novoBloqueio.getMotivo());
         return bloqueioAgendaRepository.save(novoBloqueio);
     }
 
@@ -175,5 +187,9 @@ public class AgendaService {
         agendamento.setValorFinal(novoValor);
         agendamentoRepository.save(agendamento);
         System.out.println("💸 Valor do agendamento " + id + " alterado para: " + novoValor);
+    }
+
+    public java.util.List<BloqueioAgenda> listarBloqueios() {
+        return bloqueioAgendaRepository.findAll();
     }
 }
