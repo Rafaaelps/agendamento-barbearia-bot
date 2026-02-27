@@ -8,6 +8,7 @@ import com.barber.agendamento_bot.api.repository.SessaoBotRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal; // ✨ IMPORTAÇÃO ADICIONADA AQUI
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -27,15 +28,25 @@ public class ChatbotService {
     }
 
     // =======================================================
-    // ✨ INJETOR AUTOMÁTICO DE SERVIÇOS
+    // ✨ INJETOR AUTOMÁTICO DE SERVIÇOS (CORRIGIDO PARA BIGDECIMAL)
     // =======================================================
     @PostConstruct
     public void popularBancoSeEstiverVazio() {
         if (servicoRepository.count() == 0) {
             System.out.println("⚙️ Banco de Serviços vazio. Injetando serviços padrão...");
-            Servico s1 = new Servico(); s1.setNome("Corte de Cabelo"); s1.setPreco(35.0);
-            Servico s2 = new Servico(); s2.setNome("Barba"); s2.setPreco(25.0);
-            Servico s3 = new Servico(); s3.setNome("Corte + Barba"); s3.setPreco(55.0);
+
+            Servico s1 = new Servico();
+            s1.setNome("Corte de Cabelo");
+            s1.setPreco(new BigDecimal("35.00")); // ✨ CORREÇÃO AQUI
+
+            Servico s2 = new Servico();
+            s2.setNome("Barba");
+            s2.setPreco(new BigDecimal("25.00")); // ✨ CORREÇÃO AQUI
+
+            Servico s3 = new Servico();
+            s3.setNome("Corte + Barba");
+            s3.setPreco(new BigDecimal("55.00")); // ✨ CORREÇÃO AQUI
+
             servicoRepository.saveAll(List.of(s1, s2, s3));
         }
     }
@@ -69,13 +80,11 @@ public class ChatbotService {
 
         // =======================================================
         // 👋 INTERCEPTADOR DE SAUDAÇÕES (O BOTAO DE RESET INTELIGENTE)
-        // Se a frase começar com alguma dessas palavras, reinicia tudo!
         // =======================================================
         if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|voltar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
 
-            // Se ele pediu pra cancelar ou sair, apenas avisa e não mostra o menu
             if (textoLimpo.equals("cancelar") || textoLimpo.equals("sair")) {
                 sessaoRepository.save(sessao);
                 return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
