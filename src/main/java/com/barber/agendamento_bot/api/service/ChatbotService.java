@@ -8,7 +8,7 @@ import com.barber.agendamento_bot.api.repository.SessaoBotRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal; // ✨ IMPORTAÇÃO ADICIONADA AQUI
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -28,24 +28,36 @@ public class ChatbotService {
     }
 
     // =======================================================
-    // ✨ INJETOR AUTOMÁTICO DE SERVIÇOS (CORRIGIDO PARA BIGDECIMAL)
+    // ✨ INJETOR AUTOMÁTICO (AGORA COM DURAÇÃO!)
     // =======================================================
     @PostConstruct
     public void popularBancoSeEstiverVazio() {
-        if (servicoRepository.count() == 0) {
-            System.out.println("⚙️ Banco de Serviços vazio. Injetando serviços padrão...");
+
+        // Verifica se existem serviços sem duração para corrigir o bug antigo
+        boolean precisaAtualizar = false;
+        for (Servico s : servicoRepository.findAll()) {
+            if (s.getDuracaoMinutos() == null) precisaAtualizar = true;
+        }
+
+        if (servicoRepository.count() == 0 || precisaAtualizar) {
+            System.out.println("⚙️ Recriando Banco de Serviços com Duração corrigida...");
+
+            servicoRepository.deleteAll(); // Limpa os serviços quebrados do banco
 
             Servico s1 = new Servico();
             s1.setNome("Corte de Cabelo");
-            s1.setPreco(new BigDecimal("35.00")); // ✨ CORREÇÃO AQUI
+            s1.setPreco(new BigDecimal("35.00"));
+            s1.setDuracaoMinutos(30); // ⏱️ Adicionando 30 minutos
 
             Servico s2 = new Servico();
             s2.setNome("Barba");
-            s2.setPreco(new BigDecimal("25.00")); // ✨ CORREÇÃO AQUI
+            s2.setPreco(new BigDecimal("25.00"));
+            s2.setDuracaoMinutos(20); // ⏱️ Adicionando 20 minutos
 
             Servico s3 = new Servico();
             s3.setNome("Corte + Barba");
-            s3.setPreco(new BigDecimal("55.00")); // ✨ CORREÇÃO AQUI
+            s3.setPreco(new BigDecimal("55.00"));
+            s3.setDuracaoMinutos(50); // ⏱️ Adicionando 50 minutos
 
             servicoRepository.saveAll(List.of(s1, s2, s3));
         }
@@ -65,9 +77,7 @@ public class ChatbotService {
         String textoLimpo = textoRecebido.toLowerCase().trim();
         LocalDateTime agora = LocalDateTime.now();
 
-        // =======================================================
-        // ⏱️ TIMEOUT (VERIFICAÇÃO PASSIVA DE 10 MINUTOS)
-        // =======================================================
+        // ⏱️ TIMEOUT (10 MINUTOS)
         if (sessao.getUltimaInteracao() != null) {
             long minutosInativos = ChronoUnit.MINUTES.between(sessao.getUltimaInteracao(), agora);
             if (minutosInativos >= 10 && !sessao.getPassoAtual().equals("MENU_INICIAL")) {
@@ -78,9 +88,7 @@ public class ChatbotService {
         }
         sessao.setUltimaInteracao(agora);
 
-        // =======================================================
-        // 👋 INTERCEPTADOR DE SAUDAÇÕES (O BOTAO DE RESET INTELIGENTE)
-        // =======================================================
+        // 👋 INTERCEPTADOR DE SAUDAÇÕES
         if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|voltar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
@@ -91,9 +99,7 @@ public class ChatbotService {
             }
         }
 
-        // =======================================================
-        // 🧠 A MÁQUINA DE ESTADOS (O SWITCH)
-        // =======================================================
+        // 🧠 A MÁQUINA DE ESTADOS
         switch (sessao.getPassoAtual()) {
 
             case "MENU_INICIAL":
@@ -206,14 +212,14 @@ public class ChatbotService {
                     novoAgendamento.setNomeCliente(sessao.getNomeClienteTemporario());
                     novoAgendamento.setDataHoraInicio(dataHoraCompleta);
 
-                    Servico servicoEscolhido = new Servico();
-                    servicoEscolhido.setId(sessao.getIdServicoTemporario());
+                    // ✨ CORREÇÃO PREVENTIVA: Busca o serviço completo no banco para salvar certinho!
+                    Servico servicoEscolhido = servicoRepository.findById(sessao.getIdServicoTemporario()).orElse(null);
                     novoAgendamento.setServicoEscolhido(servicoEscolhido);
 
                     boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
 
                     if (sucesso) {
-                        respostaDoRobo = "✅ Tudo certo, " + sessao.getNomeClienteTemporario() + "! Seu agendamento para " + diaMes + " às " + textoLimpo + " está confirmado.";
+                        respostaDoRobo = "✅ Tudo certo, " + sessao.getNomeClienteTemporario() + "! Seu agendamento para o dia " + diaMes + " às " + textoLimpo + " está confirmado.";
                         sessao.setPassoAtual("MENU_INICIAL");
                         limparDadosTemporariosDaSessao(sessao);
                     } else {
