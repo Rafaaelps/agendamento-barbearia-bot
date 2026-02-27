@@ -5,8 +5,11 @@ import com.barber.agendamento_bot.api.entity.Servico;
 import com.barber.agendamento_bot.api.entity.SessaoBot;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
 import com.barber.agendamento_bot.api.repository.SessaoBotRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,32 +26,69 @@ public class ChatbotService {
         this.servicoRepository = servicoRepository;
     }
 
+    // =======================================================
+    // ✨ INJETOR AUTOMÁTICO DE SERVIÇOS
+    // =======================================================
+    @PostConstruct
+    public void popularBancoSeEstiverVazio() {
+        if (servicoRepository.count() == 0) {
+            System.out.println("⚙️ Banco de Serviços vazio. Injetando serviços padrão...");
+            Servico s1 = new Servico(); s1.setNome("Corte de Cabelo"); s1.setPreco(35.0);
+            Servico s2 = new Servico(); s2.setNome("Barba"); s2.setPreco(25.0);
+            Servico s3 = new Servico(); s3.setNome("Corte + Barba"); s3.setPreco(55.0);
+            servicoRepository.saveAll(List.of(s1, s2, s3));
+        }
+    }
+
+    private void limparDadosTemporariosDaSessao(SessaoBot sessao) {
+        sessao.setNomeClienteTemporario(null);
+        sessao.setIdServicoTemporario(null);
+        sessao.setDataTemporaria(null);
+        sessao.setIdAgendamentoTemporario(null);
+    }
+
     public String processarMensagem(String telefone, String textoRecebido) {
 
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
         String respostaDoRobo = "";
-
-        // Transforma o texto em minúsculo para facilitar validações
         String textoLimpo = textoRecebido.toLowerCase().trim();
+        LocalDateTime agora = LocalDateTime.now();
 
         // =======================================================
-        // 🚨 A VÁLVULA DE ESCAPE (O RESET)
+        // ⏱️ TIMEOUT (VERIFICAÇÃO PASSIVA DE 10 MINUTOS)
         // =======================================================
-        if (textoLimpo.equals("cancelar") || textoLimpo.equals("sair")) {
-            sessao.setPassoAtual("MENU_INICIAL");
-            sessao.setNomeClienteTemporario(null);
-            sessao.setIdServicoTemporario(null);
-            sessao.setDataTemporaria(null);
-            sessao.setIdAgendamentoTemporario(null);
-            sessaoRepository.save(sessao);
-            return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
+        if (sessao.getUltimaInteracao() != null) {
+            long minutosInativos = ChronoUnit.MINUTES.between(sessao.getUltimaInteracao(), agora);
+            if (minutosInativos >= 10 && !sessao.getPassoAtual().equals("MENU_INICIAL")) {
+                sessao.setPassoAtual("MENU_INICIAL");
+                limparDadosTemporariosDaSessao(sessao);
+                respostaDoRobo = "⏳ Vi que você demorou um pouquinho, então eu reiniciei nosso atendimento para organizar a agenda, tá bom?\n\n";
+            }
         }
-        // =======================================================
+        sessao.setUltimaInteracao(agora);
 
+        // =======================================================
+        // 👋 INTERCEPTADOR DE SAUDAÇÕES (O BOTAO DE RESET INTELIGENTE)
+        // Se a frase começar com alguma dessas palavras, reinicia tudo!
+        // =======================================================
+        if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|voltar|cancelar|sair).*")) {
+            sessao.setPassoAtual("MENU_INICIAL");
+            limparDadosTemporariosDaSessao(sessao);
+
+            // Se ele pediu pra cancelar ou sair, apenas avisa e não mostra o menu
+            if (textoLimpo.equals("cancelar") || textoLimpo.equals("sair")) {
+                sessaoRepository.save(sessao);
+                return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
+            }
+        }
+
+        // =======================================================
+        // 🧠 A MÁQUINA DE ESTADOS (O SWITCH)
+        // =======================================================
         switch (sessao.getPassoAtual()) {
 
             case "MENU_INICIAL":
-                respostaDoRobo = "Olá! Sou o assistente da Barbearia. O que você deseja fazer?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
+                respostaDoRobo += "Olá! Sou o assistente da Barbearia. O que você deseja fazer?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
                 sessao.setPassoAtual("ESPERANDO_OPCAO_INICIAL");
                 break;
 
@@ -90,6 +130,13 @@ public class ChatbotService {
                 sessao.setNomeClienteTemporario(textoRecebido);
 
                 List<Servico> listaServicos = servicoRepository.findAll();
+
+                if (listaServicos.isEmpty()) {
+                    respostaDoRobo = "Ops, não encontrei nenhum serviço cadastrado no sistema. Volte mais tarde!";
+                    sessao.setPassoAtual("MENU_INICIAL");
+                    break;
+                }
+
                 StringBuilder menuServicos = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar para hoje?\n\n");
 
                 for (Servico s : listaServicos) {
@@ -120,20 +167,16 @@ public class ChatbotService {
 
             case "ESPERANDO_DATA":
                 try {
-                    // ✨ NOVIDADE: Tenta simular a data antes de salvar na memória!
                     int anoAtual = java.time.LocalDate.now().getYear();
                     java.time.format.DateTimeFormatter formatadorData = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-                    // Se o cliente digitou "27:02", o Java vai estourar um erro AQUI e pular pro "catch"
                     java.time.LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
 
-                    // Se não deu erro, a data é válida! Salvamos e avançamos.
                     sessao.setDataTemporaria(textoLimpo);
                     respostaDoRobo = "Certo! E qual o horário? (ex: 14:30):";
                     sessao.setPassoAtual("ESPERANDO_HORARIO");
 
                 } catch (java.time.format.DateTimeParseException e) {
-                    // O cliente errou o formato. O robô avisa e o passo CONTINUA sendo "ESPERANDO_DATA"
                     respostaDoRobo = "⚠️ Formato de data inválido! Por favor, digite o dia e o mês separados por barra (ex: 28/02):";
                 }
                 break;
@@ -163,14 +206,11 @@ public class ChatbotService {
                     if (sucesso) {
                         respostaDoRobo = "✅ Tudo certo, " + sessao.getNomeClienteTemporario() + "! Seu agendamento para " + diaMes + " às " + textoLimpo + " está confirmado.";
                         sessao.setPassoAtual("MENU_INICIAL");
-                        sessao.setNomeClienteTemporario(null);
-                        sessao.setIdServicoTemporario(null);
-                        sessao.setDataTemporaria(null);
+                        limparDadosTemporariosDaSessao(sessao);
                     } else {
                         respostaDoRobo = "❌ Esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário livre:";
                     }
                 } catch (java.time.format.DateTimeParseException e) {
-                    // Como a data já foi validada no passo anterior, se der erro aqui, a culpa é da HORA!
                     respostaDoRobo = "⚠️ Formato de horário inválido! Por favor, digite a hora com dois pontos (ex: 14:30):";
                 }
                 break;

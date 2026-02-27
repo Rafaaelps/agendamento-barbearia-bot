@@ -19,6 +19,7 @@ public class SessaoBot {
     private String nomeClienteTemporario;
     private Long idServicoTemporario;
     private String dataTemporaria;
+    private java.time.LocalDateTime ultimaInteracao;
 
     public SessaoBot() {}
 
@@ -46,4 +47,6 @@ public class SessaoBot {
     public String getDataTemporaria() { return dataTemporaria; }
     public void setDataTemporaria(String dataTemporaria) { this.dataTemporaria = dataTemporaria; }
 
+    public java.time.LocalDateTime getUltimaInteracao() { return ultimaInteracao; }
+    public void setUltimaInteracao(java.time.LocalDateTime ultimaInteracao) { this.ultimaInteracao = ultimaInteracao; }
 }
