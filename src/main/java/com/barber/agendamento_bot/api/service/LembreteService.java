@@ -8,9 +8,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -36,28 +38,37 @@ public class LembreteService {
     // Roda a cada 1 minuto
     @Scheduled(cron = "0 * * * * *")
     public void verificarEEnviarLembretes() {
-        LocalDateTime agora = LocalDateTime.now();
-        // ✨ Aumentamos a janela para 35 minutos de segurança (cobre o agendamento perfeitamente)
+        // ✨ TRAVA DE FUSO HORÁRIO INFALÍVEL
+        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
+        LocalDateTime agora = LocalDateTime.now(fusoBR);
         LocalDateTime daquiA35Minutos = agora.plusMinutes(35);
+
+        // LOG 1: Batimento cardíaco do robô (Para sabermos que ele acordou)
+        System.out.println("⏱️ [CRON] Buscando cortes entre " + agora.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " e " + daquiA35Minutos.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
 
         List<Agendamento> agendamentos = agendamentoRepository
                 .buscarAgendamentosParaLembrar("CONFIRMADO", agora, daquiA35Minutos);
 
-        for (Agendamento agendamento : agendamentos) {
-            try {
-                enviarMensagemEvolution(agendamento);
+        // LOG 2: Quantos ele achou?
+        if (agendamentos.isEmpty()) {
+            System.out.println("🤷 Nenhum cliente encontrado para lembrar agora.");
+            return;
+        }
 
-                // Carimba que já foi enviado
+        System.out.println("🎯 Encontrados " + agendamentos.size() + " clientes para enviar lembrete!");
+
+        for (Agendamento agendamento : agendamentos) {
+            boolean sucesso = enviarMensagemEvolution(agendamento);
+
+            // Só carimba que enviou se a Evolution API realmente aceitar a mensagem!
+            if (sucesso) {
                 agendamento.setLembreteEnviado(true);
                 agendamentoRepository.save(agendamento);
-
-            } catch (Exception e) {
-                System.err.println("❌ Erro ao enviar lembrete via Evolution para " + agendamento.getNomeCliente() + ": " + e.getMessage());
             }
         }
     }
 
-    private void enviarMensagemEvolution(Agendamento agendamento) {
+    private boolean enviarMensagemEvolution(Agendamento agendamento) {
         String horaFormatada = agendamento.getDataHoraInicio().format(DateTimeFormatter.ofPattern("HH:mm"));
         String mensagem = "⏳ Olá, *" + agendamento.getNomeCliente() + "*! Passando para lembrar que o seu horário conosco é daqui a pouco, às *" + horaFormatada + "*. Já estamos te esperando! 💈";
 
@@ -70,20 +81,32 @@ public class LembreteService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("apikey", API_KEY); // Autenticação da Evolution
+        headers.set("apikey", API_KEY);
 
-        // ✨ Pacote à prova de falhas para V1 e V2 da Evolution API
         Map<String, Object> corpoRequisicao = new HashMap<>();
         corpoRequisicao.put("number", numeroLimpo);
-        corpoRequisicao.put("text", mensagem); // Lida com a Evolution V2
+        corpoRequisicao.put("text", mensagem);
 
         Map<String, String> textMessage = new HashMap<>();
         textMessage.put("text", mensagem);
-        corpoRequisicao.put("textMessage", textMessage); // Lida com a Evolution V1
+        corpoRequisicao.put("textMessage", textMessage);
 
         HttpEntity<Map<String, Object>> pacote = new HttpEntity<>(corpoRequisicao, headers);
-        ResponseEntity<String> resposta = restTemplate.postForEntity(urlDeDisparo, pacote, String.class);
 
-        System.out.println("🔔 [SUCESSO] Lembrete disparado para " + numeroLimpo + " | Status: " + resposta.getStatusCode());
+        try {
+            ResponseEntity<String> resposta = restTemplate.postForEntity(urlDeDisparo, pacote, String.class);
+            System.out.println("✅ [ENVIADO] Lembrete para " + numeroLimpo + " | Evolution respondeu: 200 OK");
+            return true;
+
+        } catch (HttpClientErrorException e) {
+            // LOG 3: O DEDO DURO DA EVOLUTION API
+            System.err.println("❌ [ERRO EVOLUTION] A API recusou o envio para " + numeroLimpo + "!");
+            System.err.println("🚨 Código HTTP: " + e.getStatusCode());
+            System.err.println("🚨 Motivo: " + e.getResponseBodyAsString());
+            return false;
+        } catch (Exception e) {
+            System.err.println("❌ [ERRO SISTEMA] Falha ao tentar conectar na Evolution: " + e.getMessage());
+            return false;
+        }
     }
 }
