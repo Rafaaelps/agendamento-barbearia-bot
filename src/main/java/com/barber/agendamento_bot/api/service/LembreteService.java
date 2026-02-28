@@ -27,7 +27,7 @@ public class LembreteService {
     // =======================================================
     // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API
     // =======================================================
-    private final String EVOLUTION_URL = "http://187.77.224.241:8080";
+    private final String EVOLUTION_URL = "http://187.77.224.241:47851";
     private final String INSTANCE_NAME = "barbearia";
     private final String API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
 
