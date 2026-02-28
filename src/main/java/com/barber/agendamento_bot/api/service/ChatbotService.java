@@ -28,36 +28,28 @@ public class ChatbotService {
     }
 
     // =======================================================
-    // ✨ INJETOR AUTOMÁTICO (AGORA COM DURAÇÃO!)
+    // ✨ INJETOR AUTOMÁTICO (SEGURO)
     // =======================================================
     @PostConstruct
     public void popularBancoSeEstiverVazio() {
-
-        // Verifica se existem serviços sem duração para corrigir o bug antigo
-        boolean precisaAtualizar = false;
-        for (Servico s : servicoRepository.findAll()) {
-            if (s.getDuracaoMinutos() == null) precisaAtualizar = true;
-        }
-
-        if (servicoRepository.count() == 0 || precisaAtualizar) {
-            System.out.println("⚙️ Recriando Banco de Serviços com Duração corrigida...");
-
-            servicoRepository.deleteAll(); // Limpa os serviços quebrados do banco
+        // ✨ AGORA É SEGURO: Só cria se não existir NADA. Nunca apaga dados do cliente!
+        if (servicoRepository.count() == 0) {
+            System.out.println("⚙️ Criando serviços iniciais no banco vazio...");
 
             Servico s1 = new Servico();
             s1.setNome("Corte de Cabelo");
             s1.setPreco(new BigDecimal("35.00"));
-            s1.setDuracaoMinutos(30); // ⏱️ Adicionando 30 minutos
+            s1.setDuracaoMinutos(30);
 
             Servico s2 = new Servico();
             s2.setNome("Barba");
             s2.setPreco(new BigDecimal("25.00"));
-            s2.setDuracaoMinutos(20); // ⏱️ Adicionando 20 minutos
+            s2.setDuracaoMinutos(20);
 
             Servico s3 = new Servico();
             s3.setNome("Corte + Barba");
             s3.setPreco(new BigDecimal("55.00"));
-            s3.setDuracaoMinutos(50); // ⏱️ Adicionando 50 minutos
+            s3.setDuracaoMinutos(50);
 
             servicoRepository.saveAll(List.of(s1, s2, s3));
         }

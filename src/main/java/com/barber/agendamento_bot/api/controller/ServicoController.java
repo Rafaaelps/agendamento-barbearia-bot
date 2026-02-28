@@ -1,11 +1,9 @@
 package com.barber.agendamento_bot.api.controller;
 
-
 import com.barber.agendamento_bot.api.entity.Servico;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,10 +18,27 @@ public class ServicoController {
         this.servicoRepository = servicoRepository;
     }
 
-    // 3. Quando alguém acessar essa URL pelo navegador, este métod é acionado!
+    // 3. Quando alguém acessar essa URL pelo navegador, este método é acionado!
     @GetMapping
     public List<Servico> listarTodosOsServicos() {
         // Vai no banco de dados, pega todos os serviços e devolve para a internet
         return servicoRepository.findAll();
+    }
+
+    // ✨ NOVO: Garçom que recebe o pedido da tela para CRIAR um novo serviço
+    @PostMapping
+    public Servico criar(@RequestBody Servico servico) {
+        return servicoRepository.save(servico);
+    }
+
+    // ✨ NOVO: Garçom que recebe o pedido da tela para ATUALIZAR um serviço (Preço, Nome, Duração)
+    @PutMapping("/{id}")
+    public ResponseEntity<Servico> atualizar(@PathVariable Long id, @RequestBody Servico dadosAtualizados) {
+        return servicoRepository.findById(id).map(servico -> {
+            servico.setNome(dadosAtualizados.getNome());
+            servico.setPreco(dadosAtualizados.getPreco());
+            servico.setDuracaoMinutos(dadosAtualizados.getDuracaoMinutos());
+            return ResponseEntity.ok(servicoRepository.save(servico));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }
