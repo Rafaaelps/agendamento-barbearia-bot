@@ -27,9 +27,9 @@ public class LembreteService {
     // =======================================================
     // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API
     // =======================================================
-    private final String EVOLUTION_URL = "http://SEU_IP_DA_HOSTINGER:8080";
-    private final String INSTANCE_NAME = "NOME_DA_SUA_INSTANCIA";
-    private final String API_KEY = "SUA_GLOBAL_API_KEY_AQUI";
+    private final String EVOLUTION_URL = "http://187.77.224.241:8080";
+    private final String INSTANCE_NAME = "barbearia";
+    private final String API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
 
     public LembreteService(AgendamentoRepository agendamentoRepository) {
         this.agendamentoRepository = agendamentoRepository;
