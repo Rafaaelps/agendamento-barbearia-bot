@@ -7,6 +7,14 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
+    /* Cor personalizada: Vermelho suave/fosco para não agredir os olhos */
+    .text-suave-danger {
+      color: #c94c4c !important;
+    }
+    .border-suave-danger {
+      border-color: #c94c4c !important;
+    }
+
     @media (max-width: 767.98px) {
       .tabela-mobile thead { display: none; }
       .tabela-mobile tbody tr {
@@ -70,22 +78,34 @@
   </div>
 
   <div class="row mb-4 g-3">
-    <div class="col-12 col-md-6">
+
+    <div class="col-12 col-md-4">
       <div class="card shadow-sm border-0 border-success border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1">Lucro Líquido Mensal</h6>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Lucro Líquido Mensal</h6>
           <h2 class="text-success fw-bold mb-0" id="valor-faturamento">R$ 0,00</h2>
         </div>
       </div>
     </div>
-    <div class="col-12 col-md-6">
+
+    <div class="col-12 col-md-4">
+      <div class="card shadow-sm border-0 border-suave-danger border-start border-5 h-100">
+        <div class="card-body">
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Taxas Pagas (Maquininha)</h6>
+          <h2 class="text-suave-danger fw-bold mb-0" id="valor-taxas">R$ 0,00</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
       <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1">Serviços Concluídos</h6>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Serviços Concluídos</h6>
           <h2 class="text-primary fw-bold mb-0" id="qtd-servicos">0</h2>
         </div>
       </div>
     </div>
+
   </div>
 
   <div class="card shadow-sm border-0 mb-5 bg-transparent bg-md-white">
@@ -134,6 +154,8 @@
       concluidos.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
 
       let faturamentoTotal = 0;
+      let taxasTotal = 0; // ✨ Variável nova para somar o dinheiro perdido
+
       const corpoTabela = document.getElementById('tabela-extrato');
       corpoTabela.innerHTML = '';
 
@@ -141,24 +163,32 @@
         corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
         document.getElementById('qtd-servicos').innerText = '0';
         document.getElementById('valor-faturamento').innerText = 'R$ 0,00';
+        document.getElementById('valor-taxas').innerText = 'R$ 0,00';
         return;
       }
 
       concluidos.forEach(agendamento => {
-        // ✨ A MÁGICA FINANCEIRA: Puxa o lucro com as taxas descontadas (ou cai pro preço base se for antigo)
+        let precoBase = Number(agendamento.servicoEscolhido.preco);
         let lucroReal = 0;
+
+        // Puxa o lucro com as taxas descontadas
         if (agendamento.faturamentoBarbeiro != null && agendamento.faturamentoBarbeiro > 0) {
           lucroReal = Number(agendamento.faturamentoBarbeiro);
         } else if (agendamento.valorFinal != null) {
           lucroReal = Number(agendamento.valorFinal);
         } else {
-          lucroReal = Number(agendamento.servicoEscolhido.preco);
+          lucroReal = precoBase;
         }
 
+        // ✨ A MÁGICA: Preço original menos o que realmente caiu na conta
+        // O Math.max(0, ...) evita números negativos caso o barbeiro edite o lucro pra um valor MAIOR que o preço do serviço
+        let taxaPerdida = Math.max(0, precoBase - lucroReal);
+
         faturamentoTotal += lucroReal;
+        taxasTotal += taxaPerdida;
 
         const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-        const valorFormatado = lucroReal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const lucroFormatado = lucroReal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const formaPgto = agendamento.formaPagamento || 'Não informada';
 
         let corPagamento = 'text-dark';
@@ -170,9 +200,9 @@
                     <tr>
                         <td data-label="Data/Hora" class="text-muted">${dataFormatada}</td>
                         <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
-                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br><small class="text-muted">R$ ${Number(agendamento.servicoEscolhido.preco).toFixed(2)}</small></td>
+                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br><small class="text-muted">R$ ${precoBase.toFixed(2)}</small></td>
                         <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
-                        <td data-label="Lucro" class="text-success fw-bold">${valorFormatado}</td>
+                        <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
                         <td data-label="Ações">
                             <button class="btn btn-sm btn-outline-secondary w-100 w-md-auto" onclick="editarValor(${agendamento.id}, ${lucroReal})">✏️ Editar</button>
                         </td>
@@ -181,8 +211,10 @@
         corpoTabela.innerHTML += linha;
       });
 
+      // Atualiza os painéis lá no topo
       document.getElementById('qtd-servicos').innerText = concluidos.length;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); // Atualiza o bloco vermelho fosco
 
     } catch (erro) {
       console.error("Erro ao buscar dados financeiros:", erro);
