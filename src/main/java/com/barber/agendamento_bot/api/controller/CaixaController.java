@@ -40,7 +40,8 @@ public class CaixaController {
             formaPgtoOficial = "Cartão de Crédito";
             faturamentoLiquido = precoBase.multiply(new BigDecimal("0.9517")); // Deduz 4,83%
         } else if (metodo.equalsIgnoreCase("DEBITO")) {
-            formaPgto Oficial = "Cartão de Débito";
+            // ✨ CORREÇÃO AQUI: Estava com um espaço "formaPgto Oficial"
+            formaPgtoOficial = "Cartão de Débito";
             faturamentoLiquido = precoBase.multiply(new BigDecimal("0.9811")); // Deduz 1,89%
         } else if (metodo.equalsIgnoreCase("PIX_DINHEIRO")) {
             formaPgtoOficial = "Dinheiro / PIX";
