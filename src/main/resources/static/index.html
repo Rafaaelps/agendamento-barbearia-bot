@@ -8,7 +8,6 @@
 
     <style>
         @media (max-width: 767.98px) {
-            /* Força tudo a virar bloco, ignorando regras da tabela padrão */
             .tabela-mobile,
             .tabela-mobile tbody,
             .tabela-mobile tr,
@@ -16,7 +15,6 @@
                 display: block !important;
                 width: 100% !important;
             }
-            /* Esconde o cabeçalho preto no celular */
             .tabela-mobile thead {
                 display: none !important;
             }
@@ -39,7 +37,6 @@
             .tabela-mobile td:last-child {
                 border-bottom: none;
             }
-            /* Cria o título da linha baseado no data-label */
             .tabela-mobile td::before {
                 content: attr(data-label);
                 font-weight: bold;
@@ -97,7 +94,7 @@
                     <th>Telefone</th>
                     <th>Serviço</th>
                     <th>Período</th>
-                    <th>Status</th>
+                    <th>Status / Pgto</th>
                     <th>Ações</th>
                 </tr>
                 </thead>
@@ -138,6 +135,27 @@
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-dark w-100 w-md-auto" onclick="salvarBloqueio()">Salvar Bloqueio</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalPagamento" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold">💰 Receber e Finalizar</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-3 text-muted">Como o cliente realizou o pagamento?</p>
+                <input type="hidden" id="id-agendamento-pagamento">
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary fw-bold" onclick="processarPagamento('CREDITO')">💳 Cartão de Crédito</button>
+                    <button class="btn btn-outline-info fw-bold" onclick="processarPagamento('DEBITO')">💳 Cartão de Débito</button>
+                    <button class="btn btn-outline-success fw-bold" onclick="processarPagamento('PIX_DINHEIRO')">💵 Dinheiro / PIX</button>
+                </div>
             </div>
         </div>
     </div>
@@ -190,100 +208,6 @@
                     if (agendamento.status === 'CANCELADO') corBadge = 'bg-danger';
                     if (agendamento.status === 'CONCLUIDO') corBadge = 'bg-primary';
 
-                    let botoesAcao = '';
-                    if (agendamento.status === 'CONFIRMADO') {
-                        botoesAcao = `
-                            <button class="btn btn-sm btn-success me-1 mb-1 mb-md-0" onclick="concluir(${agendamento.id})">✅</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="cancelar(${agendamento.id})">❌</button>
-                        `;
-                    } else {
-                        botoesAcao = `<span class="text-muted fw-bold">${agendamento.status}</span>`;
-                    }
-
-                    corpoTabela.innerHTML += `
-                        <tr>
-                            <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
-                            <td data-label="Telefone">${agendamento.telefoneCliente}</td>
-                            <td data-label="Serviço">${agendamento.servicoEscolhido.nome}</td>
-                            <td data-label="Período" class="fw-bold text-primary">${horaInicioFmt} às ${horaFimFmt}</td>
-                            <td data-label="Status"><span class="badge ${corBadge}">${agendamento.status}</span></td>
-                            <td data-label="Ações">${botoesAcao}</td>
-                        </tr>
-                    `;
-                } else {
-                    const bloqueio = item.dado;
-                    const horaInicioFmt = new Date(bloqueio.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    const horaFimFmt = new Date(bloqueio.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-                    // ✨ Correção do Bloqueio: Sem o colspan para não quebrar o layout!
-                    corpoTabela.innerHTML += `
-                        <tr class="table-warning border-warning">
-                            <td data-label="Detalhe">🔒 <strong>Bloqueio:</strong> ${bloqueio.motivo}</td>
-                            <td data-label="Telefone" class="d-none d-md-table-cell text-muted">-</td>
-                            <td data-label="Serviço" class="d-none d-md-table-cell text-muted">-</td>
-                            <td data-label="Período" class="fw-bold text-dark">${horaInicioFmt} às ${horaFimFmt}</td>
-                            <td data-label="Status"><span class="badge bg-warning text-dark border border-dark">BLOQUEADO</span></td>
-                            <td data-label="Ações" class="d-none d-md-table-cell text-muted">-</td>
-                        </tr>
-                    `;
-                }
-            });
-        } catch (erro) {
-            console.error("Erro ao buscar dados da API:", erro);
-        }
-    }
-
-    async function salvarBloqueio() {
-        const dataSelecionada = document.getElementById('data-bloqueio').value;
-        const horaInicio = document.getElementById('hora-inicio-bloqueio').value;
-        const horaFim = document.getElementById('hora-fim-bloqueio').value;
-        const motivoDigitado = document.getElementById('motivo-bloqueio').value;
-
-        if(!dataSelecionada || !horaInicio || !horaFim || !motivoDigitado) {
-            alert("Por favor, preencha todos os campos do bloqueio!");
-            return;
-        }
-
-        const novoBloqueio = {
-            dataHoraInicio: `${dataSelecionada}T${horaInicio}:00`,
-            dataHoraFim: `${dataSelecionada}T${horaFim}:00`,
-            motivo: motivoDigitado
-        };
-
-        try {
-            await fetch('/api/agendamentos/bloqueios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(novoBloqueio)
-            });
-
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalBloqueio'));
-            modal.hide();
-            document.getElementById('hora-inicio-bloqueio').value = '';
-            document.getElementById('hora-fim-bloqueio').value = '';
-            document.getElementById('motivo-bloqueio').value = '';
-
-            if(dataSelecionada === document.getElementById('filtro-data').value) {
-                carregarAgendamentos();
-            }
-        } catch (erro) {
-            alert("Erro ao salvar bloqueio!");
-        }
-    }
-
-    async function cancelar(id) {
-        if(confirm("Tem certeza que deseja cancelar este agendamento?")) {
-            await fetch(`/api/agendamentos/${id}/cancelar`, { method: 'PUT' });
-            carregarAgendamentos();
-        }
-    }
-
-    async function concluir(id) {
-        if(confirm("O cliente já pagou e o serviço foi finalizado?")) {
-            await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' });
-            carregarAgendamentos();
-        }
-    }
-</script>
-</body>
-</html>
+                    // Lógica de exibição do pagamento
+                    let infoPagamento = agendamento.formaPagamento || 'PENDENTE';
+                    let corTexto

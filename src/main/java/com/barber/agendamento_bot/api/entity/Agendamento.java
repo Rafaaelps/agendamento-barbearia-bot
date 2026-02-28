@@ -10,9 +10,10 @@ public class Agendamento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String telefoneCliente;
     private String nomeCliente;
+    private String formaPagamento;
+    private java.math.BigDecimal faturamentoBarbeiro;
 
     @ManyToOne
     @JoinColumn(name = "servico_id")
@@ -51,4 +52,12 @@ public class Agendamento {
 
     public java.math.BigDecimal getValorFinal() { return valorFinal; }
     public void setValorFinal(java.math.BigDecimal valorFinal) { this.valorFinal = valorFinal; }
+
+    public String getFormaPagamento() { return formaPagamento; }
+
+    public void setFormaPagamento(String formaPagamento) { this.formaPagamento = formaPagamento; }
+
+    public java.math.BigDecimal getFaturamentoBarbeiro() { return faturamentoBarbeiro;}
+
+    public void setFaturamentoBarbeiro(java.math.BigDecimal faturamentoBarbeiro) { this.faturamentoBarbeiro = faturamentoBarbeiro; }
 }

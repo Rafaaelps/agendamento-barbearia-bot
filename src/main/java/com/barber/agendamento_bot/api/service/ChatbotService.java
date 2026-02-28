@@ -216,6 +216,12 @@ public class ChatbotService {
                     Servico servicoEscolhido = servicoRepository.findById(sessao.getIdServicoTemporario()).orElse(null);
                     novoAgendamento.setServicoEscolhido(servicoEscolhido);
 
+                    // =======================================================
+                    // ✨ REGISTRO DE PAGAMENTO PENDENTE
+                    // =======================================================
+                    novoAgendamento.setFormaPagamento("PENDENTE");
+                    novoAgendamento.setFaturamentoBarbeiro(java.math.BigDecimal.ZERO);
+
                     boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
 
                     if (sucesso) {
