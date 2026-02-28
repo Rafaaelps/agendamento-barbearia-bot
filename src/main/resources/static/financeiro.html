@@ -73,7 +73,7 @@
     <div class="col-12 col-md-6">
       <div class="card shadow-sm border-0 border-success border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1">Faturamento Mensal</h6>
+          <h6 class="text-muted text-uppercase mb-1">Lucro Líquido Mensal</h6>
           <h2 class="text-success fw-bold mb-0" id="valor-faturamento">R$ 0,00</h2>
         </div>
       </div>
@@ -99,7 +99,8 @@
           <th>Data e Hora</th>
           <th>Cliente</th>
           <th>Serviço</th>
-          <th>Valor Recebido</th>
+          <th>Pagamento</th>
+          <th>Lucro Líquido</th>
           <th>Ações</th>
         </tr>
         </thead>
@@ -137,28 +138,43 @@
       corpoTabela.innerHTML = '';
 
       if (concluidos.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
         document.getElementById('qtd-servicos').innerText = '0';
         document.getElementById('valor-faturamento').innerText = 'R$ 0,00';
         return;
       }
 
       concluidos.forEach(agendamento => {
-        const valorCobrado = agendamento.valorFinal != null ? agendamento.valorFinal : agendamento.servicoEscolhido.preco;
-        faturamentoTotal += valorCobrado;
+        // ✨ A MÁGICA FINANCEIRA: Puxa o lucro com as taxas descontadas (ou cai pro preço base se for antigo)
+        let lucroReal = 0;
+        if (agendamento.faturamentoBarbeiro != null && agendamento.faturamentoBarbeiro > 0) {
+          lucroReal = Number(agendamento.faturamentoBarbeiro);
+        } else if (agendamento.valorFinal != null) {
+          lucroReal = Number(agendamento.valorFinal);
+        } else {
+          lucroReal = Number(agendamento.servicoEscolhido.preco);
+        }
+
+        faturamentoTotal += lucroReal;
 
         const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-        const valorFormatado = valorCobrado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const valorFormatado = lucroReal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const formaPgto = agendamento.formaPagamento || 'Não informada';
 
-        // ✨ ADICIONAMOS O data-label AQUI TAMBÉM
+        let corPagamento = 'text-dark';
+        if (formaPgto.includes('Crédito')) corPagamento = 'text-primary';
+        if (formaPgto.includes('Débito')) corPagamento = 'text-info';
+        if (formaPgto.includes('PIX') || formaPgto.includes('Dinheiro')) corPagamento = 'text-success';
+
         const linha = `
                     <tr>
                         <td data-label="Data/Hora" class="text-muted">${dataFormatada}</td>
                         <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
-                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome}</td>
-                        <td data-label="Valor" class="text-success fw-bold">${valorFormatado}</td>
+                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br><small class="text-muted">R$ ${Number(agendamento.servicoEscolhido.preco).toFixed(2)}</small></td>
+                        <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
+                        <td data-label="Lucro" class="text-success fw-bold">${valorFormatado}</td>
                         <td data-label="Ações">
-                            <button class="btn btn-sm btn-outline-secondary w-100 w-md-auto" onclick="editarValor(${agendamento.id}, ${valorCobrado})">✏️ Editar</button>
+                            <button class="btn btn-sm btn-outline-secondary w-100 w-md-auto" onclick="editarValor(${agendamento.id}, ${lucroReal})">✏️ Editar</button>
                         </td>
                     </tr>
                 `;
@@ -174,7 +190,7 @@
   }
 
   async function editarValor(id, valorAtual) {
-    const novoValorStr = prompt("Digite o novo valor cobrado (use ponto em vez de vírgula, ex: 55.50):", valorAtual);
+    const novoValorStr = prompt("Digite o novo valor de LUCRO LÍQUIDO cobrado (use ponto em vez de vírgula, ex: 55.50):", valorAtual.toFixed(2));
 
     if (novoValorStr !== null && novoValorStr.trim() !== "") {
       const novoValor = parseFloat(novoValorStr.replace(',', '.'));
