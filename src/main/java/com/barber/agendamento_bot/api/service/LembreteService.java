@@ -43,7 +43,7 @@ public class LembreteService {
 
         // Busca no banco os clientes que cortam daqui a meia hora e ainda não foram avisados
         List<Agendamento> agendamentos = agendamentoRepository
-                .findByStatusAndLembreteEnviadoFalseAndDataHoraInicioBetween("CONFIRMADO", agora, daquiA30Minutos);
+                .buscarAgendamentosParaLembrar("CONFIRMADO", agora, daquiA30Minutos);
 
         for (Agendamento agendamento : agendamentos) {
             try {
