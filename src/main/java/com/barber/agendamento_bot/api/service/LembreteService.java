@@ -20,74 +20,70 @@ import java.util.Map;
 public class LembreteService {
 
     private final AgendamentoRepository agendamentoRepository;
-
-    // O "carteiro" embutido do Java para enviar dados para a internet
     private final RestTemplate restTemplate = new RestTemplate();
 
     // =======================================================
-    // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API (Altere aqui)
+    // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API
     // =======================================================
-    private final String EVOLUTION_URL = "http://187.77.224.241:8080";
-    private final String INSTANCE_NAME = "barbearia";
-    private final String API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
+    private final String EVOLUTION_URL = "http://SEU_IP_DA_HOSTINGER:8080";
+    private final String INSTANCE_NAME = "NOME_DA_SUA_INSTANCIA";
+    private final String API_KEY = "SUA_GLOBAL_API_KEY_AQUI";
 
     public LembreteService(AgendamentoRepository agendamentoRepository) {
         this.agendamentoRepository = agendamentoRepository;
     }
 
-    // Roda silenciosamente a cada 1 minuto
+    // Roda a cada 1 minuto
     @Scheduled(cron = "0 * * * * *")
     public void verificarEEnviarLembretes() {
         LocalDateTime agora = LocalDateTime.now();
-        LocalDateTime daquiA30Minutos = agora.plusMinutes(30);
+        // ✨ Aumentamos a janela para 35 minutos de segurança (cobre o agendamento perfeitamente)
+        LocalDateTime daquiA35Minutos = agora.plusMinutes(35);
 
-        // Busca no banco os clientes que cortam daqui a meia hora e ainda não foram avisados
         List<Agendamento> agendamentos = agendamentoRepository
-                .buscarAgendamentosParaLembrar("CONFIRMADO", agora, daquiA30Minutos);
+                .buscarAgendamentosParaLembrar("CONFIRMADO", agora, daquiA35Minutos);
 
         for (Agendamento agendamento : agendamentos) {
             try {
                 enviarMensagemEvolution(agendamento);
 
-                // Carimba que já foi enviado para não mandar duas vezes no próximo minuto!
+                // Carimba que já foi enviado
                 agendamento.setLembreteEnviado(true);
                 agendamentoRepository.save(agendamento);
 
             } catch (Exception e) {
-                System.err.println("❌ Erro ao enviar lembrete via Evolution: " + e.getMessage());
+                System.err.println("❌ Erro ao enviar lembrete via Evolution para " + agendamento.getNomeCliente() + ": " + e.getMessage());
             }
         }
     }
 
     private void enviarMensagemEvolution(Agendamento agendamento) {
         String horaFormatada = agendamento.getDataHoraInicio().format(DateTimeFormatter.ofPattern("HH:mm"));
-
-        // O texto que o cliente vai receber
         String mensagem = "⏳ Olá, *" + agendamento.getNomeCliente() + "*! Passando para lembrar que o seu horário conosco é daqui a pouco, às *" + horaFormatada + "*. Já estamos te esperando! 💈";
 
-        // 1. Prepara o número de telefone (A Evolution exige apenas números e com o 55 do Brasil)
         String numeroLimpo = agendamento.getTelefoneCliente().replaceAll("[^0-9]", "");
         if (!numeroLimpo.startsWith("55")) {
             numeroLimpo = "55" + numeroLimpo;
         }
 
-        // 2. Monta o endereço exato do disparo de texto da Evolution API
         String urlDeDisparo = EVOLUTION_URL + "/message/sendText/" + INSTANCE_NAME;
 
-        // 3. Monta o cabeçalho informando a sua senha (API KEY)
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("apikey", API_KEY);
+        headers.set("apikey", API_KEY); // Autenticação da Evolution
 
-        // 4. Monta o corpo da requisição (JSON)
-        Map<String, String> corpoRequisicao = new HashMap<>();
+        // ✨ Pacote à prova de falhas para V1 e V2 da Evolution API
+        Map<String, Object> corpoRequisicao = new HashMap<>();
         corpoRequisicao.put("number", numeroLimpo);
-        corpoRequisicao.put("text", mensagem);
+        corpoRequisicao.put("text", mensagem); // Lida com a Evolution V2
 
-        // 5. Empacota tudo e envia o POST
-        HttpEntity<Map<String, String>> pacote = new HttpEntity<>(corpoRequisicao, headers);
+        Map<String, String> textMessage = new HashMap<>();
+        textMessage.put("text", mensagem);
+        corpoRequisicao.put("textMessage", textMessage); // Lida com a Evolution V1
+
+        HttpEntity<Map<String, Object>> pacote = new HttpEntity<>(corpoRequisicao, headers);
         ResponseEntity<String> resposta = restTemplate.postForEntity(urlDeDisparo, pacote, String.class);
 
-        System.out.println("🔔 [SUCESSO] Lembrete disparado para " + numeroLimpo + " | Status Evolution: " + resposta.getStatusCode());
+        System.out.println("🔔 [SUCESSO] Lembrete disparado para " + numeroLimpo + " | Status: " + resposta.getStatusCode());
     }
 }
