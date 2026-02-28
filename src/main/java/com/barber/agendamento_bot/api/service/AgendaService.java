@@ -2,9 +2,11 @@ package com.barber.agendamento_bot.api.service;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
 import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
+import com.barber.agendamento_bot.api.entity.HorarioFuncionamento;
 import com.barber.agendamento_bot.api.entity.Servico;
 import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
 import com.barber.agendamento_bot.api.repository.BloqueioAgendaRepository;
+import com.barber.agendamento_bot.api.repository.HorarioRepository;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
 
 import org.springframework.stereotype.Service;
@@ -21,16 +23,13 @@ public class AgendaService {
     private final AgendamentoRepository agendamentoRepository;
     private final ServicoRepository servicoRepository;
     private final BloqueioAgendaRepository bloqueioAgendaRepository;
+    private final HorarioRepository horarioRepository; // ✨ NOVO: Conexão com a grade de horários!
 
-    // ✨ CONFIGURAÇÃO DO EXPEDIENTE (Basta mudar aqui!)
-    // Exemplo: LocalTime.of(9, 30) significa 09:30 da manhã.
-    private final LocalTime HORA_ABERTURA = LocalTime.of(8, 0);
-    private final LocalTime HORA_FECHAMENTO = LocalTime.of(19, 0);
-
-    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository) {
+    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository, HorarioRepository horarioRepository) {
         this.agendamentoRepository = agendamentoRepository;
         this.servicoRepository = servicoRepository;
         this.bloqueioAgendaRepository = bloqueioAgendaRepository;
+        this.horarioRepository = horarioRepository;
     }
 
     public boolean tentarAgendar(Agendamento novo) {
@@ -44,19 +43,30 @@ public class AgendaService {
         novo.setDataHoraFim(fim);
         novo.setStatus("CONFIRMADO");
 
-        // REGRA 1: Dias de folga fixos (Não atende de Domingo)
-        if (inicio.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-            System.out.println("❌ Lamento, domingo não tem atendimento.");
+        // ==========================================================
+        // ✨ REGRA 1 (DINÂMICA): Busca o dia da semana e verifica a grade
+        // 1 = Segunda, 2 = Terça ... 7 = Domingo
+        // ==========================================================
+        int diaSemanaId = inicio.getDayOfWeek().getValue();
+        HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
+
+        // Se não achar o dia no banco ou o dia estiver marcado como FECHADO na tela do painel
+        if (regrasDoDia == null || regrasDoDia.isFechado()) {
+            System.out.println("❌ Lamento, estamos fechados neste dia (" + regrasDoDia.getNomeDia() + ").");
             return false;
         }
 
-        // ✨ REGRA NOVA: Escudo de Expediente (Bloqueia a madrugada e o pós-expediente)
-        if (inicio.toLocalTime().isBefore(HORA_ABERTURA) || fim.toLocalTime().isAfter(HORA_FECHAMENTO)) {
-            System.out.println("❌ Horário fora do expediente de trabalho.");
+        // Converte a String "09:00" do banco para o formato de tempo do Java
+        LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
+        LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
+
+        // Verifica se tentou agendar antes de abrir ou se o corte vai terminar depois de fechar
+        if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) {
+            System.out.println("❌ Horário fora do expediente de trabalho deste dia.");
             return false;
         }
 
-        // REGRA 2: Bloqueios manuais por período
+        // REGRA 2: Bloqueios manuais por período (Ex: Almoço)
         List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAll();
         for (BloqueioAgenda bloqueio : bloqueios) {
             if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
@@ -67,7 +77,7 @@ public class AgendaService {
             }
         }
 
-        // REGRA 3: Conflito com outros clientes
+        // REGRA 3: Conflito com outros clientes agendados
         List<Agendamento> noBanco = agendamentoRepository.findByStatusNot("CANCELADO");
         for (Agendamento existente : noBanco) {
             if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) {
@@ -76,20 +86,34 @@ public class AgendaService {
             }
         }
 
+        // Se passou por todas as barreiras, salva no banco!
         agendamentoRepository.save(novo);
         return true;
     }
 
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
+
+        // Pega as regras de funcionamento para a data solicitada
+        int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
+        HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
+
+        // Se o barbeiro desligou esse dia no painel, retorna a lista vazia
+        if (regrasDoDia == null || regrasDoDia.isFechado()) {
+            return horariosDisponiveis;
+        }
+
+        LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
+        LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
+
         Servico servicoEscolhido = servicoRepository.findById(servicoId).orElseThrow();
         int duracao = servicoEscolhido.getDuracaoMinutos();
         List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNot("CANCELADO");
 
-        // ✨ O robô agora usa as variáveis mestras para calcular a agenda!
-        LocalTime horarioTeste = HORA_ABERTURA;
+        // ✨ O laço agora começa na hora de abertura DINÂMICA do dia
+        LocalTime horarioTeste = aberturaDoDia;
 
-        while (horarioTeste.plusMinutes(duracao).compareTo(HORA_FECHAMENTO) <= 0) {
+        while (horarioTeste.plusMinutes(duracao).compareTo(fechamentoDoDia) <= 0) {
             LocalDateTime inicioTentativa = LocalDateTime.of(dataBuscada, horarioTeste);
             LocalDateTime fimTentativa = inicioTentativa.plusMinutes(duracao);
             boolean temConflito = false;
@@ -104,7 +128,7 @@ public class AgendaService {
             }
 
             if (!temConflito) horariosDisponiveis.add(horarioTeste);
-            horarioTeste = horarioTeste.plusMinutes(30);
+            horarioTeste = horarioTeste.plusMinutes(30); // Pula de 30 em 30 min
         }
 
         return horariosDisponiveis;

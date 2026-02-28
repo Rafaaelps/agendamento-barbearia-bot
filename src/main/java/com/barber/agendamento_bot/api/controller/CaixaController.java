@@ -28,7 +28,10 @@ public class CaixaController {
         }
 
         Agendamento agendamento = agendamentoOpt.get();
+
+        // ✨ A CHAVE DO SNAPSHOT: Captura o preço de tabela ATIVO agora (que estava configurado na tela de serviços)
         BigDecimal precoBase = agendamento.getServicoEscolhido().getPreco();
+
         BigDecimal faturamentoLiquido = precoBase;
         String formaPgtoOficial = "";
 
@@ -37,7 +40,7 @@ public class CaixaController {
             formaPgtoOficial = "Cartão de Crédito";
             faturamentoLiquido = precoBase.multiply(new BigDecimal("0.9517")); // Deduz 4,83%
         } else if (metodo.equalsIgnoreCase("DEBITO")) {
-            formaPgtoOficial = "Cartão de Débito";
+            formaPgto Oficial = "Cartão de Débito";
             faturamentoLiquido = precoBase.multiply(new BigDecimal("0.9811")); // Deduz 1,89%
         } else if (metodo.equalsIgnoreCase("PIX_DINHEIRO")) {
             formaPgtoOficial = "Dinheiro / PIX";
@@ -51,6 +54,10 @@ public class CaixaController {
 
         // Atualiza o banco de dados
         agendamento.setFormaPagamento(formaPgtoOficial);
+
+        // ✨ GRAVAMOS O SNAPSHOT DO PREÇO TOTAL: Nunca mais dependeremos do preço atual do serviço para este registro financeiro!
+        agendamento.setValorTotalHistorico(precoBase);
+
         agendamento.setFaturamentoBarbeiro(faturamentoLiquido);
         agendamentoRepository.save(agendamento);
 

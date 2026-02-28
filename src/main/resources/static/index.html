@@ -3,48 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel da Barbearia</title>
+    <title>Painel da Barbearia Bot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
+        .text-suave-danger { color: #c94c4c !important; }
+        .border-suave-danger { border-color: #c94c4c !important; }
+
         @media (max-width: 767.98px) {
-            .tabela-mobile,
-            .tabela-mobile tbody,
-            .tabela-mobile tr,
-            .tabela-mobile td {
-                display: block !important;
-                width: 100% !important;
+            .tabela-mobile, .tabela-mobile tbody, .tabela-mobile tr, .tabela-mobile td {
+                display: block !important; width: 100% !important;
             }
-            .tabela-mobile thead {
-                display: none !important;
-            }
+            .tabela-mobile thead { display: none !important; }
             .tabela-mobile tr {
-                margin-bottom: 1.2rem;
-                background-color: #fff;
-                border: 1px solid #dee2e6;
-                border-radius: 0.5rem;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-                overflow: hidden;
+                margin-bottom: 1.2rem; background-color: #fff; border: 1px solid #dee2e6;
+                border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;
             }
             .tabela-mobile td {
-                display: flex !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                text-align: right;
-                border-bottom: 1px solid #dee2e6;
-                padding: 0.75rem 1rem;
+                display: flex !important; justify-content: space-between !important;
+                align-items: center !important; text-align: right;
+                border-bottom: 1px solid #dee2e6; padding: 0.75rem 1rem;
             }
-            .tabela-mobile td:last-child {
-                border-bottom: none;
-            }
+            .tabela-mobile td:last-child { border-bottom: none; }
             .tabela-mobile td::before {
-                content: attr(data-label);
-                font-weight: bold;
-                color: #6c757d;
-                text-transform: uppercase;
-                font-size: 0.75rem;
-                margin-right: 1rem;
-                text-align: left;
+                content: attr(data-label); font-weight: bold; color: #6c757d;
+                text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left;
             }
         }
     </style>
@@ -59,15 +42,9 @@
         </button>
         <div class="collapse navbar-collapse" id="menuNavegacao">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-2 mt-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link active" href="index.html">📅 Agenda do Dia</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="financeiro.html">💰 Financeiro</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="servicos.html">✂️ Serviços</a>
-                </li>
+                <li class="nav-item"><a class="nav-link active" href="index.html">📅 Agenda do Dia</a></li>
+                <li class="nav-item"><a class="nav-link" href="financeiro.html">💰 Financeiro</a></li>
+                <li class="nav-item"><a class="nav-link" href="servicos.html">✂️ Serviços</a></li>
             </ul>
         </div>
     </div>
@@ -82,6 +59,11 @@
                 <label for="filtro-data" class="me-2 fw-bold text-secondary mb-0">Data:</label>
                 <input type="date" id="filtro-data" class="form-control border-0 p-0 text-primary fw-bold" onchange="carregarAgendamentos()">
             </div>
+
+            <button class="btn btn-outline-dark fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
+                ⏰ Configurar Horários
+            </button>
+
             <button class="btn btn-warning fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
                 🔒 Bloquear Período
             </button>
@@ -143,17 +125,35 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalHorarios" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">⏰ Configurar Expediente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="corpo-modal-horarios">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary fw-bold w-100 w-md-auto" onclick="salvarGradeHorarios()">💾 Salvar Expediente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalPagamento" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold">💰 Receber e Finalizar</h5>
+                <h5 class="modal-title fw-bold">💰 Finalizar Atendimento</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <p class="mb-3 text-muted">Como o cliente realizou o pagamento?</p>
+                <p class="mb-3 text-muted">Forma de pagamento:</p>
                 <input type="hidden" id="id-agendamento-pagamento">
-
                 <div class="d-grid gap-2">
                     <button class="btn btn-outline-primary fw-bold" onclick="processarPagamento('CREDITO')">💳 Cartão de Crédito</button>
                     <button class="btn btn-outline-info fw-bold" onclick="processarPagamento('DEBITO')">💳 Cartão de Débito</button>
@@ -173,6 +173,93 @@
         carregarAgendamentos();
     });
 
+    // ==========================================
+    // LÓGICA DE GERENCIAMENTO DOS HORÁRIOS
+    // ==========================================
+    let gradeHorariosGlobal = [];
+
+    async function carregarGradeHorarios() {
+        try {
+            const resposta = await fetch('/api/horarios');
+            const grade = await resposta.json();
+            gradeHorariosGlobal = grade;
+            const corpo = document.getElementById('corpo-modal-horarios');
+            corpo.innerHTML = '';
+
+            grade.sort((a,b) => a.diaDaSemana - b.diaDaSemana);
+
+            grade.forEach((dia, index) => {
+                const diaFechado = dia.fechado;
+                const activeLabel = diaFechado ? 'Folga' : 'Atende';
+                const checked = diaFechado ? '' : 'checked';
+                const disabled = diaFechado ? 'disabled' : '';
+                const corDia = diaFechado ? 'bg-secondary' : 'bg-primary';
+
+                corpo.innerHTML += `
+                    <div class="card mb-3 border-0 bg-transparent">
+                        <div class="card-body p-3 bg-white rounded shadow-sm border flex-wrap">
+                            <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+                                <span class="badge ${corDia} text-nowrap fw-bold fs-6 p-2 rounded">${dia.nomeDia}</span>
+
+                                <div class="form-check form-switch p-0 d-flex align-items-center">
+                                    <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="switch-dia-${index}" ${checked} onchange="toggleDia(${index})" style="width: 2.5em; height: 1.25em;">
+                                    <label class="form-check-label text-nowrap text-dark mb-0 fw-bold" for="switch-dia-${index}">${activeLabel}</label>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label text-nowrap text-dark fw-bold mb-1" style="font-size: 0.85rem;">Horário Inicial:</label>
+                                    <input type="time" class="form-control shadow-none p-2 border fw-bold" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${disabled} onchange="alterarHoraAbertura(${index})">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-nowrap text-dark fw-bold mb-1" style="font-size: 0.85rem;">Horário Final:</label>
+                                    <input type="time" class="form-control shadow-none p-2 border fw-bold" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${disabled} onchange="alterarHoraFechamento(${index})">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch (erro) {
+            console.error("Erro ao carregar grade de horários:", erro);
+        }
+    }
+
+    function toggleDia(index) {
+        gradeHorariosGlobal[index].fechado = !gradeHorariosGlobal[index].fechado;
+        carregarGradeHorarios(); // Recarrega a tela para bloquear/desbloquear os campos
+    }
+
+    function alterarHoraAbertura(index) {
+        gradeHorariosGlobal[index].horaAbertura = document.getElementById(`hora-abertura-${index}`).value;
+    }
+
+    function alterarHoraFechamento(index) {
+        gradeHorariosGlobal[index].horaFechamento = document.getElementById(`hora-fechamento-${index}`).value;
+    }
+
+    async function salvarGradeHorarios() {
+        try {
+            await fetch('/api/horarios', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gradeHorariosGlobal)
+            });
+
+            const modalEl = document.getElementById('modalHorarios');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            modalInstance.hide();
+
+            alert("Os novos horários do expediente foram salvos e já estão valendo no WhatsApp!");
+        } catch (erro) {
+            alert("Erro ao salvar os horários da semana.");
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DE AGENDAMENTOS (MANTIDA)
+    // ==========================================
     async function carregarAgendamentos() {
         try {
             const [respostaAgendamentos, respostaBloqueios] = await Promise.all([
@@ -197,7 +284,7 @@
             corpoTabela.innerHTML = '';
 
             if (listaMista.length === 0) {
-                corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Sua agenda está livre neste dia!</td></tr>';
+                corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum cliente agendado para esta data.</td></tr>';
                 return;
             }
 
@@ -214,7 +301,6 @@
                     let infoPagamento = agendamento.formaPagamento || 'PENDENTE';
                     let corTextoPagamento = infoPagamento === 'PENDENTE' ? 'text-danger' : 'text-success';
 
-                    // ✨ A CORREÇÃO MÁGICA: Converte para número de forma segura antes de desenhar!
                     let precoServico = 0;
                     if (agendamento.servicoEscolhido && agendamento.servicoEscolhido.preco) {
                         precoServico = Number(agendamento.servicoEscolhido.preco);
@@ -223,7 +309,7 @@
                     let botoesAcao = '';
                     if (agendamento.status === 'CONFIRMADO') {
                         botoesAcao = `
-                            <button class="btn btn-sm btn-success me-1 mb-1 mb-md-0" onclick="abrirModalPagamento(${agendamento.id})" title="Finalizar Atendimento">✅</button>
+                            <button class="btn btn-sm btn-success me-1 mb-1 mb-md-0" onclick="abrirModalPagamento(${agendamento.id})" title="Finalizar Atendimento">✅ Receber</button>
                             <button class="btn btn-sm btn-outline-danger" onclick="cancelar(${agendamento.id})" title="Cancelar">❌</button>
                         `;
                     } else {
@@ -261,7 +347,7 @@
                 }
             });
         } catch (erro) {
-            console.error("Erro ao buscar dados da API:", erro);
+            console.error("Erro ao buscar agendamentos:", erro);
         }
     }
 
@@ -283,7 +369,7 @@
 
             carregarAgendamentos();
         } catch (erro) {
-            alert("Erro ao processar o pagamento e concluir o agendamento!");
+            alert("Erro ao processar o agendamento.");
         }
     }
 

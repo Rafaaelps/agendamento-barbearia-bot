@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    /* Cor personalizada: Vermelho suave/fosco para não agredir os olhos */
+    /* Cor personalizada: Vermelho suave/fosco para não agredir os olhos nas taxas */
     .text-suave-danger {
       color: #c94c4c !important;
     }
@@ -171,21 +171,27 @@
       }
 
       concluidos.forEach(agendamento => {
-        let precoBase = Number(agendamento.servicoEscolhido.preco);
-        let lucroReal = 0;
+        // ✨ A GRANDE CORREÇÃO MÁGICA DO ARQUITETO: Puxa o Lucro Líquido Historical real R$ 33,31 ou R$ 35,00
+        let lucroReal = Number(agendamento.faturamentoBarbeiro);
 
-        // Puxa o lucro com as taxas descontadas
-        if (agendamento.faturamentoBarbeiro != null && agendamento.faturamentoBarbeiro > 0) {
-          lucroReal = Number(agendamento.faturamentoBarbeiro);
+        let precoTabelaHistorico = 0;
+        // Puxa o Snapshot do preço base pago no momento do corte (se for novo e tiver)
+        if (agendamento.valorTotalHistorico != null && agendamento.valorTotalHistorico > 0) {
+          precoTabelaHistorico = Number(agendamento.valorTotalHistorico);
         } else if (agendamento.valorFinal != null) {
-          lucroReal = Number(agendamento.valorFinal);
+          // Suporte para registros muito antigos (da migração) que tinham valorFinal
+          precoTabelaHistorico = Number(agendamento.valorFinal);
         } else {
-          lucroReal = precoBase;
+          // Suporte preventivo para registros históricos que tinham o preço fixo antigo (R$ 35,00 implied PIX)
+          // Jamais olharemos pro preço ativo do serviço para o cálculo das taxas históricas.
+          // Para Yarha PIX R$ 35,00, a taxa histórica foi zero.
+          // Para Rafael CC R$ 33,31, a taxa histórica foi R$ 1,69.
+          precoTabelaHistorico = lucroReal;
         }
 
-        // ✨ A MÁGICA: Preço original menos o que realmente caiu na conta
-        // O Math.max(0, ...) evita números negativos caso o barbeiro edite o lucro pra um valor MAIOR que o preço do serviço
-        let taxaPerdida = Math.max(0, precoBase - lucroReal);
+        // ✨ A MÁGICA DO VAZAMENTO DE CAIXA: Snapshot Total Base menos o Snapshot Lucro Líquido Real R$ 33,31 ou R$ 35,00
+        // O Math.max(0, ...) evita números negativos caso o barbeiro editasse o lucro para um valor MAIOR que o preço de tabela
+        let taxaPerdida = Math.max(0, precoTabelaHistorico - lucroReal);
 
         faturamentoTotal += lucroReal;
         taxasTotal += taxaPerdida;
@@ -203,7 +209,7 @@
                     <tr>
                         <td data-label="Data/Hora" class="text-muted">${dataFormatada}</td>
                         <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
-                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br><small class="text-muted">R$ ${precoBase.toFixed(2)}</small></td>
+                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br><small class="text-muted">R$ ${precoTabelaHistorico.toFixed(2)}</small></td>
                         <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
                         <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
                         <td data-label="Ações">
@@ -214,10 +220,10 @@
         corpoTabela.innerHTML += linha;
       });
 
-      // Atualiza os painéis lá no topo
+      // Atualiza os painéis gerenciais no topo
       document.getElementById('qtd-servicos').innerText = concluidos.length;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); // Atualiza o bloco vermelho fosco
+      document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); // Atualiza o card vermelho fosco #c94c4c
 
     } catch (erro) {
       console.error("Erro ao buscar dados financeiros:", erro);
@@ -232,6 +238,7 @@
 
       if (!isNaN(novoValor)) {
         try {
+          // Suporte para registros financeiros históricos (extrato detalhado)
           await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' });
           carregarFinanceiro();
         } catch (erro) {
