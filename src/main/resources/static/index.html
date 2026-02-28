@@ -208,6 +208,126 @@
                     if (agendamento.status === 'CANCELADO') corBadge = 'bg-danger';
                     if (agendamento.status === 'CONCLUIDO') corBadge = 'bg-primary';
 
-                    // Lógica de exibição do pagamento
                     let infoPagamento = agendamento.formaPagamento || 'PENDENTE';
-                    let corTexto
+                    let corTextoPagamento = infoPagamento === 'PENDENTE' ? 'text-danger' : 'text-success';
+
+                    // ✨ A CORREÇÃO MÁGICA: Converte para número de forma segura antes de desenhar!
+                    let precoServico = 0;
+                    if (agendamento.servicoEscolhido && agendamento.servicoEscolhido.preco) {
+                        precoServico = Number(agendamento.servicoEscolhido.preco);
+                    }
+
+                    let botoesAcao = '';
+                    if (agendamento.status === 'CONFIRMADO') {
+                        botoesAcao = `
+                            <button class="btn btn-sm btn-success me-1 mb-1 mb-md-0" onclick="abrirModalPagamento(${agendamento.id})" title="Finalizar Atendimento">✅</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelar(${agendamento.id})" title="Cancelar">❌</button>
+                        `;
+                    } else {
+                        botoesAcao = `<span class="text-muted fw-bold">${agendamento.status}</span>`;
+                    }
+
+                    corpoTabela.innerHTML += `
+                        <tr>
+                            <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
+                            <td data-label="Telefone">${agendamento.telefoneCliente}</td>
+                            <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br> <small class="text-muted">R$ ${precoServico.toFixed(2)}</small></td>
+                            <td data-label="Período" class="fw-bold text-primary">${horaInicioFmt} às ${horaFimFmt}</td>
+                            <td data-label="Status / Pgto">
+                                <span class="badge ${corBadge}">${agendamento.status}</span><br>
+                                <small class="fw-bold ${corTextoPagamento}">${infoPagamento}</small>
+                            </td>
+                            <td data-label="Ações">${botoesAcao}</td>
+                        </tr>
+                    `;
+                } else {
+                    const bloqueio = item.dado;
+                    const horaInicioFmt = new Date(bloqueio.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const horaFimFmt = new Date(bloqueio.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                    corpoTabela.innerHTML += `
+                        <tr class="table-warning border-warning">
+                            <td data-label="Detalhe">🔒 <strong>Bloqueio:</strong> ${bloqueio.motivo}</td>
+                            <td data-label="Telefone" class="d-none d-md-table-cell text-muted">-</td>
+                            <td data-label="Serviço" class="d-none d-md-table-cell text-muted">-</td>
+                            <td data-label="Período" class="fw-bold text-dark">${horaInicioFmt} às ${horaFimFmt}</td>
+                            <td data-label="Status / Pgto"><span class="badge bg-warning text-dark border border-dark">BLOQUEADO</span></td>
+                            <td data-label="Ações" class="d-none d-md-table-cell text-muted">-</td>
+                        </tr>
+                    `;
+                }
+            });
+        } catch (erro) {
+            console.error("Erro ao buscar dados da API:", erro);
+        }
+    }
+
+    function abrirModalPagamento(id) {
+        document.getElementById('id-agendamento-pagamento').value = id;
+        const modal = new bootstrap.Modal(document.getElementById('modalPagamento'));
+        modal.show();
+    }
+
+    async function processarPagamento(metodo) {
+        const id = document.getElementById('id-agendamento-pagamento').value;
+        try {
+            await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' });
+            await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' });
+
+            const modalEl = document.getElementById('modalPagamento');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            modalInstance.hide();
+
+            carregarAgendamentos();
+        } catch (erro) {
+            alert("Erro ao processar o pagamento e concluir o agendamento!");
+        }
+    }
+
+    async function salvarBloqueio() {
+        const dataSelecionada = document.getElementById('data-bloqueio').value;
+        const horaInicio = document.getElementById('hora-inicio-bloqueio').value;
+        const horaFim = document.getElementById('hora-fim-bloqueio').value;
+        const motivoDigitado = document.getElementById('motivo-bloqueio').value;
+
+        if(!dataSelecionada || !horaInicio || !horaFim || !motivoDigitado) {
+            alert("Por favor, preencha todos os campos do bloqueio!");
+            return;
+        }
+
+        const novoBloqueio = {
+            dataHoraInicio: `${dataSelecionada}T${horaInicio}:00`,
+            dataHoraFim: `${dataSelecionada}T${horaFim}:00`,
+            motivo: motivoDigitado
+        };
+
+        try {
+            await fetch('/api/agendamentos/bloqueios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(novoBloqueio)
+            });
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalBloqueio'));
+            modal.hide();
+            document.getElementById('hora-inicio-bloqueio').value = '';
+            document.getElementById('hora-fim-bloqueio').value = '';
+            document.getElementById('motivo-bloqueio').value = '';
+
+            if(dataSelecionada === document.getElementById('filtro-data').value) {
+                carregarAgendamentos();
+            }
+        } catch (erro) {
+            alert("Erro ao salvar bloqueio!");
+        }
+    }
+
+    async function cancelar(id) {
+        if(confirm("Tem certeza que deseja cancelar este agendamento?")) {
+            await fetch(`/api/agendamentos/${id}/cancelar`, { method: 'PUT' });
+            carregarAgendamentos();
+        }
+    }
+</script>
+</body>
+</html>
