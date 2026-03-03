@@ -44,27 +44,27 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title fw-bold">Cadastrar Produto</h5>
+                <h5 class="modal-title fw-bold" id="titulo-modal-produto">Cadastrar Produto</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Nome do Produto:</label>
-                    <input type="text" id="nome-produto" class="form-control" placeholder="Ex: Pomada Efeito Matte">
-                </div>
+                <input type="hidden" id="id-produto"> <div class="mb-3">
+                <label class="form-label fw-bold">Nome do Produto:</label>
+                <input type="text" id="nome-produto" class="form-control" placeholder="Ex: Pomada Efeito Matte">
+            </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
                         <label class="form-label fw-bold">Preço de Venda (R$):</label>
                         <input type="number" id="preco-produto" class="form-control" step="0.01">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold">Qtd Inicial:</label>
-                        <input type="number" id="qtd-produto" class="form-control" min="1">
+                        <label class="form-label fw-bold" id="label-qtd">Quantidade:</label>
+                        <input type="number" id="qtd-produto" class="form-control" min="0">
                     </div>
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button class="btn btn-primary w-100 fw-bold" onclick="salvarProduto()">💾 Salvar</button>
+                <button class="btn btn-primary w-100 fw-bold" onclick="salvarProduto()">💾 Salvar Produto</button>
             </div>
         </div>
     </div>
@@ -131,10 +131,10 @@
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
 
-            // O LIXEIRINHA APENAS APARECE SE O ESTOQUE FOR 0 (Proteção)
             let btnExcluir = p.quantidadeEstoque === 0 ?
                 `<button class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2 border-0 fs-5" onclick="excluirProduto(${p.id})" title="Excluir">🗑️</button>` : '';
 
+            // ✨ NOVO: O Botão de Editar foi adicionado ao topo dos botões
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-lg-3 mb-4">
                     <div class="card shadow-sm border-0 h-100 position-relative">
@@ -146,8 +146,11 @@
                             <p class="mb-3 fw-bold ${corEstoque}">Estoque: ${p.quantidadeEstoque} un</p>
 
                             <div class="d-grid gap-2">
-                                <button class="btn btn-sm btn-outline-dark fw-bold" onclick="abrirModalRepor(${p.id}, '${p.nome}')">📦 Repor Estoque</button>
-                                <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}>💰 Vender</button>
+                                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})">✏️ Editar</button>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-dark fw-bold w-100" onclick="abrirModalRepor(${p.id}, '${p.nome}')">📦 Repor</button>
+                                    <button class="btn btn-sm btn-success fw-bold w-100" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}>💰 Vender</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -156,30 +159,44 @@
         });
     }
 
-    function abrirModalProduto() {
-        document.getElementById('nome-produto').value = '';
-        document.getElementById('preco-produto').value = '';
-        document.getElementById('qtd-produto').value = '';
+    // ✨ ATUALIZADA: Agora sabe se é pra Cadastrar ou Editar
+    function abrirModalProduto(id = '', nome = '', preco = '', qtd = '') {
+        document.getElementById('id-produto').value = id;
+        document.getElementById('nome-produto').value = nome;
+        document.getElementById('preco-produto').value = preco;
+        document.getElementById('qtd-produto').value = qtd;
+
+        document.getElementById('titulo-modal-produto').innerText = id ? 'Editar Produto' : 'Cadastrar Novo Produto';
+
         new bootstrap.Modal(document.getElementById('modalProduto')).show();
     }
 
+    // ✨ ATUALIZADA: Descobre sozinho se manda um POST (novo) ou PUT (edição)
     async function salvarProduto() {
+        const id = document.getElementById('id-produto').value;
         const dados = {
             nome: document.getElementById('nome-produto').value,
             preco: document.getElementById('preco-produto').value,
             quantidadeEstoque: document.getElementById('qtd-produto').value
         };
 
-        if(!dados.nome || !dados.preco || !dados.quantidadeEstoque) { alert("Preencha tudo!"); return; }
+        if(!dados.nome || !dados.preco || !dados.quantidadeEstoque) { alert("Preencha todos os campos!"); return; }
 
-        await fetch('/api/estoque/produtos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
+        const url = id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos';
+        const metodo = id ? 'PUT' : 'POST';
 
-        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
-        carregarProdutos();
+        try {
+            await fetch(url, {
+                method: metodo,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+            carregarProdutos();
+        } catch (erro) {
+            alert("Erro ao salvar produto.");
+        }
     }
 
     // FUNÇÕES DE REPOSIÇÃO

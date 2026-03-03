@@ -27,7 +27,6 @@ public class EstoqueController {
 
     @GetMapping("/produtos")
     public List<Produto> listarProdutos() {
-        // ✨ FILTRO DA LIXEIRA: Só envia para a tela os produtos que estão ATIVOS
         return produtoRepository.findAll().stream()
                 .filter(p -> p.getAtivo() == null || p.getAtivo())
                 .collect(Collectors.toList());
@@ -36,8 +35,21 @@ public class EstoqueController {
     @PostMapping("/produtos")
     public Produto salvarProduto(@RequestBody Produto produto) {
         produto.setNome(produto.getNome().trim());
-        produto.setAtivo(true); // Garante que o novo produto nasce ativo
+        produto.setAtivo(true);
         return produtoRepository.save(produto);
+    }
+
+    // ✨ NOVA ROTA: Editar Produto (Atualiza Nome, Preço e Estoque atual)
+    @PutMapping("/produtos/{id}")
+    public ResponseEntity<?> editarProduto(@PathVariable Long id, @RequestBody Produto dadosAtualizados) {
+        Produto produto = produtoRepository.findById(id).orElseThrow();
+
+        produto.setNome(dadosAtualizados.getNome().trim());
+        produto.setPreco(dadosAtualizados.getPreco());
+        produto.setQuantidadeEstoque(dadosAtualizados.getQuantidadeEstoque());
+
+        produtoRepository.save(produto);
+        return ResponseEntity.ok(produto);
     }
 
     @PutMapping("/produtos/{id}/repor")
@@ -50,7 +62,6 @@ public class EstoqueController {
 
     @DeleteMapping("/produtos/{id}")
     public ResponseEntity<?> excluirProduto(@PathVariable Long id) {
-        // ✨ SOFT DELETE: Apenas esconde o produto da tela para não quebrar o financeiro!
         Produto produto = produtoRepository.findById(id).orElseThrow();
         produto.setAtivo(false);
         produtoRepository.save(produto);

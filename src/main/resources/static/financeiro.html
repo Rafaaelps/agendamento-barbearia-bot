@@ -42,7 +42,8 @@
         <li class="nav-item"><a class="nav-link" href="index.html">📅 Agenda do Dia</a></li>
         <li class="nav-item"><a class="nav-link active" href="financeiro.html">💰 Financeiro</a></li>
         <li class="nav-item"><a class="nav-link" href="servicos.html">✂️ Serviços</a></li>
-        <li class="nav-item"><a class="nav-link" href="estoque.html">📦 Estoque</a></li> </ul>
+        <li class="nav-item"><a class="nav-link" href="estoque.html">📦 Estoque</a></li>
+      </ul>
       <div class="d-flex align-items-center mt-2 mt-lg-0">
         <form action="/sair" method="POST" class="m-0">
           <button type="submit" class="btn btn-outline-danger btn-sm fw-bold">Sair do Sistema</button>
@@ -159,7 +160,6 @@
 
   async function carregarFinanceiro() {
     try {
-      // ✨ BUSCA CORTES E PRODUTOS VENDIDOS
       const [respostaAgendamentos, respostaVendas] = await Promise.all([
         fetch('/api/agendamentos'),
         fetch('/api/estoque/vendas')
@@ -197,12 +197,12 @@
         );
       });
 
-      // 2. ✨ DADOS DE VENDAS DE ESTOQUE (COM CÁLCULO DE TAXAS)
+      // 2. DADOS DE VENDAS DE ESTOQUE
       let vendasAtual = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesEscolhido));
       vendasAtual.forEach(venda => {
-        let lucroVenda = Number(venda.valorTotal); // Valor limpo (o Java já tirou a taxa)
-        let precoCheio = Number(venda.quantidade) * Number(venda.produto.preco); // Valor bruto da vitrine
-        let taxaDaMaquininha = Math.max(0, precoCheio - lucroVenda); // Diferença é a taxa!
+        let lucroVenda = Number(venda.valorTotal);
+        let precoCheio = Number(venda.quantidade) * Number(venda.produto.preco);
+        let taxaDaMaquininha = Math.max(0, precoCheio - lucroVenda);
 
         faturamentoTotal += lucroVenda;
         taxasTotal += taxaDaMaquininha;
@@ -246,7 +246,7 @@
         textoCrescimento = `<span class="text-success">📈 +100% vs Mês Anterior</span>`;
       }
 
-      // 4. CÁLCULO DE PREVISÃO (CLIENTES FIÉIS - Baseado apenas em cortes)
+      // 4. CÁLCULO DE PREVISÃO (CLIENTES FIÉIS)
       let historicoTelefones = {};
       let faturamentoGlobal = 0;
       let totalCortesGlobal = 0;
@@ -303,23 +303,37 @@
     }
   }
 
-  // Função para desenhar linhas mistas na tabela
+  // ✨ FUNÇÃO ATUALIZADA: Desenha linhas padronizadas na tabela
   function criarLinhaTabela(dataBruta, cliente, descricao, pgto, valor) {
     const dataFormatada = new Date(dataBruta).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     const lucroFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const formaPgto = pgto || 'Não informada';
+
+    let formaPgtoBruta = pgto || 'NÃO INFORMADA';
+    formaPgtoBruta = formaPgtoBruta.toUpperCase();
 
     let corPagamento = 'text-dark';
-    if (formaPgto.includes('CREDITO')) corPagamento = 'text-primary';
-    if (formaPgto.includes('DEBITO')) corPagamento = 'text-info';
-    if (formaPgto.includes('PIX') || formaPgto.includes('DINHEIRO')) corPagamento = 'text-success';
+    let nomePagamentoAmigavel = formaPgtoBruta;
+
+    if (formaPgtoBruta.includes('CREDITO')) {
+      corPagamento = 'text-primary';
+      nomePagamentoAmigavel = 'Cartão de Crédito';
+    } else if (formaPgtoBruta.includes('DEBITO')) {
+      corPagamento = 'text-info';
+      nomePagamentoAmigavel = 'Cartão de Débito';
+    } else if (formaPgtoBruta.includes('PIX') || formaPgtoBruta.includes('DINHEIRO')) {
+      corPagamento = 'text-success';
+      nomePagamentoAmigavel = 'Dinheiro / PIX';
+    } else if (formaPgtoBruta === 'PENDENTE') {
+      corPagamento = 'text-danger';
+      nomePagamentoAmigavel = 'Pendente';
+    }
 
     return `
           <tr>
               <td data-label="Data" class="text-muted">${dataFormatada}</td>
               <td data-label="Cliente"><strong>${cliente}</strong></td>
               <td data-label="Operação"><small class="text-muted">${descricao}</small></td>
-              <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
+              <td data-label="Pagamento" class="fw-bold ${corPagamento}">${nomePagamentoAmigavel}</td>
               <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
           </tr>
       `;
