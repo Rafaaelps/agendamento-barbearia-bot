@@ -21,7 +21,7 @@ public class WebhookController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // =========================================================================
-    // ⚠️ ATENÇÃO: COLOQUE AQUI OS DADOS DA SUA EVOLUTION API
+    // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API MANTIDAS
     // =========================================================================
     private final String EVOLUTION_URL = "http://187.77.224.241:47851/message/sendText/barbearia";
     private final String EVOLUTION_API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
@@ -38,8 +38,6 @@ public class WebhookController {
             if (payloadString == null || payloadString.isEmpty()) {
                 return ResponseEntity.ok("OK");
             }
-
-            System.out.println("🚨 BATEU NO WEBHOOK BRUTO: " + payloadString);
 
             JsonNode payload = objectMapper.readTree(payloadString);
 
@@ -64,6 +62,8 @@ public class WebhookController {
             String telefone = remoteJid.replace("@s.whatsapp.net", "");
 
             String textoMensagem = "";
+            boolean isMidia = false; // ✨ A CHAVE DA MÁGICA AQUI
+
             JsonNode message = data.get("message");
 
             if (message.has("conversation")) {
@@ -71,13 +71,29 @@ public class WebhookController {
             } else if (message.has("extendedTextMessage") && message.get("extendedTextMessage").has("text")) {
                 textoMensagem = message.get("extendedTextMessage").get("text").asText();
             }
+            // ✨ SE NÃO TEM TEXTO, VERIFICA SE É ÁUDIO, FOTO OU FIGURINHA!
+            else if (message.has("audioMessage") || message.has("imageMessage") ||
+                    message.has("videoMessage") || message.has("stickerMessage") ||
+                    message.has("documentMessage")) {
+                isMidia = true;
+            }
 
-            if (!textoMensagem.isEmpty()) {
-                System.out.println("📩 Mensagem extraída com sucesso de " + telefone + ": " + textoMensagem);
+            // ✨ AGORA ELE DEIXA PASSAR SE TIVER TEXTO OU SE FOR MÍDIA
+            if (!textoMensagem.isEmpty() || isMidia) {
 
+                if (isMidia) {
+                    System.out.println("🎤 Áudio/Mídia recebida de " + telefone + " -> Acionando interceptador!");
+                } else {
+                    System.out.println("📩 Texto de " + telefone + ": " + textoMensagem);
+                }
+
+                // O textoMensagem vai entrar vazio se for mídia, o que dispara o aviso "Opa, não escuto áudios" lá no ChatbotService
                 String respostaDoRobo = chatbotService.processarMensagem(telefone, textoMensagem);
 
-                enviarMensagemParaEvolution(remoteJid, respostaDoRobo);
+                // Só tenta responder se o robô tiver algo a dizer
+                if (respostaDoRobo != null && !respostaDoRobo.isEmpty()) {
+                    enviarMensagemParaEvolution(remoteJid, respostaDoRobo);
+                }
             }
 
         } catch (Exception e) {
@@ -95,21 +111,16 @@ public class WebhookController {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("apikey", EVOLUTION_API_KEY);
 
-        // =======================================================
-        // ✨ CORREÇÃO AQUI: Novo formato exigido pela Evolution V2
-        // A propriedade "text" agora precisa ficar solta na raiz
-        // =======================================================
         Map<String, Object> body = new HashMap<>();
         body.put("number", numeroDestino);
         body.put("text", textoParaEnviar);
         body.put("delay", 1200);
-        body.put("presence", "composing");
+        body.put("presence", "composing"); // Faz aparecer "Digitando..." no WhatsApp
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
         try {
             restTemplate.postForEntity(EVOLUTION_URL, request, String.class);
-            System.out.println("✅ Resposta disparada para a Evolution com sucesso!");
         } catch (Exception e) {
             System.err.println("❌ Falha ao tentar enviar mensagem de volta: " + e.getMessage());
         }
