@@ -5,43 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Financeiro - Barbearia</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* Cor personalizada: Vermelho suave/fosco para não agredir os olhos nas taxas */
-    .text-suave-danger {
-      color: #c94c4c !important;
-    }
-    .border-suave-danger {
-      border-color: #c94c4c !important;
-    }
+    .text-suave-danger { color: #c94c4c !important; }
+    .border-suave-danger { border-color: #c94c4c !important; }
 
     @media (max-width: 767.98px) {
       .tabela-mobile thead { display: none; }
       .tabela-mobile tbody tr {
-        display: block;
-        margin-bottom: 1rem;
-        background-color: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+        display: block; margin-bottom: 1rem; background-color: #fff;
+        border: 1px solid #dee2e6; border-radius: 0.5rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
       }
       .tabela-mobile tbody td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        text-align: right;
-        border-bottom: 1px solid #dee2e6;
-        padding: 0.75rem 1rem;
+        display: flex; justify-content: space-between; align-items: center;
+        text-align: right; border-bottom: 1px solid #dee2e6; padding: 0.75rem 1rem;
       }
       .tabela-mobile tbody td:last-child { border-bottom: none; }
       .tabela-mobile tbody td::before {
-        content: attr(data-label);
-        font-weight: bold;
-        color: #6c757d;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        margin-right: 1rem;
-        text-align: left;
+        content: attr(data-label); font-weight: bold; color: #6c757d;
+        text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left;
       }
     }
   </style>
@@ -56,15 +39,9 @@
     </button>
     <div class="collapse navbar-collapse" id="menuNavegacao">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-2 mt-lg-0">
-        <li class="nav-item">
-          <a class="nav-link" href="index.html">📅 Agenda do Dia</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link active" href="financeiro.html">💰 Financeiro</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="servicos.html">✂️ Serviços</a>
-        </li>
+        <li class="nav-item"><a class="nav-link" href="index.html">📅 Agenda do Dia</a></li>
+        <li class="nav-item"><a class="nav-link active" href="financeiro.html">💰 Financeiro</a></li>
+        <li class="nav-item"><a class="nav-link" href="servicos.html">✂️ Serviços</a></li>
       </ul>
       <div class="d-flex align-items-center mt-2 mt-lg-0">
         <form action="/sair" method="POST" class="m-0">
@@ -78,7 +55,7 @@
 <div class="container">
 
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-    <h2 class="mb-0">Visão Financeira</h2>
+    <h2 class="mb-0">Visão Financeira (BI)</h2>
     <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border w-100 w-md-auto">
       <label for="filtro-mes" class="me-2 fw-bold text-secondary mb-0 text-nowrap">Mês:</label>
       <input type="month" id="filtro-mes" class="form-control border-0 p-0 fw-bold text-primary flex-grow-1" onchange="carregarFinanceiro()">
@@ -86,61 +63,87 @@
   </div>
 
   <div class="row mb-4 g-3">
-
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-lg-3 col-md-6">
       <div class="card shadow-sm border-0 border-success border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Lucro Líquido Mensal</h6>
-          <h2 class="text-success fw-bold mb-0" id="valor-faturamento">R$ 0,00</h2>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Lucro Líquido Mensal</h6>
+          <h3 class="text-success fw-bold mb-0" id="valor-faturamento">R$ 0,00</h3>
+          <small class="fw-bold" id="indicador-crescimento" style="font-size: 0.80rem;">-</small>
         </div>
       </div>
     </div>
 
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-lg-3 col-md-6">
+      <div class="card shadow-sm border-0 border-info border-start border-5 h-100">
+        <div class="card-body">
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Previsão (Clientes Fiéis)</h6>
+          <h3 class="text-info fw-bold mb-0" id="valor-previsao">R$ 0,00</h3>
+          <small class="text-muted fw-bold" style="font-size: 0.80rem;">Com base no histórico</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-3 col-md-6">
       <div class="card shadow-sm border-0 border-suave-danger border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Taxas Pagas (Maquininha)</h6>
-          <h2 class="text-suave-danger fw-bold mb-0" id="valor-taxas">R$ 0,00</h2>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Taxas / Perdas</h6>
+          <h3 class="text-suave-danger fw-bold mb-0" id="valor-taxas">R$ 0,00</h3>
         </div>
       </div>
     </div>
 
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-lg-3 col-md-6">
       <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Serviços Concluídos</h6>
-          <h2 class="text-primary fw-bold mb-0" id="qtd-servicos">0</h2>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Serviços Concluídos</h6>
+          <h3 class="text-primary fw-bold mb-0" id="qtd-servicos">0</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-5 g-3">
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white py-3 border-bottom-0">
+          <h6 class="mb-0 fw-bold text-secondary">Entradas vs Saídas</h6>
+        </div>
+        <div class="card-body d-flex justify-content-center align-items-center">
+          <canvas id="graficoFinanceiro" style="max-height: 250px;"></canvas>
         </div>
       </div>
     </div>
 
+    <div class="col-12 col-lg-8">
+      <div class="card shadow-sm border-0 h-100 bg-transparent bg-md-white">
+        <div class="card-header bg-white py-3 d-none d-md-block border-bottom-0 rounded-top">
+          <h6 class="mb-0 fw-bold text-secondary">Extrato Detalhado</h6>
+        </div>
+        <div class="card-body p-0 p-md-3" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-hover align-middle text-center tabela-mobile mb-0">
+            <thead class="table-light">
+            <tr>
+              <th>Data</th>
+              <th>Cliente</th>
+              <th>Serviço</th>
+              <th>Pagamento</th>
+              <th>Lucro Líquido</th>
+            </tr>
+            </thead>
+            <tbody id="tabela-extrato">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="card shadow-sm border-0 mb-5 bg-transparent bg-md-white">
-    <div class="card-header bg-white py-3 d-none d-md-block rounded-top">
-      <h5 class="mb-0 fw-bold">Extrato Detalhado</h5>
-    </div>
-    <div class="card-body p-0 p-md-3">
-      <table class="table table-hover align-middle text-center tabela-mobile mb-0">
-        <thead class="table-light">
-        <tr>
-          <th>Data e Hora</th>
-          <th>Cliente</th>
-          <th>Serviço</th>
-          <th>Pagamento</th>
-          <th>Lucro Líquido</th>
-          <th>Ações</th>
-        </tr>
-        </thead>
-        <tbody id="tabela-extrato">
-        </tbody>
-      </table>
-    </div>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  let meuGrafico = null; // Guarda a instância do gráfico para atualizar sem bugar
+
   document.addEventListener("DOMContentLoaded", () => {
     const dataHoje = new Date();
     const ano = dataHoje.getFullYear();
@@ -149,7 +152,6 @@
 
     carregarFinanceiro();
 
-    // ✨ O MOTOR DE TEMPO REAL DO FINANCEIRO (Atualiza a cada 10s para ver pagamentos caindo)
     setInterval(() => {
       carregarFinanceiro();
     }, 10000);
@@ -161,11 +163,9 @@
       const todosAgendamentos = await resposta.json();
       const mesEscolhido = document.getElementById('filtro-mes').value;
 
-      let concluidos = todosAgendamentos.filter(ag => {
-        return ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido);
-      });
-
-      concluidos.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
+      // 1. DADOS DO MÊS ATUAL
+      let concluidosAtual = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido));
+      concluidosAtual.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
 
       let faturamentoTotal = 0;
       let taxasTotal = 0;
@@ -173,32 +173,15 @@
       const corpoTabela = document.getElementById('tabela-extrato');
       corpoTabela.innerHTML = '';
 
-      if (concluidos.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
-        document.getElementById('qtd-servicos').innerText = '0';
-        document.getElementById('valor-faturamento').innerText = 'R$ 0,00';
-        document.getElementById('valor-taxas').innerText = 'R$ 0,00';
-        return;
-      }
-
-      concluidos.forEach(agendamento => {
+      concluidosAtual.forEach(agendamento => {
         let lucroReal = Number(agendamento.faturamentoBarbeiro);
-        let precoTabelaHistorico = 0;
-
-        if (agendamento.valorTotalHistorico != null && agendamento.valorTotalHistorico > 0) {
-          precoTabelaHistorico = Number(agendamento.valorTotalHistorico);
-        } else if (agendamento.valorFinal != null) {
-          precoTabelaHistorico = Number(agendamento.valorFinal);
-        } else {
-          precoTabelaHistorico = lucroReal;
-        }
-
+        let precoTabelaHistorico = agendamento.valorTotalHistorico != null && agendamento.valorTotalHistorico > 0 ? Number(agendamento.valorTotalHistorico) : (agendamento.valorFinal != null ? Number(agendamento.valorFinal) : lucroReal);
         let taxaPerdida = Math.max(0, precoTabelaHistorico - lucroReal);
 
         faturamentoTotal += lucroReal;
         taxasTotal += taxaPerdida;
 
-        const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
         const lucroFormatado = lucroReal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const formaPgto = agendamento.formaPagamento || 'Não informada';
 
@@ -207,46 +190,104 @@
         if (formaPgto.includes('Débito')) corPagamento = 'text-info';
         if (formaPgto.includes('PIX') || formaPgto.includes('Dinheiro')) corPagamento = 'text-success';
 
-        const linha = `
+        corpoTabela.innerHTML += `
                     <tr>
-                        <td data-label="Data/Hora" class="text-muted">${dataFormatada}</td>
+                        <td data-label="Data" class="text-muted">${dataFormatada}</td>
                         <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
-                        <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br><small class="text-muted">R$ ${precoTabelaHistorico.toFixed(2)}</small></td>
+                        <td data-label="Serviço"><small class="text-muted">${agendamento.servicoEscolhido.nome}</small></td>
                         <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
                         <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
-                        <td data-label="Ações">
-                            <button class="btn btn-sm btn-outline-secondary w-100 w-md-auto" onclick="editarValor(${agendamento.id}, ${lucroReal})">✏️ Editar</button>
-                        </td>
                     </tr>
                 `;
-        corpoTabela.innerHTML += linha;
       });
 
-      document.getElementById('qtd-servicos').innerText = concluidos.length;
+      if (concluidosAtual.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
+      }
+
+      // 2. ✨ CÁLCULO DE CRESCIMENTO MÊS A MÊS
+      const dataSelecionadaObj = new Date(mesEscolhido + '-01T00:00:00');
+      const dataAnteriorObj = new Date(dataSelecionadaObj);
+      dataAnteriorObj.setMonth(dataAnteriorObj.getMonth() - 1);
+      const mesAnterior = `${dataAnteriorObj.getFullYear()}-${String(dataAnteriorObj.getMonth() + 1).padStart(2, '0')}`;
+
+      let concluidosAnterior = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesAnterior));
+      let faturamentoAnterior = concluidosAnterior.reduce((soma, ag) => soma + Number(ag.faturamentoBarbeiro || 0), 0);
+
+      let textoCrescimento = `<span class="text-muted">Sem dados do mês anterior</span>`;
+      if (faturamentoAnterior > 0) {
+        let percentual = ((faturamentoTotal - faturamentoAnterior) / faturamentoAnterior) * 100;
+        if (percentual >= 0) {
+          textoCrescimento = `<span class="text-success">📈 +${percentual.toFixed(1)}% vs Mês Anterior</span>`;
+        } else {
+          textoCrescimento = `<span class="text-danger">📉 ${percentual.toFixed(1)}% vs Mês Anterior</span>`;
+        }
+      } else if (faturamentoTotal > 0) {
+        textoCrescimento = `<span class="text-success">📈 +100% vs Mês Anterior</span>`;
+      }
+
+      // 3. ✨ CÁLCULO DE PREVISÃO (CLIENTES FIÉIS)
+      // Descobre o ticket médio histórico e conta quantos clientes já vieram mais de 1 vez na vida
+      let historicoTelefones = {};
+      let faturamentoGlobal = 0;
+      let totalCortesGlobal = 0;
+
+      todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO').forEach(ag => {
+        faturamentoGlobal += Number(ag.faturamentoBarbeiro || 0);
+        totalCortesGlobal++;
+        let tel = ag.telefoneCliente;
+        historicoTelefones[tel] = (historicoTelefones[tel] || 0) + 1;
+      });
+
+      let ticketMedio = totalCortesGlobal > 0 ? (faturamentoGlobal / totalCortesGlobal) : 0;
+      let clientesRecorrentes = Object.values(historicoTelefones).filter(visitas => visitas > 1).length;
+      let previsaoFaturamento = clientesRecorrentes * ticketMedio;
+
+      // 4. ATUALIZA A TELA
+      document.getElementById('qtd-servicos').innerText = concluidosAtual.length;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('indicador-crescimento').innerHTML = textoCrescimento;
+      document.getElementById('valor-previsao').innerText = previsaoFaturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      // 5. ✨ ATUALIZA O GRÁFICO (CHART.JS)
+      const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
+
+      // Se já existe um gráfico na tela, apaga ele antes de desenhar o novo
+      if (meuGrafico) {
+        meuGrafico.destroy();
+      }
+
+      // Se não tem dinheiro nenhum, desenha um gráfico cinza vazio
+      let dadosGrafico = [faturamentoTotal, taxasTotal];
+      let coresGrafico = ['#198754', '#c94c4c'];
+      if (faturamentoTotal === 0 && taxasTotal === 0) {
+        dadosGrafico = [1];
+        coresGrafico = ['#e9ecef'];
+      }
+
+      meuGrafico = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: (faturamentoTotal === 0 && taxasTotal === 0) ? ['Sem Dados'] : ['Lucro Líquido', 'Taxas / Perdas'],
+          datasets: [{
+            data: dadosGrafico,
+            backgroundColor: coresGrafico,
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          cutout: '70%', // Deixa o buraco da rosquinha mais grosso e elegante
+          plugins: {
+            legend: { display: false } // Esconde a legenda padrão para ficar minimalista
+          }
+        }
+      });
 
     } catch (erro) {
       console.error("Erro ao buscar dados financeiros:", erro);
-    }
-  }
-
-  async function editarValor(id, valorAtual) {
-    const novoValorStr = prompt("Digite o novo valor de LUCRO LÍQUIDO cobrado (use ponto em vez de vírgula, ex: 55.50):", valorAtual.toFixed(2));
-
-    if (novoValorStr !== null && novoValorStr.trim() !== "") {
-      const novoValor = parseFloat(novoValorStr.replace(',', '.'));
-
-      if (!isNaN(novoValor)) {
-        try {
-          await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' });
-          carregarFinanceiro();
-        } catch (erro) {
-          alert("Erro ao tentar alterar o valor!");
-        }
-      } else {
-        alert("Por favor, digite um número válido.");
-      }
     }
   }
 </script>
