@@ -57,9 +57,13 @@
 
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <h2 class="mb-0">Visão Financeira (BI)</h2>
-    <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border w-100 w-md-auto">
-      <label for="filtro-mes" class="me-2 fw-bold text-secondary mb-0 text-nowrap">Mês:</label>
-      <input type="month" id="filtro-mes" class="form-control border-0 p-0 fw-bold text-primary flex-grow-1" onchange="carregarFinanceiro()">
+
+    <div class="d-flex gap-2 w-100 w-md-auto">
+      <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border flex-grow-1">
+        <label for="filtro-mes" class="me-2 fw-bold text-secondary mb-0 text-nowrap">Mês:</label>
+        <input type="month" id="filtro-mes" class="form-control border-0 p-0 fw-bold text-primary flex-grow-1" onchange="carregarFinanceiro()">
+      </div>
+      <button class="btn btn-dark fw-bold shadow-sm px-3" onclick="abrirModalTaxas()" title="Configurar Taxas da Maquininha">⚙️ Taxas</button>
     </div>
   </div>
 
@@ -141,6 +145,29 @@
 
 </div>
 
+<div class="modal fade" id="modalTaxas" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-bold">⚙️ Configurar Taxas</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size: 0.85rem;">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-primary">Taxa Crédito (%):</label>
+          <input type="number" id="taxa-credito" class="form-control fw-bold" step="0.01">
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-bold text-info">Taxa Débito (%):</label>
+          <input type="number" id="taxa-debito" class="form-control fw-bold" step="0.01">
+        </div>
+        <button class="btn btn-primary w-100 fw-bold" onclick="salvarTaxas()">💾 Salvar Novas Taxas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   let meuGrafico = null;
@@ -154,9 +181,41 @@
     carregarFinanceiro();
 
     setInterval(() => {
-      carregarFinanceiro();
+      const modalAberto = document.querySelector('.modal.show');
+      if (!modalAberto) {
+        carregarFinanceiro();
+      }
     }, 10000);
   });
+
+  // ✨ FUNÇÕES PARA LIDAR COM O MODAL DE TAXAS
+  async function abrirModalTaxas() {
+    const resposta = await fetch('/api/configuracoes/taxas');
+    const taxas = await resposta.json();
+
+    document.getElementById('taxa-credito').value = taxas.credito;
+    document.getElementById('taxa-debito').value = taxas.debito;
+
+    new bootstrap.Modal(document.getElementById('modalTaxas')).show();
+  }
+
+  async function salvarTaxas() {
+    const creditoStr = document.getElementById('taxa-credito').value.replace(',', '.');
+    const debitoStr = document.getElementById('taxa-debito').value.replace(',', '.');
+
+    const credito = parseFloat(creditoStr) || 0;
+    const debito = parseFloat(debitoStr) || 0;
+
+    await fetch('/api/configuracoes/taxas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credito, debito })
+    });
+
+    bootstrap.Modal.getInstance(document.getElementById('modalTaxas')).hide();
+    alert("✅ Novas taxas configuradas com sucesso!");
+  }
+
 
   async function carregarFinanceiro() {
     try {
@@ -177,7 +236,6 @@
       const corpoTabela = document.getElementById('tabela-extrato');
       corpoTabela.innerHTML = '';
 
-      // 1. DADOS DE CORTES
       let concluidosAtual = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido));
       concluidosAtual.forEach(agendamento => {
         let lucroReal = Number(agendamento.faturamentoBarbeiro);
@@ -197,7 +255,6 @@
         );
       });
 
-      // 2. DADOS DE VENDAS DE ESTOQUE
       let vendasAtual = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesEscolhido));
       vendasAtual.forEach(venda => {
         let lucroVenda = Number(venda.valorTotal);
@@ -221,7 +278,6 @@
         corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhuma operação concluída neste mês.</td></tr>';
       }
 
-      // 3. CÁLCULO DE CRESCIMENTO MÊS A MÊS
       const dataSelecionadaObj = new Date(mesEscolhido + '-01T00:00:00');
       const dataAnteriorObj = new Date(dataSelecionadaObj);
       dataAnteriorObj.setMonth(dataAnteriorObj.getMonth() - 1);
@@ -246,7 +302,6 @@
         textoCrescimento = `<span class="text-success">📈 +100% vs Mês Anterior</span>`;
       }
 
-      // 4. CÁLCULO DE PREVISÃO (CLIENTES FIÉIS)
       let historicoTelefones = {};
       let faturamentoGlobal = 0;
       let totalCortesGlobal = 0;
@@ -262,14 +317,12 @@
       let clientesRecorrentes = Object.values(historicoTelefones).filter(visitas => visitas > 1).length;
       let previsaoFaturamento = clientesRecorrentes * ticketMedio;
 
-      // 5. ATUALIZA A TELA
       document.getElementById('qtd-servicos').innerText = qtdOperacoes;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('indicador-crescimento').innerHTML = textoCrescimento;
       document.getElementById('valor-previsao').innerText = previsaoFaturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-      // 6. ATUALIZA O GRÁFICO
       const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
       if (meuGrafico) meuGrafico.destroy();
 
@@ -303,27 +356,26 @@
     }
   }
 
-  // ✨ FUNÇÃO ATUALIZADA: Desenha linhas padronizadas na tabela
   function criarLinhaTabela(dataBruta, cliente, descricao, pgto, valor) {
     const dataFormatada = new Date(dataBruta).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     const lucroFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     let formaPgtoBruta = pgto || 'NÃO INFORMADA';
-    formaPgtoBruta = formaPgtoBruta.toUpperCase();
+    let strNormalizada = formaPgtoBruta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
     let corPagamento = 'text-dark';
     let nomePagamentoAmigavel = formaPgtoBruta;
 
-    if (formaPgtoBruta.includes('CREDITO')) {
+    if (strNormalizada.includes('CREDITO')) {
       corPagamento = 'text-primary';
       nomePagamentoAmigavel = 'Cartão de Crédito';
-    } else if (formaPgtoBruta.includes('DEBITO')) {
+    } else if (strNormalizada.includes('DEBITO')) {
       corPagamento = 'text-info';
       nomePagamentoAmigavel = 'Cartão de Débito';
-    } else if (formaPgtoBruta.includes('PIX') || formaPgtoBruta.includes('DINHEIRO')) {
+    } else if (strNormalizada.includes('PIX') || strNormalizada.includes('DINHEIRO')) {
       corPagamento = 'text-success';
       nomePagamentoAmigavel = 'Dinheiro / PIX';
-    } else if (formaPgtoBruta === 'PENDENTE') {
+    } else if (strNormalizada === 'PENDENTE') {
       corPagamento = 'text-danger';
       nomePagamentoAmigavel = 'Pendente';
     }

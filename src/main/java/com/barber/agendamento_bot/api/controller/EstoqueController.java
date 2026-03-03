@@ -2,12 +2,14 @@ package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Produto;
 import com.barber.agendamento_bot.api.entity.Venda;
+import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
 import com.barber.agendamento_bot.api.repository.ProdutoRepository;
 import com.barber.agendamento_bot.api.repository.VendaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -19,10 +21,12 @@ public class EstoqueController {
 
     private final ProdutoRepository produtoRepository;
     private final VendaRepository vendaRepository;
+    private final ConfiguracaoRepository configuracaoRepository; // ✨ NOVO
 
-    public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository) {
+    public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository, ConfiguracaoRepository configuracaoRepository) {
         this.produtoRepository = produtoRepository;
         this.vendaRepository = vendaRepository;
+        this.configuracaoRepository = configuracaoRepository;
     }
 
     @GetMapping("/produtos")
@@ -39,15 +43,12 @@ public class EstoqueController {
         return produtoRepository.save(produto);
     }
 
-    // ✨ NOVA ROTA: Editar Produto (Atualiza Nome, Preço e Estoque atual)
     @PutMapping("/produtos/{id}")
     public ResponseEntity<?> editarProduto(@PathVariable Long id, @RequestBody Produto dadosAtualizados) {
         Produto produto = produtoRepository.findById(id).orElseThrow();
-
         produto.setNome(dadosAtualizados.getNome().trim());
         produto.setPreco(dadosAtualizados.getPreco());
         produto.setQuantidadeEstoque(dadosAtualizados.getQuantidadeEstoque());
-
         produtoRepository.save(produto);
         return ResponseEntity.ok(produto);
     }
@@ -76,26 +77,29 @@ public class EstoqueController {
             return ResponseEntity.badRequest().body("Estoque insuficiente!");
         }
 
-        // Baixa no estoque
         produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - quantidade);
         produtoRepository.save(produto);
 
-        // Matemática das taxas já aplicada no valor líquido
+        // ✨ PUXA AS TAXAS DINÂMICAS DO BANCO DE DADOS
+        double taxaCredito = configuracaoRepository.findById("TAXA_CREDITO").map(c -> Double.parseDouble(c.getValor())).orElse(5.0);
+        double taxaDebito = configuracaoRepository.findById("TAXA_DEBITO").map(c -> Double.parseDouble(c.getValor())).orElse(2.0);
+
         BigDecimal precoCheio = produto.getPreco().multiply(new BigDecimal(quantidade));
         BigDecimal valorLiquido = precoCheio;
 
         if ("CREDITO".equalsIgnoreCase(pagamento)) {
-            valorLiquido = precoCheio.multiply(new BigDecimal("0.95"));
+            BigDecimal multiplicador = BigDecimal.ONE.subtract(new BigDecimal(taxaCredito).divide(new BigDecimal("100")));
+            valorLiquido = precoCheio.multiply(multiplicador);
         } else if ("DEBITO".equalsIgnoreCase(pagamento)) {
-            valorLiquido = precoCheio.multiply(new BigDecimal("0.98"));
+            BigDecimal multiplicador = BigDecimal.ONE.subtract(new BigDecimal(taxaDebito).divide(new BigDecimal("100")));
+            valorLiquido = precoCheio.multiply(multiplicador);
         }
 
-        // Registra a venda
         Venda venda = new Venda();
         venda.setProduto(produto);
         venda.setQuantidade(quantidade);
         venda.setFormaPagamento(pagamento);
-        venda.setValorTotal(valorLiquido);
+        venda.setValorTotal(valorLiquido.setScale(2, RoundingMode.HALF_UP));
         venda.setDataHoraVenda(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")));
 
         vendaRepository.save(venda);

@@ -2,66 +2,49 @@ package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
 import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
+import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/caixa")
 public class CaixaController {
 
     private final AgendamentoRepository agendamentoRepository;
+    private final ConfiguracaoRepository configuracaoRepository; // ✨ NOVO
 
-    public CaixaController(AgendamentoRepository agendamentoRepository) {
+    public CaixaController(AgendamentoRepository agendamentoRepository, ConfiguracaoRepository configuracaoRepository) {
         this.agendamentoRepository = agendamentoRepository;
+        this.configuracaoRepository = configuracaoRepository;
     }
 
     @PostMapping("/{id}/pagar")
-    public ResponseEntity<String> registrarPagamento(@PathVariable Long id, @RequestParam String metodo) {
-        Optional<Agendamento> agendamentoOpt = agendamentoRepository.findById(id);
+    public ResponseEntity<?> registrarPagamento(@PathVariable Long id, @RequestParam String metodo) {
+        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
+        agendamento.setFormaPagamento(metodo.toUpperCase());
 
-        if (agendamentoOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("Agendamento não encontrado.");
+        // ✨ PUXA AS TAXAS DINÂMICAS DO BANCO DE DADOS
+        double taxaCredito = configuracaoRepository.findById("TAXA_CREDITO").map(c -> Double.parseDouble(c.getValor())).orElse(5.0);
+        double taxaDebito = configuracaoRepository.findById("TAXA_DEBITO").map(c -> Double.parseDouble(c.getValor())).orElse(2.0);
+
+        BigDecimal precoCheio = agendamento.getServicoEscolhido().getPreco();
+        BigDecimal valorLiquido = precoCheio;
+
+        if ("CREDITO".equals(metodo.toUpperCase())) {
+            BigDecimal multiplicador = BigDecimal.ONE.subtract(new BigDecimal(taxaCredito).divide(new BigDecimal("100")));
+            valorLiquido = precoCheio.multiply(multiplicador);
+        } else if ("DEBITO".equals(metodo.toUpperCase())) {
+            BigDecimal multiplicador = BigDecimal.ONE.subtract(new BigDecimal(taxaDebito).divide(new BigDecimal("100")));
+            valorLiquido = precoCheio.multiply(multiplicador);
         }
 
-        Agendamento agendamento = agendamentoOpt.get();
+        agendamento.setFaturamentoBarbeiro(valorLiquido.setScale(2, RoundingMode.HALF_UP));
+        agendamento.setValorFinal(precoCheio);
 
-        // ✨ A CHAVE DO SNAPSHOT: Captura o preço de tabela ATIVO agora (que estava configurado na tela de serviços)
-        BigDecimal precoBase = agendamento.getServicoEscolhido().getPreco();
-
-        BigDecimal faturamentoLiquido = precoBase;
-        String formaPgtoOficial = "";
-
-        // Aplica a matemática Sênior das taxas da maquininha
-        if (metodo.equalsIgnoreCase("CREDITO")) {
-            formaPgtoOficial = "Cartão de Crédito";
-            faturamentoLiquido = precoBase.multiply(new BigDecimal("0.9517")); // Deduz 4,83%
-        } else if (metodo.equalsIgnoreCase("DEBITO")) {
-            // ✨ CORREÇÃO AQUI: Estava com um espaço "formaPgto Oficial"
-            formaPgtoOficial = "Cartão de Débito";
-            faturamentoLiquido = precoBase.multiply(new BigDecimal("0.9811")); // Deduz 1,89%
-        } else if (metodo.equalsIgnoreCase("PIX_DINHEIRO")) {
-            formaPgtoOficial = "Dinheiro / PIX";
-            faturamentoLiquido = precoBase; // Deduz 0%
-        } else {
-            return ResponseEntity.badRequest().body("Método de pagamento inválido.");
-        }
-
-        // Arredonda para 2 casas decimais (Moeda Real)
-        faturamentoLiquido = faturamentoLiquido.setScale(2, RoundingMode.HALF_UP);
-
-        // Atualiza o banco de dados
-        agendamento.setFormaPagamento(formaPgtoOficial);
-
-        // ✨ GRAVAMOS O SNAPSHOT DO PREÇO TOTAL: Nunca mais dependeremos do preço atual do serviço para este registro financeiro!
-        agendamento.setValorTotalHistorico(precoBase);
-
-        agendamento.setFaturamentoBarbeiro(faturamentoLiquido);
         agendamentoRepository.save(agendamento);
-
-        return ResponseEntity.ok("Pagamento registrado: Lucro líquido de R$ " + faturamentoLiquido);
+        return ResponseEntity.ok().build();
     }
 }
