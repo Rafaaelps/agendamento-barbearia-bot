@@ -9,7 +9,11 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -27,12 +31,8 @@ public class ChatbotService {
         this.servicoRepository = servicoRepository;
     }
 
-    // =======================================================
-    // ✨ INJETOR AUTOMÁTICO (SEGURO)
-    // =======================================================
     @PostConstruct
     public void popularBancoSeEstiverVazio() {
-        // ✨ AGORA É SEGURO: Só cria se não existir NADA. Nunca apaga dados do cliente!
         if (servicoRepository.count() == 0) {
             System.out.println("⚙️ Criando serviços iniciais no banco vazio...");
 
@@ -69,7 +69,6 @@ public class ChatbotService {
         String textoLimpo = textoRecebido.toLowerCase().trim();
         LocalDateTime agora = LocalDateTime.now();
 
-        // ⏱️ TIMEOUT (10 MINUTOS)
         if (sessao.getUltimaInteracao() != null) {
             long minutosInativos = ChronoUnit.MINUTES.between(sessao.getUltimaInteracao(), agora);
             if (minutosInativos >= 10 && !sessao.getPassoAtual().equals("MENU_INICIAL")) {
@@ -80,7 +79,6 @@ public class ChatbotService {
         }
         sessao.setUltimaInteracao(agora);
 
-        // 👋 INTERCEPTADOR DE SAUDAÇÕES
         if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|voltar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
@@ -91,7 +89,9 @@ public class ChatbotService {
             }
         }
 
-        // 🧠 A MÁQUINA DE ESTADOS
+        DateTimeFormatter formatadorData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter formatadorHora = DateTimeFormatter.ofPattern("HH:mm");
+
         switch (sessao.getPassoAtual()) {
 
             case "MENU_INICIAL":
@@ -109,7 +109,7 @@ public class ChatbotService {
 
                     if (agendamentoEncontrado != null) {
                         sessao.setIdAgendamentoTemporario(agendamentoEncontrado.getId());
-                        String dataBonita = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm").format(agendamentoEncontrado.getDataHoraInicio());
+                        String dataBonita = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm").format(agendamentoEncontrado.getDataHoraInicio());
                         respostaDoRobo = "Encontrei um agendamento de *" + agendamentoEncontrado.getServicoEscolhido().getNome() + "* para o dia *" + dataBonita + "*.\n\nVocê tem certeza que deseja cancelar? Digite *SIM* para confirmar ou *NAO* para voltar ao menu.";
                         sessao.setPassoAtual("CONFIRMANDO_CANCELAMENTO");
                     } else {
@@ -135,7 +135,6 @@ public class ChatbotService {
 
             case "ESPERANDO_NOME":
                 sessao.setNomeClienteTemporario(textoRecebido);
-
                 List<Servico> listaServicos = servicoRepository.findAll();
 
                 if (listaServicos.isEmpty()) {
@@ -145,12 +144,10 @@ public class ChatbotService {
                 }
 
                 StringBuilder menuServicos = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar para hoje?\n\n");
-
                 for (Servico s : listaServicos) {
                     menuServicos.append(s.getId()).append(" - ").append(s.getNome())
                             .append(" (R$ ").append(s.getPreco()).append(")\n");
                 }
-
                 respostaDoRobo = menuServicos.toString();
                 sessao.setPassoAtual("ESPERANDO_SERVICO");
                 break;
@@ -174,45 +171,51 @@ public class ChatbotService {
 
             case "ESPERANDO_DATA":
                 try {
-                    int anoAtual = java.time.LocalDate.now().getYear();
-                    java.time.format.DateTimeFormatter formatadorData = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    int anoAtual = LocalDate.now().getYear();
+                    LocalDate dataDigitada = LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
 
-                    java.time.LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
+                    // ✨ A MÁGICA ACONTECE AQUI: Busca os horários livres ANTES de perguntar!
+                    List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
 
-                    sessao.setDataTemporaria(textoLimpo);
-                    respostaDoRobo = "Certo! E qual o horário? (ex: 14:30):";
-                    sessao.setPassoAtual("ESPERANDO_HORARIO");
+                    if (horariosLivres.isEmpty()) {
+                        respostaDoRobo = "😔 Poxa, não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: 01/03):";
+                        // Mantém o usuário neste mesmo passo para tentar outra data
+                    } else {
+                        sessao.setDataTemporaria(textoLimpo);
 
-                } catch (java.time.format.DateTimeParseException e) {
+                        StringBuilder mensagemHorarios = new StringBuilder("Certo! Para o dia *" + textoLimpo + "*, temos estes horários livres:\n\n");
+                        for (LocalTime h : horariosLivres) {
+                            mensagemHorarios.append("⏰ *").append(h.format(formatadorHora)).append("*\n");
+                        }
+                        mensagemHorarios.append("\nQual horário você prefere? (Digite no formato HH:mm, ex: ").append(horariosLivres.get(0).format(formatadorHora)).append("):");
+
+                        respostaDoRobo = mensagemHorarios.toString();
+                        sessao.setPassoAtual("ESPERANDO_HORARIO");
+                    }
+
+                } catch (DateTimeParseException e) {
                     respostaDoRobo = "⚠️ Formato de data inválido! Por favor, digite o dia e o mês separados por barra (ex: 28/02):";
                 }
                 break;
 
             case "ESPERANDO_HORARIO":
                 try {
-                    java.time.LocalTime horaDigitada = java.time.LocalTime.parse(textoLimpo);
+                    LocalTime horaDigitada = LocalTime.parse(textoLimpo);
                     String diaMes = sessao.getDataTemporaria();
-                    int anoAtual = java.time.LocalDate.now().getYear();
+                    int anoAtual = LocalDate.now().getYear();
 
-                    java.time.format.DateTimeFormatter formatadorData = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                    java.time.LocalDate dataDigitada = java.time.LocalDate.parse(diaMes + "/" + anoAtual, formatadorData);
-
-                    java.time.LocalDateTime dataHoraCompleta = java.time.LocalDateTime.of(dataDigitada, horaDigitada);
+                    LocalDate dataDigitada = LocalDate.parse(diaMes + "/" + anoAtual, formatadorData);
+                    LocalDateTime dataHoraCompleta = LocalDateTime.of(dataDigitada, horaDigitada);
 
                     Agendamento novoAgendamento = new Agendamento();
                     novoAgendamento.setTelefoneCliente(sessao.getTelefone());
                     novoAgendamento.setNomeCliente(sessao.getNomeClienteTemporario());
                     novoAgendamento.setDataHoraInicio(dataHoraCompleta);
 
-                    // ✨ CORREÇÃO PREVENTIVA: Busca o serviço completo no banco para salvar certinho!
                     Servico servicoEscolhido = servicoRepository.findById(sessao.getIdServicoTemporario()).orElse(null);
                     novoAgendamento.setServicoEscolhido(servicoEscolhido);
-
-                    // =======================================================
-                    // ✨ REGISTRO DE PAGAMENTO PENDENTE
-                    // =======================================================
                     novoAgendamento.setFormaPagamento("PENDENTE");
-                    novoAgendamento.setFaturamentoBarbeiro(java.math.BigDecimal.ZERO);
+                    novoAgendamento.setFaturamentoBarbeiro(BigDecimal.ZERO);
 
                     boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
 
@@ -221,9 +224,22 @@ public class ChatbotService {
                         sessao.setPassoAtual("MENU_INICIAL");
                         limparDadosTemporariosDaSessao(sessao);
                     } else {
-                        respostaDoRobo = "❌ Esse horário já está ocupado no dia " + diaMes + ". Por favor, digite outro horário livre:";
+                        // ✨ SE DEU ERRO (Escolheu um horário errado), MOSTRA A LISTA DE NOVO!
+                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
+
+                        if (horariosLivres.isEmpty()) {
+                            respostaDoRobo = "❌ Esse horário já está ocupado e não temos mais vagas neste dia. Por favor, mande um *Oi* para recomeçar e escolher outra data.";
+                            sessao.setPassoAtual("MENU_INICIAL");
+                            limparDadosTemporariosDaSessao(sessao);
+                        } else {
+                            StringBuilder mensagemHorarios = new StringBuilder("❌ Esse horário já está ocupado ou é inválido. Por favor, escolha um dos horários livres abaixo:\n\n");
+                            for (LocalTime h : horariosLivres) {
+                                mensagemHorarios.append("⏰ *").append(h.format(formatadorHora)).append("*\n");
+                            }
+                            respostaDoRobo = mensagemHorarios.toString();
+                        }
                     }
-                } catch (java.time.format.DateTimeParseException e) {
+                } catch (DateTimeParseException e) {
                     respostaDoRobo = "⚠️ Formato de horário inválido! Por favor, digite a hora com dois pontos (ex: 14:30):";
                 }
                 break;
