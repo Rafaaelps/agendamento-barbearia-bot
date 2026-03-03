@@ -42,7 +42,7 @@
         <li class="nav-item"><a class="nav-link" href="index.html">📅 Agenda do Dia</a></li>
         <li class="nav-item"><a class="nav-link active" href="financeiro.html">💰 Financeiro</a></li>
         <li class="nav-item"><a class="nav-link" href="servicos.html">✂️ Serviços</a></li>
-      </ul>
+        <li class="nav-item"><a class="nav-link" href="estoque.html">📦 Estoque</a></li> </ul>
       <div class="d-flex align-items-center mt-2 mt-lg-0">
         <form action="/sair" method="POST" class="m-0">
           <button type="submit" class="btn btn-outline-danger btn-sm fw-bold">Sair do Sistema</button>
@@ -95,7 +95,7 @@
     <div class="col-12 col-lg-3 col-md-6">
       <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Serviços Concluídos</h6>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Operações Concluídas</h6>
           <h3 class="text-primary fw-bold mb-0" id="qtd-servicos">0</h3>
         </div>
       </div>
@@ -125,7 +125,7 @@
             <tr>
               <th>Data</th>
               <th>Cliente</th>
-              <th>Serviço</th>
+              <th>Operação</th>
               <th>Pagamento</th>
               <th>Lucro Líquido</th>
             </tr>
@@ -142,7 +142,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  let meuGrafico = null; // Guarda a instância do gráfico para atualizar sem bugar
+  let meuGrafico = null;
 
   document.addEventListener("DOMContentLoaded", () => {
     const dataHoje = new Date();
@@ -159,20 +159,26 @@
 
   async function carregarFinanceiro() {
     try {
-      const resposta = await fetch('/api/agendamentos');
-      const todosAgendamentos = await resposta.json();
-      const mesEscolhido = document.getElementById('filtro-mes').value;
+      // ✨ BUSCA CORTES E PRODUTOS VENDIDOS
+      const [respostaAgendamentos, respostaVendas] = await Promise.all([
+        fetch('/api/agendamentos'),
+        fetch('/api/estoque/vendas')
+      ]);
 
-      // 1. DADOS DO MÊS ATUAL
-      let concluidosAtual = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido));
-      concluidosAtual.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
+      const todosAgendamentos = await respostaAgendamentos.json();
+      const todasVendas = await respostaVendas.json();
+
+      const mesEscolhido = document.getElementById('filtro-mes').value;
 
       let faturamentoTotal = 0;
       let taxasTotal = 0;
+      let qtdOperacoes = 0;
 
       const corpoTabela = document.getElementById('tabela-extrato');
       corpoTabela.innerHTML = '';
 
+      // 1. DADOS DE CORTES
+      let concluidosAtual = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido));
       concluidosAtual.forEach(agendamento => {
         let lucroReal = Number(agendamento.faturamentoBarbeiro);
         let precoTabelaHistorico = agendamento.valorTotalHistorico != null && agendamento.valorTotalHistorico > 0 ? Number(agendamento.valorTotalHistorico) : (agendamento.valorFinal != null ? Number(agendamento.valorFinal) : lucroReal);
@@ -180,39 +186,49 @@
 
         faturamentoTotal += lucroReal;
         taxasTotal += taxaPerdida;
+        qtdOperacoes++;
 
-        const dataFormatada = new Date(agendamento.dataHoraInicio).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const lucroFormatado = lucroReal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const formaPgto = agendamento.formaPagamento || 'Não informada';
-
-        let corPagamento = 'text-dark';
-        if (formaPgto.includes('Crédito')) corPagamento = 'text-primary';
-        if (formaPgto.includes('Débito')) corPagamento = 'text-info';
-        if (formaPgto.includes('PIX') || formaPgto.includes('Dinheiro')) corPagamento = 'text-success';
-
-        corpoTabela.innerHTML += `
-                    <tr>
-                        <td data-label="Data" class="text-muted">${dataFormatada}</td>
-                        <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
-                        <td data-label="Serviço"><small class="text-muted">${agendamento.servicoEscolhido.nome}</small></td>
-                        <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
-                        <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
-                    </tr>
-                `;
+        corpoTabela.innerHTML += criarLinhaTabela(
+                agendamento.dataHoraInicio,
+                agendamento.nomeCliente,
+                `✂️ ${agendamento.servicoEscolhido.nome}`,
+                agendamento.formaPagamento,
+                lucroReal
+        );
       });
 
-      if (concluidosAtual.length === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhum serviço concluído neste mês.</td></tr>';
+      // 2. DADOS DE VENDAS DE ESTOQUE
+      let vendasAtual = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesEscolhido));
+      vendasAtual.forEach(venda => {
+        let lucroVenda = Number(venda.valorTotal);
+        faturamentoTotal += lucroVenda;
+        qtdOperacoes++;
+
+        corpoTabela.innerHTML += criarLinhaTabela(
+                venda.dataHoraVenda,
+                "Cliente Avulso",
+                `📦 ${venda.quantidade}x ${venda.produto.nome}`,
+                venda.formaPagamento,
+                lucroVenda
+        );
+      });
+
+      if (qtdOperacoes === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhuma operação concluída neste mês.</td></tr>';
       }
 
-      // 2. ✨ CÁLCULO DE CRESCIMENTO MÊS A MÊS
+      // 3. CÁLCULO DE CRESCIMENTO MÊS A MÊS
       const dataSelecionadaObj = new Date(mesEscolhido + '-01T00:00:00');
       const dataAnteriorObj = new Date(dataSelecionadaObj);
       dataAnteriorObj.setMonth(dataAnteriorObj.getMonth() - 1);
       const mesAnterior = `${dataAnteriorObj.getFullYear()}-${String(dataAnteriorObj.getMonth() + 1).padStart(2, '0')}`;
 
       let concluidosAnterior = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesAnterior));
-      let faturamentoAnterior = concluidosAnterior.reduce((soma, ag) => soma + Number(ag.faturamentoBarbeiro || 0), 0);
+      let vendasAnterior = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesAnterior));
+
+      let faturamentoAnterior = 0;
+      concluidosAnterior.forEach(ag => faturamentoAnterior += Number(ag.faturamentoBarbeiro || 0));
+      vendasAnterior.forEach(v => faturamentoAnterior += Number(v.valorTotal || 0));
 
       let textoCrescimento = `<span class="text-muted">Sem dados do mês anterior</span>`;
       if (faturamentoAnterior > 0) {
@@ -226,8 +242,7 @@
         textoCrescimento = `<span class="text-success">📈 +100% vs Mês Anterior</span>`;
       }
 
-      // 3. ✨ CÁLCULO DE PREVISÃO (CLIENTES FIÉIS)
-      // Descobre o ticket médio histórico e conta quantos clientes já vieram mais de 1 vez na vida
+      // 4. CÁLCULO DE PREVISÃO (CLIENTES FIÉIS - Baseado apenas em cortes)
       let historicoTelefones = {};
       let faturamentoGlobal = 0;
       let totalCortesGlobal = 0;
@@ -243,22 +258,17 @@
       let clientesRecorrentes = Object.values(historicoTelefones).filter(visitas => visitas > 1).length;
       let previsaoFaturamento = clientesRecorrentes * ticketMedio;
 
-      // 4. ATUALIZA A TELA
-      document.getElementById('qtd-servicos').innerText = concluidosAtual.length;
+      // 5. ATUALIZA A TELA
+      document.getElementById('qtd-servicos').innerText = qtdOperacoes;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('indicador-crescimento').innerHTML = textoCrescimento;
       document.getElementById('valor-previsao').innerText = previsaoFaturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-      // 5. ✨ ATUALIZA O GRÁFICO (CHART.JS)
+      // 6. ATUALIZA O GRÁFICO
       const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
+      if (meuGrafico) meuGrafico.destroy();
 
-      // Se já existe um gráfico na tela, apaga ele antes de desenhar o novo
-      if (meuGrafico) {
-        meuGrafico.destroy();
-      }
-
-      // Se não tem dinheiro nenhum, desenha um gráfico cinza vazio
       let dadosGrafico = [faturamentoTotal, taxasTotal];
       let coresGrafico = ['#198754', '#c94c4c'];
       if (faturamentoTotal === 0 && taxasTotal === 0) {
@@ -279,16 +289,36 @@
         },
         options: {
           responsive: true,
-          cutout: '70%', // Deixa o buraco da rosquinha mais grosso e elegante
-          plugins: {
-            legend: { display: false } // Esconde a legenda padrão para ficar minimalista
-          }
+          cutout: '70%',
+          plugins: { legend: { display: false } }
         }
       });
 
     } catch (erro) {
       console.error("Erro ao buscar dados financeiros:", erro);
     }
+  }
+
+  // Função para desenhar linhas mistas na tabela
+  function criarLinhaTabela(dataBruta, cliente, descricao, pgto, valor) {
+    const dataFormatada = new Date(dataBruta).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const lucroFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const formaPgto = pgto || 'Não informada';
+
+    let corPagamento = 'text-dark';
+    if (formaPgto.includes('CREDITO')) corPagamento = 'text-primary';
+    if (formaPgto.includes('DEBITO')) corPagamento = 'text-info';
+    if (formaPgto.includes('PIX') || formaPgto.includes('DINHEIRO')) corPagamento = 'text-success';
+
+    return `
+          <tr>
+              <td data-label="Data" class="text-muted">${dataFormatada}</td>
+              <td data-label="Cliente"><strong>${cliente}</strong></td>
+              <td data-label="Operação"><small class="text-muted">${descricao}</small></td>
+              <td data-label="Pagamento" class="fw-bold ${corPagamento}">${formaPgto}</td>
+              <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
+          </tr>
+      `;
   }
 </script>
 </body>
