@@ -211,7 +211,7 @@ public class ChatbotService {
 
                     // ✨ A BLINDAGEM DO CALENDÁRIO ESTÁ AQUI
                     if (dataDigitada.isBefore(dataDeHoje)) {
-                        respostaDoRobo = "⚠️ Ops, o dia *" + textoLimpo + "\n\nPor favor, digite uma data de hoje em diante (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                        respostaDoRobo = "⚠️ Ops, o dia *" + textoLimpo + "* não é possível agendar.\n\nPor favor, digite uma data de hoje em diante (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                     } else {
                         List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
 
