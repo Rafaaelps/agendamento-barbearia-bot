@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class AgendaService {
     private final AgendamentoRepository agendamentoRepository;
     private final ServicoRepository servicoRepository;
     private final BloqueioAgendaRepository bloqueioAgendaRepository;
-    private final HorarioRepository horarioRepository; // ✨ NOVO: Conexão com a grade de horários!
+    private final HorarioRepository horarioRepository;
 
     public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository, HorarioRepository horarioRepository) {
         this.agendamentoRepository = agendamentoRepository;
@@ -43,30 +44,31 @@ public class AgendaService {
         novo.setDataHoraFim(fim);
         novo.setStatus("CONFIRMADO");
 
-        // ==========================================================
-        // ✨ REGRA 1 (DINÂMICA): Busca o dia da semana e verifica a grade
-        // 1 = Segunda, 2 = Terça ... 7 = Domingo
-        // ==========================================================
-        int diaSemanaId = inicio.getDayOfWeek().getValue();
-        HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
-
-        // Se não achar o dia no banco ou o dia estiver marcado como FECHADO na tela do painel
-        if (regrasDoDia == null || regrasDoDia.isFechado()) {
-            System.out.println("❌ Lamento, estamos fechados neste dia (" + regrasDoDia.getNomeDia() + ").");
+        // ✨ BLINDAGEM CONTRA O PASSADO (Bloqueia clientes espertinhos)
+        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
+        if (inicio.isBefore(LocalDateTime.now(fusoBR))) {
+            System.out.println("❌ Agendamento recusado: O horário solicitado está no passado.");
             return false;
         }
 
-        // Converte a String "09:00" do banco para o formato de tempo do Java
+        // REGRA 1: Busca o dia da semana e verifica a grade
+        int diaSemanaId = inicio.getDayOfWeek().getValue();
+        HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
+
+        if (regrasDoDia == null || regrasDoDia.isFechado()) {
+            System.out.println("❌ Lamento, estamos fechados neste dia.");
+            return false;
+        }
+
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
         LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
 
-        // Verifica se tentou agendar antes de abrir ou se o corte vai terminar depois de fechar
         if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) {
             System.out.println("❌ Horário fora do expediente de trabalho deste dia.");
             return false;
         }
 
-        // REGRA 2: Bloqueios manuais por período (Ex: Almoço)
+        // REGRA 2: Bloqueios manuais por período
         List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAll();
         for (BloqueioAgenda bloqueio : bloqueios) {
             if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
@@ -86,7 +88,6 @@ public class AgendaService {
             }
         }
 
-        // Se passou por todas as barreiras, salva no banco!
         agendamentoRepository.save(novo);
         return true;
     }
@@ -94,11 +95,9 @@ public class AgendaService {
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
 
-        // Pega as regras de funcionamento para a data solicitada
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
 
-        // Se o barbeiro desligou esse dia no painel, retorna a lista vazia
         if (regrasDoDia == null || regrasDoDia.isFechado()) {
             return horariosDisponiveis;
         }
@@ -110,10 +109,22 @@ public class AgendaService {
         int duracao = servicoEscolhido.getDuracaoMinutos();
         List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNot("CANCELADO");
 
-        // ✨ O laço agora começa na hora de abertura DINÂMICA do dia
+        // ✨ O RELÓGIO DA VERDADE (Fuso de São Paulo)
+        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
+        LocalDate dataDeHoje = LocalDate.now(fusoBR);
+        LocalTime horaAtual = LocalTime.now(fusoBR);
+
         LocalTime horarioTeste = aberturaDoDia;
 
         while (horarioTeste.plusMinutes(duracao).compareTo(fechamentoDoDia) <= 0) {
+
+            // ✨ A CORREÇÃO MÁGICA: Se o cliente escolheu a data de HOJE, e o horário do teste já passou, pula pro próximo!
+            // Dica de Ouro: Eu coloquei um pequeno fôlego de 15 minutos (para o cliente não marcar um corte pras 12:30 se for 12:28).
+            if (dataBuscada.equals(dataDeHoje) && horarioTeste.isBefore(horaAtual.plusMinutes(15))) {
+                horarioTeste = horarioTeste.plusMinutes(30);
+                continue;
+            }
+
             LocalDateTime inicioTentativa = LocalDateTime.of(dataBuscada, horarioTeste);
             LocalDateTime fimTentativa = inicioTentativa.plusMinutes(duracao);
             boolean temConflito = false;
@@ -128,7 +139,7 @@ public class AgendaService {
             }
 
             if (!temConflito) horariosDisponiveis.add(horarioTeste);
-            horarioTeste = horarioTeste.plusMinutes(30); // Pula de 30 em 30 min
+            horarioTeste = horarioTeste.plusMinutes(30);
         }
 
         return horariosDisponiveis;
