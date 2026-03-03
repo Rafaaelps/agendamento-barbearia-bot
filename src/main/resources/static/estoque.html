@@ -33,7 +33,7 @@
 <div class="container">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <h2 class="mb-0">Controle de Estoque</h2>
-        <button class="btn btn-dark fw-bold shadow-sm" onclick="abrirModalProduto()">➕ Adicionar Produto</button>
+        <button class="btn btn-dark fw-bold shadow-sm" onclick="abrirModalProduto()">➕ Cadastrar Novo Produto</button>
     </div>
 
     <div class="row" id="grid-produtos">
@@ -44,30 +44,48 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title fw-bold">Repor / Novo Produto</h5>
+                <h5 class="modal-title fw-bold">Cadastrar Produto</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-info text-center" style="font-size: 0.85rem;">
-                    💡 Dica: Se digitar um nome que já existe, as unidades serão somadas ao estoque atual.
-                </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Nome do Produto:</label>
                     <input type="text" id="nome-produto" class="form-control" placeholder="Ex: Pomada Efeito Matte">
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold">Preço (R$):</label>
+                        <label class="form-label fw-bold">Preço de Venda (R$):</label>
                         <input type="number" id="preco-produto" class="form-control" step="0.01">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold">Qtd a Adicionar:</label>
+                        <label class="form-label fw-bold">Qtd Inicial:</label>
                         <input type="number" id="qtd-produto" class="form-control" min="1">
                     </div>
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button class="btn btn-primary w-100 fw-bold" onclick="salvarProduto()">💾 Salvar no Estoque</button>
+                <button class="btn btn-primary w-100 fw-bold" onclick="salvarProduto()">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalRepor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title fw-bold">📦 Repor Estoque</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-3 fw-bold" id="texto-repor-produto">Produto</p>
+                <input type="hidden" id="id-produto-repor">
+
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">Qtd Chegou na Barbearia:</label>
+                    <input type="number" id="qtd-repor" class="form-control text-center fw-bold fs-5" value="1" min="1">
+                </div>
+                <button class="btn btn-dark w-100 fw-bold" onclick="processarReposicao()">➕ Adicionar ao Estoque</button>
             </div>
         </div>
     </div>
@@ -112,16 +130,24 @@
 
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
+
+            // O LIXEIRINHA APENAS APARECE SE O ESTOQUE FOR 0 (Proteção)
+            let btnExcluir = p.quantidadeEstoque === 0 ?
+                `<button class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2 border-0 fs-5" onclick="excluirProduto(${p.id})" title="Excluir">🗑️</button>` : '';
+
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-lg-3 mb-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body text-center">
-                            <h5 class="fw-bold">${p.nome}</h5>
+                    <div class="card shadow-sm border-0 h-100 position-relative">
+                        ${btnExcluir}
+                        <div class="card-body text-center pt-4">
+                            <small class="text-muted fw-bold d-block mb-1">ID: #${p.id}</small>
+                            <h5 class="fw-bold text-dark">${p.nome}</h5>
                             <h3 class="text-primary fw-bold my-2">R$ ${p.preco.toFixed(2)}</h3>
                             <p class="mb-3 fw-bold ${corEstoque}">Estoque: ${p.quantidadeEstoque} un</p>
 
                             <div class="d-grid gap-2">
-                                <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}>💰 Vender Produto</button>
+                                <button class="btn btn-sm btn-outline-dark fw-bold" onclick="abrirModalRepor(${p.id}, '${p.nome}')">📦 Repor Estoque</button>
+                                <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}>💰 Vender</button>
                             </div>
                         </div>
                     </div>
@@ -144,10 +170,7 @@
             quantidadeEstoque: document.getElementById('qtd-produto').value
         };
 
-        if(!dados.nome || !dados.preco || !dados.quantidadeEstoque) {
-            alert("Preencha todos os campos!");
-            return;
-        }
+        if(!dados.nome || !dados.preco || !dados.quantidadeEstoque) { alert("Preencha tudo!"); return; }
 
         await fetch('/api/estoque/produtos', {
             method: 'POST',
@@ -159,40 +182,54 @@
         carregarProdutos();
     }
 
+    // FUNÇÕES DE REPOSIÇÃO
+    function abrirModalRepor(id, nome) {
+        document.getElementById('id-produto-repor').value = id;
+        document.getElementById('texto-repor-produto').innerText = `Adicionando: ${nome}`;
+        document.getElementById('qtd-repor').value = 1;
+        new bootstrap.Modal(document.getElementById('modalRepor')).show();
+    }
+
+    async function processarReposicao() {
+        const id = document.getElementById('id-produto-repor').value;
+        const qtd = document.getElementById('qtd-repor').value;
+
+        await fetch(`/api/estoque/produtos/${id}/repor?quantidade=${qtd}`, { method: 'PUT' });
+
+        bootstrap.Modal.getInstance(document.getElementById('modalRepor')).hide();
+        carregarProdutos();
+    }
+
+    // FUNÇÃO DE EXCLUSÃO
+    async function excluirProduto(id) {
+        if(confirm("Tem certeza que deseja apagar este produto do sistema?")) {
+            await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' });
+            carregarProdutos();
+        }
+    }
+
+    // FUNÇÕES DE VENDA
     function abrirModalVenda(id, nome) {
         document.getElementById('id-produto-venda').value = id;
         document.getElementById('texto-venda-produto').innerText = `📦 ${nome}`;
-
-        // Sempre reseta a caixinha pra 1 na hora de abrir
         document.getElementById('qtd-venda').value = 1;
-
-        const modal = new bootstrap.Modal(document.getElementById('modalVendaProduto'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('modalVendaProduto')).show();
     }
 
     async function processarVenda(forma) {
         const id = document.getElementById('id-produto-venda').value;
         const qtdEscolhida = document.getElementById('qtd-venda').value;
 
-        if(qtdEscolhida < 1) {
-            alert("Você precisa vender pelo menos 1 unidade!");
-            return;
-        }
+        if(qtdEscolhida < 1) { alert("Venda inválida!"); return; }
 
         try {
             const resposta = await fetch(`/api/estoque/vender?produtoId=${id}&quantidade=${qtdEscolhida}&pagamento=${forma}`, { method: 'POST' });
-
-            // Se o Java reclamar de falta de estoque, a gente mostra o erro
             if (!resposta.ok) {
                 const erroMsg = await resposta.text();
                 alert("⚠️ Erro: " + erroMsg);
                 return;
             }
-
-            const modalEl = document.getElementById('modalVendaProduto');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            modalInstance.hide();
-
+            bootstrap.Modal.getInstance(document.getElementById('modalVendaProduto')).hide();
             carregarProdutos();
         } catch (erro) {
             alert("Erro de comunicação com o servidor.");

@@ -197,11 +197,15 @@
         );
       });
 
-      // 2. DADOS DE VENDAS DE ESTOQUE
+      // 2. ✨ DADOS DE VENDAS DE ESTOQUE (COM CÁLCULO DE TAXAS)
       let vendasAtual = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesEscolhido));
       vendasAtual.forEach(venda => {
-        let lucroVenda = Number(venda.valorTotal);
+        let lucroVenda = Number(venda.valorTotal); // Valor limpo (o Java já tirou a taxa)
+        let precoCheio = Number(venda.quantidade) * Number(venda.produto.preco); // Valor bruto da vitrine
+        let taxaDaMaquininha = Math.max(0, precoCheio - lucroVenda); // Diferença é a taxa!
+
         faturamentoTotal += lucroVenda;
+        taxasTotal += taxaDaMaquininha;
         qtdOperacoes++;
 
         corpoTabela.innerHTML += criarLinhaTabela(

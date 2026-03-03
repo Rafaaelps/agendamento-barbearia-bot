@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/estoque")
@@ -30,27 +29,27 @@ public class EstoqueController {
         return produtoRepository.findAll();
     }
 
-    // ✨ MUDANÇA: Inteligência que soma a quantidade se o produto já existir
+    // Apenas cadastra um novo (Gera um novo ID)
     @PostMapping("/produtos")
-    public ResponseEntity<Produto> salvarProduto(@RequestBody Produto novoProduto) {
-        // Remove espaços extras no início e no fim do nome digitado
-        String nomeLimpo = novoProduto.getNome().trim();
+    public Produto salvarProduto(@RequestBody Produto produto) {
+        produto.setNome(produto.getNome().trim());
+        return produtoRepository.save(produto);
+    }
 
-        // Verifica se já existe um produto com esse nome no banco (ignorando maiúsculas)
-        Optional<Produto> existente = produtoRepository.findByNomeIgnoreCase(nomeLimpo);
+    // ✨ NOVO: Repor Estoque baseado no ID exato
+    @PutMapping("/produtos/{id}/repor")
+    public ResponseEntity<?> reporEstoque(@PathVariable Long id, @RequestParam Integer quantidade) {
+        Produto produto = produtoRepository.findById(id).orElseThrow();
+        produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() + quantidade);
+        produtoRepository.save(produto);
+        return ResponseEntity.ok(produto);
+    }
 
-        if (existente.isPresent()) {
-            // Se existe, apenas SOMA o estoque novo com o antigo e atualiza o preço
-            Produto p = existente.get();
-            p.setQuantidadeEstoque(p.getQuantidadeEstoque() + novoProduto.getQuantidadeEstoque());
-            p.setPreco(novoProduto.getPreco());
-
-            return ResponseEntity.ok(produtoRepository.save(p));
-        } else {
-            // Se não existe, cria um novo normalmente
-            novoProduto.setNome(nomeLimpo);
-            return ResponseEntity.ok(produtoRepository.save(novoProduto));
-        }
+    // ✨ NOVO: Botão de Lixeira para arrumar cagadas no cadastro
+    @DeleteMapping("/produtos/{id}")
+    public ResponseEntity<?> excluirProduto(@PathVariable Long id) {
+        produtoRepository.deleteById(id);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/vender")
@@ -65,12 +64,21 @@ public class EstoqueController {
         produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - quantidade);
         produtoRepository.save(produto);
 
-        // Registra o dinheiro da venda
+        // ✨ MATEMÁTICA DAS TAXAS (Calcula o valor líquido real)
+        BigDecimal precoCheio = produto.getPreco().multiply(new BigDecimal(quantidade));
+        BigDecimal valorLiquido = precoCheio;
+
+        if ("CREDITO".equalsIgnoreCase(pagamento)) {
+            valorLiquido = precoCheio.multiply(new BigDecimal("0.95")); // Tira 5% de taxa
+        } else if ("DEBITO".equalsIgnoreCase(pagamento)) {
+            valorLiquido = precoCheio.multiply(new BigDecimal("0.98")); // Tira 2% de taxa
+        }
+
         Venda venda = new Venda();
         venda.setProduto(produto);
         venda.setQuantidade(quantidade);
         venda.setFormaPagamento(pagamento);
-        venda.setValorTotal(produto.getPreco().multiply(new BigDecimal(quantidade)));
+        venda.setValorTotal(valorLiquido); // Salva o que realmente caiu na conta!
         venda.setDataHoraVenda(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")));
 
         vendaRepository.save(venda);
