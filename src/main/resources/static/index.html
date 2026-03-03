@@ -56,13 +56,24 @@
 </nav>
 
 <div class="container">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 gap-3">
         <h2 class="mb-0">Agenda de Clientes</h2>
 
-        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+        <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+
             <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border flex-grow-1">
                 <label for="filtro-data" class="me-2 fw-bold text-secondary mb-0">Data:</label>
                 <input type="date" id="filtro-data" class="form-control border-0 p-0 text-primary fw-bold" onchange="carregarAgendamentos()">
+            </div>
+
+            <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border flex-grow-1">
+                <label for="filtro-status" class="me-2 fw-bold text-secondary mb-0">Exibir:</label>
+                <select id="filtro-status" class="form-select border-0 p-0 text-primary fw-bold" onchange="carregarAgendamentos()" style="box-shadow: none; cursor: pointer;">
+                    <option value="PADRAO">Pendentes / Bloqueios</option>
+                    <option value="CONCLUIDO">Concluídos</option>
+                    <option value="CANCELADO">Cancelados</option>
+                    <option value="TODOS">Todos da Data</option>
+                </select>
             </div>
 
             <button class="btn btn-outline-dark fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
@@ -178,7 +189,7 @@
 
         carregarAgendamentos();
 
-        // ✨ O MOTOR DE TEMPO REAL (Atualiza a cada 10s se não houver modal aberto)
+        // O MOTOR DE TEMPO REAL
         setInterval(() => {
             const modalAberto = document.querySelector('.modal.show');
             if (!modalAberto) {
@@ -285,14 +296,32 @@
 
             const todosAgendamentos = await respostaAgendamentos.json();
             const todosBloqueios = await respostaBloqueios.json();
+
             const dataEscolhida = document.getElementById('filtro-data').value;
+            const filtroStatus = document.getElementById('filtro-status').value; // ✨ PEGA A OPÇÃO DO FILTRO
 
             const agendamentosDoDia = todosAgendamentos.filter(ag => ag.dataHoraInicio.startsWith(dataEscolhida));
             const bloqueiosDoDia = todosBloqueios.filter(bq => bq.dataHoraInicio && bq.dataHoraInicio.startsWith(dataEscolhida));
 
             let listaMista = [];
-            agendamentosDoDia.forEach(ag => listaMista.push({ tipo: 'AGENDAMENTO', dado: ag }));
-            bloqueiosDoDia.forEach(bq => listaMista.push({ tipo: 'BLOQUEIO', dado: bq }));
+
+            // ✨ O FILTRO INTELIGENTE EM AÇÃO
+            agendamentosDoDia.forEach(ag => {
+                let exibir = false;
+                if (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) exibir = true;
+                if (filtroStatus === 'CONCLUIDO' && ag.status === 'CONCLUIDO') exibir = true;
+                if (filtroStatus === 'CANCELADO' && ag.status === 'CANCELADO') exibir = true;
+                if (filtroStatus === 'TODOS') exibir = true;
+
+                if (exibir) listaMista.push({ tipo: 'AGENDAMENTO', dado: ag });
+            });
+
+            bloqueiosDoDia.forEach(bq => {
+                // Bloqueios só aparecem na visão PADRÃO ou TODOS
+                if (filtroStatus === 'PADRAO' || filtroStatus === 'TODOS') {
+                    listaMista.push({ tipo: 'BLOQUEIO', dado: bq });
+                }
+            });
 
             listaMista.sort((a, b) => new Date(a.dado.dataHoraInicio) - new Date(b.dado.dataHoraInicio));
 
@@ -300,7 +329,7 @@
             corpoTabela.innerHTML = '';
 
             if (listaMista.length === 0) {
-                corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum cliente agendado para esta data.</td></tr>';
+                corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum registro encontrado para este filtro e data.</td></tr>';
                 return;
             }
 
@@ -310,7 +339,6 @@
                     const horaInicioFmt = new Date(agendamento.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const horaFimFmt = new Date(agendamento.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-                    // ✨ MUDANÇA VISUAL: As 4 cores de Status!
                     let corBadge = 'bg-secondary';
                     if (agendamento.status === 'AGENDADO') corBadge = 'bg-warning text-dark';
                     if (agendamento.status === 'CONFIRMADO') corBadge = 'bg-success';
