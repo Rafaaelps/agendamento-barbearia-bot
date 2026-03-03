@@ -40,7 +40,7 @@ public class LembreteService {
         LocalDateTime daquiA35Minutos = agora.plusMinutes(35);
 
         List<Agendamento> agendamentos = agendamentoRepository
-                .buscarAgendamentosParaLembrar("CONFIRMADO", agora, daquiA35Minutos);
+                .buscarAgendamentosParaLembrar("AGENDADO", agora, daquiA35Minutos);
 
         for (Agendamento agendamento : agendamentos) {
             boolean sucesso = enviarMensagemEvolution(agendamento, false);
@@ -61,7 +61,7 @@ public class LembreteService {
         LocalDateTime daquiA15Minutos = agora.plusMinutes(15);
 
         List<Agendamento> agendamentos = agendamentoRepository
-                .buscarNaoConfirmados("CONFIRMADO", agora, daquiA15Minutos);
+                .buscarNaoConfirmados("AGENDADO", agora, daquiA15Minutos);
 
         for (Agendamento agendamento : agendamentos) {
             try {

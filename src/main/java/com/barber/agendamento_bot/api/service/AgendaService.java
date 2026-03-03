@@ -42,56 +42,51 @@ public class AgendaService {
 
         novo.setValorFinal(servicoCompleto.getPreco());
         novo.setDataHoraFim(fim);
-        novo.setStatus("CONFIRMADO");
+
+        // ✨ MUDANÇA 1: O Agendamento agora nasce como "AGENDADO"
+        novo.setStatus("AGENDADO");
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
-        if (inicio.isBefore(LocalDateTime.now(fusoBR))) {
-            return false;
-        }
+        if (inicio.isBefore(LocalDateTime.now(fusoBR))) return false;
 
         int diaSemanaId = inicio.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
-
-        if (regrasDoDia == null || regrasDoDia.isFechado()) {
-            return false;
-        }
+        if (regrasDoDia == null || regrasDoDia.isFechado()) return false;
 
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
         LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
 
-        if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) {
-            return false;
-        }
+        if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) return false;
 
         List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAll();
         for (BloqueioAgenda bloqueio : bloqueios) {
             if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
-
-            if (inicio.isBefore(bloqueio.getDataHoraFim()) && fim.isAfter(bloqueio.getDataHoraInicio())) {
-                return false;
-            }
+            if (inicio.isBefore(bloqueio.getDataHoraFim()) && fim.isAfter(bloqueio.getDataHoraInicio())) return false;
         }
 
         List<Agendamento> noBanco = agendamentoRepository.findByStatusNot("CANCELADO");
         for (Agendamento existente : noBanco) {
-            if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) {
-                return false;
-            }
+            if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) return false;
         }
 
         agendamentoRepository.save(novo);
         return true;
     }
 
+    // ✨ MUDANÇA 2: Quando confirma, ele muda o STATUS!
+    public void confirmarPresenca(Long id) {
+        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
+        agendamento.setStatus("CONFIRMADO");
+        agendamentoRepository.save(agendamento);
+        System.out.println("✅ Presença do cliente confirmada para o agendamento: " + id);
+    }
+
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
-
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
 
-        if (regrasDoDia == null || regrasDoDia.isFechado()) {
-            return horariosDisponiveis;
-        }
+        if (regrasDoDia == null || regrasDoDia.isFechado()) return horariosDisponiveis;
 
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
         LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
@@ -109,7 +104,6 @@ public class AgendaService {
         LocalTime horarioTeste = aberturaDoDia;
 
         while (horarioTeste.plusMinutes(duracao).compareTo(fechamentoDoDia) <= 0) {
-
             if (dataBuscada.equals(dataDeHoje) && horarioTeste.isBefore(horaAtual.plusMinutes(15))) {
                 horarioTeste = horarioTeste.plusMinutes(30);
                 continue;
@@ -131,7 +125,6 @@ public class AgendaService {
             if (!temConflito) {
                 for (BloqueioAgenda bloqueio : todosBloqueios) {
                     if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
-
                     if (bloqueio.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
                         if (inicioTentativa.isBefore(bloqueio.getDataHoraFim()) && fimTentativa.isAfter(bloqueio.getDataHoraInicio())) {
                             temConflito = true;
@@ -148,9 +141,7 @@ public class AgendaService {
         return horariosDisponiveis;
     }
 
-    public List<Agendamento> listarTodosOsAgendamentos() {
-        return agendamentoRepository.findAll();
-    }
+    public List<Agendamento> listarTodosOsAgendamentos() { return agendamentoRepository.findAll(); }
 
     public void cancelarAgendamento(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
@@ -158,53 +149,36 @@ public class AgendaService {
         agendamentoRepository.save(agendamento);
     }
 
-    // ✨ A CORREÇÃO MÁGICA DE CANCELAMENTO
+    // ✨ MUDANÇA 3: Aceita clientes com "AGENDADO" ou "CONFIRMADO"
     public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
         List<Agendamento> lista = agendamentoRepository.findByTelefoneClienteAndStatusNot(telefone, "CANCELADO");
-
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
-
         Agendamento proximoAgendamento = null;
 
         for (Agendamento ag : lista) {
-            // Só considera se for no futuro E se o status for estritamente CONFIRMADO
-            if (ag.getDataHoraInicio().isAfter(agora) && "CONFIRMADO".equals(ag.getStatus())) {
-                // Se o cliente tiver marcado dois cortes no futuro, pega o mais próximo
+            if (ag.getDataHoraInicio().isAfter(agora) && ("CONFIRMADO".equals(ag.getStatus()) || "AGENDADO".equals(ag.getStatus()))) {
                 if (proximoAgendamento == null || ag.getDataHoraInicio().isBefore(proximoAgendamento.getDataHoraInicio())) {
                     proximoAgendamento = ag;
                 }
             }
         }
-
         return proximoAgendamento;
     }
 
-    public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
-        return bloqueioAgendaRepository.save(novoBloqueio);
-    }
+    public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) { return bloqueioAgendaRepository.save(novoBloqueio); }
 
     public void concluirAgendamento(Long id) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow(() -> new RuntimeException("Agendamento não encontrado!"));
+        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
         agendamento.setStatus("CONCLUIDO");
         agendamentoRepository.save(agendamento);
     }
 
     public void atualizarValor(Long id, java.math.BigDecimal novoValor) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow(() -> new RuntimeException("Agendamento não encontrado!"));
+        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
         agendamento.setValorFinal(novoValor);
         agendamentoRepository.save(agendamento);
     }
 
-    public java.util.List<BloqueioAgenda> listarBloqueios() {
-        return bloqueioAgendaRepository.findAll();
-    }
-
-    // Salva a confirmação oficial do cliente no banco
-    public void confirmarPresenca(Long id) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
-        agendamento.setConfirmadoPeloCliente(true);
-        agendamentoRepository.save(agendamento);
-        System.out.println("✅ Presença do cliente confirmada para o agendamento: " + id);
-    }
+    public java.util.List<BloqueioAgenda> listarBloqueios() { return bloqueioAgendaRepository.findAll(); }
 }

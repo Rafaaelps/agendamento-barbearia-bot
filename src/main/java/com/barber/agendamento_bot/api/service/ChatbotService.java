@@ -95,12 +95,12 @@ public class ChatbotService {
             }
         }
 
-        //Confirmacao de presenca
+        // Confirmacao de presenca
         if (textoLimpo.matches("^(sim|confirmar|confirmo|com certeza).*") && !sessao.getPassoAtual().equals("CONFIRMANDO_CANCELAMENTO")) {
             Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
 
-            // Verifica se o cliente tem um corte pendente de confirmação
-            if (ag != null && Boolean.TRUE.equals(ag.getLembreteEnviado()) && !Boolean.TRUE.equals(ag.getConfirmadoPeloCliente())) {
+            // ✨ A ALTERAÇÃO ESTÁ AQUI: Agora ele exige que o status do cliente seja "AGENDADO"
+            if (ag != null && Boolean.TRUE.equals(ag.getLembreteEnviado()) && "AGENDADO".equals(ag.getStatus())) {
                 agendaService.confirmarPresenca(ag.getId());
                 sessao.setPassoAtual("MENU_INICIAL");
                 limparDadosTemporariosDaSessao(sessao);
