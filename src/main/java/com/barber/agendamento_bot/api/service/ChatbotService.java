@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
@@ -69,7 +70,10 @@ public class ChatbotService {
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
         String respostaDoRobo = "";
         String textoLimpo = textoRecebido.toLowerCase().trim();
-        LocalDateTime agora = LocalDateTime.now();
+
+        // Fuso de São Paulo garantido em todas as interações
+        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
+        LocalDateTime agora = LocalDateTime.now(fusoBR);
 
         if (sessao.getUltimaInteracao() != null) {
             long minutosInativos = ChronoUnit.MINUTES.between(sessao.getUltimaInteracao(), agora);
@@ -81,7 +85,6 @@ public class ChatbotService {
         }
         sessao.setUltimaInteracao(agora);
 
-        // ✨ COMANDOS DE REINÍCIO E CANCELAMENTO TOTAL (Tiramos o "voltar" daqui)
         if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
@@ -92,12 +95,11 @@ public class ChatbotService {
             }
         }
 
-        // ✨ O NOVO COMANDO EXCLUSIVO DE RETORNO INTELIGENTE
         if (textoLimpo.equals("voltar")) {
             switch (sessao.getPassoAtual()) {
                 case "ESPERANDO_HORARIO":
                     sessao.setPassoAtual("ESPERANDO_DATA");
-                    respostaDoRobo = "🗓️ Vamos escolher outra data! Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: 28/02):";
+                    respostaDoRobo = "🗓️ Vamos escolher outra data! Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                     break;
                 case "ESPERANDO_DATA":
                     sessao.setPassoAtual("ESPERANDO_SERVICO");
@@ -109,13 +111,11 @@ public class ChatbotService {
                     respostaDoRobo = menuServicos.toString();
                     break;
                 default:
-                    // Se estiver em passos muito iniciais, simplesmente recomeça do zero
                     sessao.setPassoAtual("MENU_INICIAL");
                     limparDadosTemporariosDaSessao(sessao);
                     break;
             }
 
-            // Se ele mudou de ideia e a máquina voltou um passo (e não reiniciou do zero), nós salvamos e mandamos a resposta!
             if (!sessao.getPassoAtual().equals("MENU_INICIAL")) {
                 sessaoRepository.save(sessao);
                 return respostaDoRobo + "\n\n*Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
@@ -193,7 +193,7 @@ public class ChatbotService {
 
                     if (servicoEncontrado.isPresent()) {
                         sessao.setIdServicoTemporario(idEscolhido);
-                        respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.get().getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: 28/02):";
+                        respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.get().getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                         sessao.setPassoAtual("ESPERANDO_DATA");
                     } else {
                         respostaDoRobo = "❌ Número inválido. Por favor, olhe o menu acima e digite o número correto do serviço.";
@@ -205,28 +205,34 @@ public class ChatbotService {
 
             case "ESPERANDO_DATA":
                 try {
-                    int anoAtual = LocalDate.now().getYear();
+                    int anoAtual = agora.getYear();
                     LocalDate dataDigitada = LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
+                    LocalDate dataDeHoje = agora.toLocalDate();
 
-                    List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
-
-                    if (horariosLivres.isEmpty()) {
-                        respostaDoRobo = "😔 Não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: 01/03):";
+                    // ✨ A BLINDAGEM DO CALENDÁRIO ESTÁ AQUI
+                    if (dataDigitada.isBefore(dataDeHoje)) {
+                        respostaDoRobo = "⚠️ Ops, o dia *" + textoLimpo + "\n\nPor favor, digite uma data de hoje em diante (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                     } else {
-                        sessao.setDataTemporaria(textoLimpo);
+                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
 
-                        StringBuilder mensagemHorarios = new StringBuilder("Certo! Para o dia *" + textoLimpo + "*, temos estes horários livres:\n\n");
-                        for (LocalTime h : horariosLivres) {
-                            mensagemHorarios.append("⏰ *").append(h.format(formatadorHora)).append("*\n");
+                        if (horariosLivres.isEmpty()) {
+                            respostaDoRobo = "😔 Não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                        } else {
+                            sessao.setDataTemporaria(textoLimpo);
+
+                            StringBuilder mensagemHorarios = new StringBuilder("Certo! Para o dia *" + textoLimpo + "*, temos estes horários livres:\n\n");
+                            for (LocalTime h : horariosLivres) {
+                                mensagemHorarios.append("⏰ *").append(h.format(formatadorHora)).append("*\n");
+                            }
+                            mensagemHorarios.append("\nQual horário você prefere? (Digite no formato HH:mm, ex: ").append(horariosLivres.get(0).format(formatadorHora)).append("):");
+
+                            respostaDoRobo = mensagemHorarios.toString();
+                            sessao.setPassoAtual("ESPERANDO_HORARIO");
                         }
-                        mensagemHorarios.append("\nQual horário você prefere? (Digite no formato HH:mm, ex: ").append(horariosLivres.get(0).format(formatadorHora)).append("):");
-
-                        respostaDoRobo = mensagemHorarios.toString();
-                        sessao.setPassoAtual("ESPERANDO_HORARIO");
                     }
 
                 } catch (DateTimeParseException e) {
-                    respostaDoRobo = "⚠️ Formato de data inválido! Por favor, digite o dia e o mês separados por barra (ex: 28/02):";
+                    respostaDoRobo = "⚠️ Formato de data inválido! Por favor, digite o dia e o mês separados por barra (ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                 }
                 break;
 
@@ -234,7 +240,7 @@ public class ChatbotService {
                 try {
                     LocalTime horaDigitada = LocalTime.parse(textoLimpo);
                     String diaMes = sessao.getDataTemporaria();
-                    int anoAtual = LocalDate.now().getYear();
+                    int anoAtual = agora.getYear();
 
                     LocalDate dataDigitada = LocalDate.parse(diaMes + "/" + anoAtual, formatadorData);
                     LocalDateTime dataHoraCompleta = LocalDateTime.of(dataDigitada, horaDigitada);
@@ -282,7 +288,6 @@ public class ChatbotService {
 
         sessaoRepository.save(sessao);
 
-        // ✨ A INJEÇÃO AUTOMÁTICA DO RODAPÉ (Se ele estiver no meio do fluxo, avisa que pode voltar!)
         List<String> passosComRetorno = List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO", "CONFIRMANDO_CANCELAMENTO");
 
         if (passosComRetorno.contains(sessao.getPassoAtual())) {
