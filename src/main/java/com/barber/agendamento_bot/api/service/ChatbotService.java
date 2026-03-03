@@ -211,7 +211,7 @@ public class ChatbotService {
                     List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
 
                     if (horariosLivres.isEmpty()) {
-                        respostaDoRobo = "😔 Poxa, não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: 01/03):";
+                        respostaDoRobo = "😔 Não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: 01/03):";
                     } else {
                         sessao.setDataTemporaria(textoLimpo);
 
@@ -286,7 +286,7 @@ public class ChatbotService {
         List<String> passosComRetorno = List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO", "CONFIRMANDO_CANCELAMENTO");
 
         if (passosComRetorno.contains(sessao.getPassoAtual())) {
-            respostaDoRobo += "\n\n🔙 *Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
+            respostaDoRobo += "\n\n*Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
         }
 
         return respostaDoRobo;
