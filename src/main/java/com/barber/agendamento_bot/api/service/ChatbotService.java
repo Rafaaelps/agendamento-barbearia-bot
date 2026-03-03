@@ -62,8 +62,6 @@ public class ChatbotService {
 
     public String processarMensagem(String telefone, String textoRecebido) {
 
-        // ✨ INTERCEPTADOR DE ÁUDIO E IMAGENS
-        // A Evolution envia o texto vazio quando recebe mídias sem legenda.
         if (textoRecebido == null || textoRecebido.trim().isEmpty()) {
             return "🎧 Opa! Eu sou um assistente virtual em treinamento e ainda não consigo ouvir áudios ou ver imagens.\n\nPor favor, digite a sua mensagem em texto para eu poder te ajudar!";
         }
@@ -83,7 +81,8 @@ public class ChatbotService {
         }
         sessao.setUltimaInteracao(agora);
 
-        if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|voltar|cancelar|sair).*")) {
+        // ✨ COMANDOS DE REINÍCIO E CANCELAMENTO TOTAL (Tiramos o "voltar" daqui)
+        if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
 
@@ -92,6 +91,37 @@ public class ChatbotService {
                 return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
             }
         }
+
+        // ✨ O NOVO COMANDO EXCLUSIVO DE RETORNO INTELIGENTE
+        if (textoLimpo.equals("voltar")) {
+            switch (sessao.getPassoAtual()) {
+                case "ESPERANDO_HORARIO":
+                    sessao.setPassoAtual("ESPERANDO_DATA");
+                    respostaDoRobo = "🗓️ Vamos escolher outra data! Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: 28/02):";
+                    break;
+                case "ESPERANDO_DATA":
+                    sessao.setPassoAtual("ESPERANDO_SERVICO");
+                    List<Servico> listaServicos = servicoRepository.findAll();
+                    StringBuilder menuServicos = new StringBuilder("✂️ Vamos escolher outro serviço! O que deseja agendar?\n\n");
+                    for (Servico s : listaServicos) {
+                        menuServicos.append(s.getId()).append(" - ").append(s.getNome()).append(" (R$ ").append(s.getPreco()).append(")\n");
+                    }
+                    respostaDoRobo = menuServicos.toString();
+                    break;
+                default:
+                    // Se estiver em passos muito iniciais, simplesmente recomeça do zero
+                    sessao.setPassoAtual("MENU_INICIAL");
+                    limparDadosTemporariosDaSessao(sessao);
+                    break;
+            }
+
+            // Se ele mudou de ideia e a máquina voltou um passo (e não reiniciou do zero), nós salvamos e mandamos a resposta!
+            if (!sessao.getPassoAtual().equals("MENU_INICIAL")) {
+                sessaoRepository.save(sessao);
+                return respostaDoRobo + "\n\n🔙 *Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
+            }
+        }
+
 
         DateTimeFormatter formatadorData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         DateTimeFormatter formatadorHora = DateTimeFormatter.ofPattern("HH:mm");
@@ -251,6 +281,14 @@ public class ChatbotService {
         }
 
         sessaoRepository.save(sessao);
+
+        // ✨ A INJEÇÃO AUTOMÁTICA DO RODAPÉ (Se ele estiver no meio do fluxo, avisa que pode voltar!)
+        List<String> passosComRetorno = List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO", "CONFIRMANDO_CANCELAMENTO");
+
+        if (passosComRetorno.contains(sessao.getPassoAtual())) {
+            respostaDoRobo += "\n\n🔙 *Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
+        }
+
         return respostaDoRobo;
     }
 }
