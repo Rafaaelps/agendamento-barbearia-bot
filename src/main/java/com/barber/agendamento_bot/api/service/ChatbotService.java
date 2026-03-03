@@ -118,7 +118,7 @@ public class ChatbotService {
             // Se ele mudou de ideia e a máquina voltou um passo (e não reiniciou do zero), nós salvamos e mandamos a resposta!
             if (!sessao.getPassoAtual().equals("MENU_INICIAL")) {
                 sessaoRepository.save(sessao);
-                return respostaDoRobo + "\n\n🔙 *Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
+                return respostaDoRobo + "\n\n*Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
             }
         }
 
