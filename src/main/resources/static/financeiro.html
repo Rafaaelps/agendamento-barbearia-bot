@@ -146,7 +146,13 @@
     const ano = dataHoje.getFullYear();
     const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
     document.getElementById('filtro-mes').value = `${ano}-${mes}`;
+
     carregarFinanceiro();
+
+    // ✨ O MOTOR DE TEMPO REAL DO FINANCEIRO (Atualiza a cada 10s para ver pagamentos caindo)
+    setInterval(() => {
+      carregarFinanceiro();
+    }, 10000);
   });
 
   async function carregarFinanceiro() {
@@ -162,7 +168,7 @@
       concluidos.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
 
       let faturamentoTotal = 0;
-      let taxasTotal = 0; // ✨ Variável nova para somar o dinheiro perdido
+      let taxasTotal = 0;
 
       const corpoTabela = document.getElementById('tabela-extrato');
       corpoTabela.innerHTML = '';
@@ -176,26 +182,17 @@
       }
 
       concluidos.forEach(agendamento => {
-        // ✨ A GRANDE CORREÇÃO MÁGICA DO ARQUITETO: Puxa o Lucro Líquido Historical real R$ 33,31 ou R$ 35,00
         let lucroReal = Number(agendamento.faturamentoBarbeiro);
-
         let precoTabelaHistorico = 0;
-        // Puxa o Snapshot do preço base pago no momento do corte (se for novo e tiver)
+
         if (agendamento.valorTotalHistorico != null && agendamento.valorTotalHistorico > 0) {
           precoTabelaHistorico = Number(agendamento.valorTotalHistorico);
         } else if (agendamento.valorFinal != null) {
-          // Suporte para registros muito antigos (da migração) que tinham valorFinal
           precoTabelaHistorico = Number(agendamento.valorFinal);
         } else {
-          // Suporte preventivo para registros históricos que tinham o preço fixo antigo (R$ 35,00 implied PIX)
-          // Jamais olharemos pro preço ativo do serviço para o cálculo das taxas históricas.
-          // Para Yarha PIX R$ 35,00, a taxa histórica foi zero.
-          // Para Rafael CC R$ 33,31, a taxa histórica foi R$ 1,69.
           precoTabelaHistorico = lucroReal;
         }
 
-        // ✨ A MÁGICA DO VAZAMENTO DE CAIXA: Snapshot Total Base menos o Snapshot Lucro Líquido Real R$ 33,31 ou R$ 35,00
-        // O Math.max(0, ...) evita números negativos caso o barbeiro editasse o lucro para um valor MAIOR que o preço de tabela
         let taxaPerdida = Math.max(0, precoTabelaHistorico - lucroReal);
 
         faturamentoTotal += lucroReal;
@@ -225,10 +222,9 @@
         corpoTabela.innerHTML += linha;
       });
 
-      // Atualiza os painéis gerenciais no topo
       document.getElementById('qtd-servicos').innerText = concluidos.length;
       document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); // Atualiza o card vermelho fosco #c94c4c
+      document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     } catch (erro) {
       console.error("Erro ao buscar dados financeiros:", erro);
@@ -243,7 +239,6 @@
 
       if (!isNaN(novoValor)) {
         try {
-          // Suporte para registros financeiros históricos (extrato detalhado)
           await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' });
           carregarFinanceiro();
         } catch (erro) {

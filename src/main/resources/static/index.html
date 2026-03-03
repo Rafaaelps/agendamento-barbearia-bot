@@ -175,7 +175,16 @@
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('filtro-data').value = hoje;
         document.getElementById('data-bloqueio').value = hoje;
+
         carregarAgendamentos();
+
+        // ✨ O MOTOR DE TEMPO REAL (Atualiza a cada 10s se não houver modal aberto)
+        setInterval(() => {
+            const modalAberto = document.querySelector('.modal.show');
+            if (!modalAberto) {
+                carregarAgendamentos();
+            }
+        }, 10000);
     });
 
     // ==========================================
@@ -313,6 +322,16 @@
                         precoServico = Number(agendamento.servicoEscolhido.preco);
                     }
 
+                    // ✨ Lógica para exibir se o cliente confirmou ou não a presença
+                    let statusPresenca = "";
+                    if (agendamento.status === 'CONFIRMADO') {
+                        if (agendamento.confirmadoPeloCliente === true) {
+                            statusPresenca = `<br><span class="badge bg-success text-white border border-success mt-1" style="font-size: 0.70rem;">✅ Presença Confirmada</span>`;
+                        } else if (agendamento.lembreteEnviado === true) {
+                            statusPresenca = `<br><span class="badge bg-warning text-dark border border-warning mt-1" style="font-size: 0.70rem;">⏳ Aguardando Confirmação</span>`;
+                        }
+                    }
+
                     let botoesAcao = '';
                     if (agendamento.status === 'CONFIRMADO') {
                         botoesAcao = `
@@ -325,7 +344,7 @@
 
                     corpoTabela.innerHTML += `
                         <tr>
-                            <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong></td>
+                            <td data-label="Cliente"><strong>${agendamento.nomeCliente}</strong>${statusPresenca}</td>
                             <td data-label="Telefone">${agendamento.telefoneCliente}</td>
                             <td data-label="Serviço">${agendamento.servicoEscolhido.nome} <br> <small class="text-muted">R$ ${precoServico.toFixed(2)}</small></td>
                             <td data-label="Período" class="fw-bold text-primary">${horaInicioFmt} às ${horaFimFmt}</td>
