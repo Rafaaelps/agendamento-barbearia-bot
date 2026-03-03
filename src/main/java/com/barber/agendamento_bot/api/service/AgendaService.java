@@ -44,19 +44,17 @@ public class AgendaService {
         novo.setDataHoraFim(fim);
         novo.setStatus("CONFIRMADO");
 
-        // ✨ BLINDAGEM CONTRA O PASSADO (Bloqueia clientes espertinhos)
+        // BLINDAGEM CONTRA O PASSADO
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         if (inicio.isBefore(LocalDateTime.now(fusoBR))) {
-            System.out.println("❌ Agendamento recusado: O horário solicitado está no passado.");
             return false;
         }
 
-        // REGRA 1: Busca o dia da semana e verifica a grade
+        // REGRA 1: Verifica a grade
         int diaSemanaId = inicio.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
 
         if (regrasDoDia == null || regrasDoDia.isFechado()) {
-            System.out.println("❌ Lamento, estamos fechados neste dia.");
             return false;
         }
 
@@ -64,7 +62,6 @@ public class AgendaService {
         LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
 
         if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) {
-            System.out.println("❌ Horário fora do expediente de trabalho deste dia.");
             return false;
         }
 
@@ -74,7 +71,6 @@ public class AgendaService {
             if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
 
             if (inicio.isBefore(bloqueio.getDataHoraFim()) && fim.isAfter(bloqueio.getDataHoraInicio())) {
-                System.out.println("❌ Agendamento recusado: Cai dentro do bloqueio de " + bloqueio.getMotivo());
                 return false;
             }
         }
@@ -83,7 +79,6 @@ public class AgendaService {
         List<Agendamento> noBanco = agendamentoRepository.findByStatusNot("CANCELADO");
         for (Agendamento existente : noBanco) {
             if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) {
-                System.out.println("❌ Horário já ocupado por outro cliente.");
                 return false;
             }
         }
@@ -107,9 +102,11 @@ public class AgendaService {
 
         Servico servicoEscolhido = servicoRepository.findById(servicoId).orElseThrow();
         int duracao = servicoEscolhido.getDuracaoMinutos();
-        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNot("CANCELADO");
 
-        // ✨ O RELÓGIO DA VERDADE (Fuso de São Paulo)
+        // ✨ AS DUAS TABELAS DE VERIFICAÇÃO (Agendamentos e Bloqueios)
+        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNot("CANCELADO");
+        List<BloqueioAgenda> todosBloqueios = bloqueioAgendaRepository.findAll();
+
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDate dataDeHoje = LocalDate.now(fusoBR);
         LocalTime horaAtual = LocalTime.now(fusoBR);
@@ -118,8 +115,6 @@ public class AgendaService {
 
         while (horarioTeste.plusMinutes(duracao).compareTo(fechamentoDoDia) <= 0) {
 
-            // ✨ A CORREÇÃO MÁGICA: Se o cliente escolheu a data de HOJE, e o horário do teste já passou, pula pro próximo!
-            // Dica de Ouro: Eu coloquei um pequeno fôlego de 15 minutos (para o cliente não marcar um corte pras 12:30 se for 12:28).
             if (dataBuscada.equals(dataDeHoje) && horarioTeste.isBefore(horaAtual.plusMinutes(15))) {
                 horarioTeste = horarioTeste.plusMinutes(30);
                 continue;
@@ -129,11 +124,26 @@ public class AgendaService {
             LocalDateTime fimTentativa = inicioTentativa.plusMinutes(duracao);
             boolean temConflito = false;
 
+            // 1. Verifica choque com outros clientes
             for (Agendamento existente : todosNoBanco) {
                 if (existente.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
                     if (inicioTentativa.isBefore(existente.getDataHoraFim()) && fimTentativa.isAfter(existente.getDataHoraInicio())) {
                         temConflito = true;
                         break;
+                    }
+                }
+            }
+
+            // ✨ 2. Verifica choque com bloqueios manuais (Ex: Almoço / Consulta)
+            if (!temConflito) {
+                for (BloqueioAgenda bloqueio : todosBloqueios) {
+                    if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
+
+                    if (bloqueio.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
+                        if (inicioTentativa.isBefore(bloqueio.getDataHoraFim()) && fimTentativa.isAfter(bloqueio.getDataHoraInicio())) {
+                            temConflito = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -162,7 +172,6 @@ public class AgendaService {
     }
 
     public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
-        System.out.println("🔒 Bloqueando agenda de: " + novoBloqueio.getDataHoraInicio() + " até " + novoBloqueio.getDataHoraFim() + " | Motivo: " + novoBloqueio.getMotivo());
         return bloqueioAgendaRepository.save(novoBloqueio);
     }
 
@@ -170,14 +179,12 @@ public class AgendaService {
         Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow(() -> new RuntimeException("Agendamento não encontrado!"));
         agendamento.setStatus("CONCLUIDO");
         agendamentoRepository.save(agendamento);
-        System.out.println("💰 Serviço concluído com sucesso! ID: " + id);
     }
 
     public void atualizarValor(Long id, java.math.BigDecimal novoValor) {
         Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow(() -> new RuntimeException("Agendamento não encontrado!"));
         agendamento.setValorFinal(novoValor);
         agendamentoRepository.save(agendamento);
-        System.out.println("💸 Valor do agendamento " + id + " alterado para: " + novoValor);
     }
 
     public java.util.List<BloqueioAgenda> listarBloqueios() {

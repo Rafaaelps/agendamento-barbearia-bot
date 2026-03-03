@@ -34,8 +34,6 @@ public class ChatbotService {
     @PostConstruct
     public void popularBancoSeEstiverVazio() {
         if (servicoRepository.count() == 0) {
-            System.out.println("⚙️ Criando serviços iniciais no banco vazio...");
-
             Servico s1 = new Servico();
             s1.setNome("Corte de Cabelo");
             s1.setPreco(new BigDecimal("35.00"));
@@ -63,6 +61,12 @@ public class ChatbotService {
     }
 
     public String processarMensagem(String telefone, String textoRecebido) {
+
+        // ✨ INTERCEPTADOR DE ÁUDIO E IMAGENS
+        // A Evolution envia o texto vazio quando recebe mídias sem legenda.
+        if (textoRecebido == null || textoRecebido.trim().isEmpty()) {
+            return "🎧 Opa! Eu sou um assistente virtual em treinamento e ainda não consigo ouvir áudios ou ver imagens.\n\nPor favor, digite a sua mensagem em texto para eu poder te ajudar!";
+        }
 
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
         String respostaDoRobo = "";
@@ -174,12 +178,10 @@ public class ChatbotService {
                     int anoAtual = LocalDate.now().getYear();
                     LocalDate dataDigitada = LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
 
-                    // ✨ A MÁGICA ACONTECE AQUI: Busca os horários livres ANTES de perguntar!
                     List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
 
                     if (horariosLivres.isEmpty()) {
                         respostaDoRobo = "😔 Poxa, não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: 01/03):";
-                        // Mantém o usuário neste mesmo passo para tentar outra data
                     } else {
                         sessao.setDataTemporaria(textoLimpo);
 
@@ -224,7 +226,6 @@ public class ChatbotService {
                         sessao.setPassoAtual("MENU_INICIAL");
                         limparDadosTemporariosDaSessao(sessao);
                     } else {
-                        // ✨ SE DEU ERRO (Escolheu um horário errado), MOSTRA A LISTA DE NOVO!
                         List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
 
                         if (horariosLivres.isEmpty()) {
