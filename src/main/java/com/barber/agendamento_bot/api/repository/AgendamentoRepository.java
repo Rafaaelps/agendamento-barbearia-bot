@@ -22,4 +22,11 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("status") String status,
             @Param("agora") LocalDateTime agora,
             @Param("daquiA30Min") LocalDateTime daquiA30Min);
+
+    // Procura quem recebeu o lembrete, não confirmou, e o tempo está esgotando
+    @Query("SELECT a FROM Agendamento a WHERE a.status = :status AND a.lembreteEnviado = true AND (a.confirmadoPeloCliente = false OR a.confirmadoPeloCliente IS NULL) AND a.dataHoraInicio BETWEEN :agora AND :limite")
+    List<Agendamento> buscarNaoConfirmados(
+            @Param("status") String status,
+            @Param("agora") LocalDateTime agora,
+            @Param("limite") LocalDateTime limite);
 }

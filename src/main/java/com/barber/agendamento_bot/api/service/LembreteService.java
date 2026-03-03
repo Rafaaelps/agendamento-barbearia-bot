@@ -24,9 +24,6 @@ public class LembreteService {
     private final AgendamentoRepository agendamentoRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // =======================================================
-    // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API
-    // =======================================================
     private final String EVOLUTION_URL = "http://187.77.224.241:47851";
     private final String INSTANCE_NAME = "barbearia";
     private final String API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
@@ -35,32 +32,18 @@ public class LembreteService {
         this.agendamentoRepository = agendamentoRepository;
     }
 
-    // Roda a cada 1 minuto
+    // ⏰ CRON 1: ENVIA O LEMBRETE (Faltando 35 min)
     @Scheduled(cron = "0 * * * * *")
     public void verificarEEnviarLembretes() {
-        // ✨ TRAVA DE FUSO HORÁRIO INFALÍVEL
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
         LocalDateTime daquiA35Minutos = agora.plusMinutes(35);
 
-        // LOG 1: Batimento cardíaco do robô (Para sabermos que ele acordou)
-        System.out.println("⏱️ [CRON] Buscando cortes entre " + agora.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " e " + daquiA35Minutos.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-
         List<Agendamento> agendamentos = agendamentoRepository
                 .buscarAgendamentosParaLembrar("CONFIRMADO", agora, daquiA35Minutos);
 
-        // LOG 2: Quantos ele achou?
-        if (agendamentos.isEmpty()) {
-            System.out.println("🤷 Nenhum cliente encontrado para lembrar agora.");
-            return;
-        }
-
-        System.out.println("🎯 Encontrados " + agendamentos.size() + " clientes para enviar lembrete!");
-
         for (Agendamento agendamento : agendamentos) {
-            boolean sucesso = enviarMensagemEvolution(agendamento);
-
-            // Só carimba que enviou se a Evolution API realmente aceitar a mensagem!
+            boolean sucesso = enviarMensagemEvolution(agendamento, false);
             if (sucesso) {
                 agendamento.setLembreteEnviado(true);
                 agendamentoRepository.save(agendamento);
@@ -68,14 +51,45 @@ public class LembreteService {
         }
     }
 
-    private boolean enviarMensagemEvolution(Agendamento agendamento) {
+    // 🪓 CRON 2: O CARRASCO (Cancela quem não respondeu até faltar 15 min)
+    @Scheduled(cron = "0 * * * * *")
+    public void verificarECancelarNaoConfirmados() {
+        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
+        LocalDateTime agora = LocalDateTime.now(fusoBR);
+
+        // Se falta 15 minutos e não confirmou, significa que passaram 20 minutos desde o lembrete!
+        LocalDateTime daquiA15Minutos = agora.plusMinutes(15);
+
+        List<Agendamento> agendamentos = agendamentoRepository
+                .buscarNaoConfirmados("CONFIRMADO", agora, daquiA15Minutos);
+
+        for (Agendamento agendamento : agendamentos) {
+            try {
+                // 1. Cancela no banco para liberar a vaga
+                agendamento.setStatus("CANCELADO");
+                agendamentoRepository.save(agendamento);
+
+                // 2. Avisa o cliente do ocorrido
+                enviarMensagemEvolution(agendamento, true);
+                System.out.println("🪓 [CANCELADO] Cliente " + agendamento.getNomeCliente() + " não confirmou a tempo.");
+            } catch (Exception e) {
+                System.err.println("❌ Erro ao cancelar falta de confirmação: " + e.getMessage());
+            }
+        }
+    }
+
+    private boolean enviarMensagemEvolution(Agendamento agendamento, boolean isCancelamento) {
         String horaFormatada = agendamento.getDataHoraInicio().format(DateTimeFormatter.ofPattern("HH:mm"));
-        String mensagem = "⏳ Olá, *" + agendamento.getNomeCliente() + "*! Passando para lembrar que o seu horário conosco é daqui a pouco, às *" + horaFormatada + "*. Já estamos te esperando! 💈";
+        String mensagem = "";
+
+        if (isCancelamento) {
+            mensagem = "❌ *AGENDAMENTO CANCELADO*\n\nOlá, *" + agendamento.getNomeCliente() + "*. Como não recebemos a sua confirmação, o seu horário às *" + horaFormatada + "* foi liberado automaticamente na agenda para outro cliente.\n\nSe quiser remarcar um novo horário, basta mandar um *Oi*!";
+        } else {
+            mensagem = "⏳ Olá, *" + agendamento.getNomeCliente() + "*! O seu horário às *" + horaFormatada + "* está se aproximando.\n\n⚠️ *ATENÇÃO:* Responda *SIM* nos próximos 20 minutos para confirmar sua presença, caso contrário o sistema cancelará o agendamento automaticamente para liberar a vaga!";
+        }
 
         String numeroLimpo = agendamento.getTelefoneCliente().replaceAll("[^0-9]", "");
-        if (!numeroLimpo.startsWith("55")) {
-            numeroLimpo = "55" + numeroLimpo;
-        }
+        if (!numeroLimpo.startsWith("55")) numeroLimpo = "55" + numeroLimpo;
 
         String urlDeDisparo = EVOLUTION_URL + "/message/sendText/" + INSTANCE_NAME;
 
@@ -95,17 +109,10 @@ public class LembreteService {
 
         try {
             ResponseEntity<String> resposta = restTemplate.postForEntity(urlDeDisparo, pacote, String.class);
-            System.out.println("✅ [ENVIADO] Lembrete para " + numeroLimpo + " | Evolution respondeu: 200 OK");
             return true;
-
         } catch (HttpClientErrorException e) {
-            // LOG 3: O DEDO DURO DA EVOLUTION API
-            System.err.println("❌ [ERRO EVOLUTION] A API recusou o envio para " + numeroLimpo + "!");
-            System.err.println("🚨 Código HTTP: " + e.getStatusCode());
-            System.err.println("🚨 Motivo: " + e.getResponseBodyAsString());
             return false;
         } catch (Exception e) {
-            System.err.println("❌ [ERRO SISTEMA] Falha ao tentar conectar na Evolution: " + e.getMessage());
             return false;
         }
     }

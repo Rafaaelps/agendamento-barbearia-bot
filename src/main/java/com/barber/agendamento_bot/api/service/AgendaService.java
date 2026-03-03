@@ -199,4 +199,12 @@ public class AgendaService {
     public java.util.List<BloqueioAgenda> listarBloqueios() {
         return bloqueioAgendaRepository.findAll();
     }
+
+    // Salva a confirmação oficial do cliente no banco
+    public void confirmarPresenca(Long id) {
+        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
+        agendamento.setConfirmadoPeloCliente(true);
+        agendamentoRepository.save(agendamento);
+        System.out.println("✅ Presença do cliente confirmada para o agendamento: " + id);
+    }
 }

@@ -16,6 +16,7 @@ public class Agendamento {
     private java.math.BigDecimal faturamentoBarbeiro;
     private java.math.BigDecimal valorTotalHistorico;
     private Boolean lembreteEnviado = false;
+    private Boolean confirmadoPeloCliente = false;
 
     @ManyToOne
     @JoinColumn(name = "servico_id")
@@ -64,6 +65,9 @@ public class Agendamento {
     public java.math.BigDecimal getValorTotalHistorico() { return valorTotalHistorico; }
     public void setValorTotalHistorico(java.math.BigDecimal valorTotalHistorico) { this.valorTotalHistorico = valorTotalHistorico; }
 
-    public Boolean isLembreteEnviado() { return lembreteEnviado; }
+    public Boolean getLembreteEnviado() { return lembreteEnviado; }
     public void setLembreteEnviado(Boolean lembreteEnviado) { this.lembreteEnviado = lembreteEnviado; }
+
+    public Boolean getConfirmadoPeloCliente() { return confirmadoPeloCliente; }
+    public void setConfirmadoPeloCliente(Boolean confirmadoPeloCliente) { this.confirmadoPeloCliente = confirmadoPeloCliente; }
 }
