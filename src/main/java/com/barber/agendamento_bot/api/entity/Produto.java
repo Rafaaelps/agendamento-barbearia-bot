@@ -11,6 +11,9 @@ public class Produto {
     private BigDecimal preco;
     private Integer quantidadeEstoque;
 
+    // ✨ LIXEIRA INTELIGENTE (Oculta da tela sem deletar do banco)
+    private Boolean ativo = true;
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -20,4 +23,8 @@ public class Produto {
     public void setPreco(BigDecimal preco) { this.preco = preco; }
     public Integer getQuantidadeEstoque() { return quantidadeEstoque; }
     public void setQuantidadeEstoque(Integer quantidadeEstoque) { this.quantidadeEstoque = quantidadeEstoque; }
+
+    // Métodos da nova variável
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 }

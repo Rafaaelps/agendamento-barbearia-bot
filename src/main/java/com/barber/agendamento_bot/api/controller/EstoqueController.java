@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/estoque")
@@ -26,17 +27,19 @@ public class EstoqueController {
 
     @GetMapping("/produtos")
     public List<Produto> listarProdutos() {
-        return produtoRepository.findAll();
+        // ✨ FILTRO DA LIXEIRA: Só envia para a tela os produtos que estão ATIVOS
+        return produtoRepository.findAll().stream()
+                .filter(p -> p.getAtivo() == null || p.getAtivo())
+                .collect(Collectors.toList());
     }
 
-    // Apenas cadastra um novo (Gera um novo ID)
     @PostMapping("/produtos")
     public Produto salvarProduto(@RequestBody Produto produto) {
         produto.setNome(produto.getNome().trim());
+        produto.setAtivo(true); // Garante que o novo produto nasce ativo
         return produtoRepository.save(produto);
     }
 
-    // ✨ NOVO: Repor Estoque baseado no ID exato
     @PutMapping("/produtos/{id}/repor")
     public ResponseEntity<?> reporEstoque(@PathVariable Long id, @RequestParam Integer quantidade) {
         Produto produto = produtoRepository.findById(id).orElseThrow();
@@ -45,10 +48,12 @@ public class EstoqueController {
         return ResponseEntity.ok(produto);
     }
 
-    // ✨ NOVO: Botão de Lixeira para arrumar cagadas no cadastro
     @DeleteMapping("/produtos/{id}")
     public ResponseEntity<?> excluirProduto(@PathVariable Long id) {
-        produtoRepository.deleteById(id);
+        // ✨ SOFT DELETE: Apenas esconde o produto da tela para não quebrar o financeiro!
+        Produto produto = produtoRepository.findById(id).orElseThrow();
+        produto.setAtivo(false);
+        produtoRepository.save(produto);
         return ResponseEntity.ok().build();
     }
 
@@ -64,21 +69,22 @@ public class EstoqueController {
         produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - quantidade);
         produtoRepository.save(produto);
 
-        // ✨ MATEMÁTICA DAS TAXAS (Calcula o valor líquido real)
+        // Matemática das taxas já aplicada no valor líquido
         BigDecimal precoCheio = produto.getPreco().multiply(new BigDecimal(quantidade));
         BigDecimal valorLiquido = precoCheio;
 
         if ("CREDITO".equalsIgnoreCase(pagamento)) {
-            valorLiquido = precoCheio.multiply(new BigDecimal("0.95")); // Tira 5% de taxa
+            valorLiquido = precoCheio.multiply(new BigDecimal("0.95"));
         } else if ("DEBITO".equalsIgnoreCase(pagamento)) {
-            valorLiquido = precoCheio.multiply(new BigDecimal("0.98")); // Tira 2% de taxa
+            valorLiquido = precoCheio.multiply(new BigDecimal("0.98"));
         }
 
+        // Registra a venda
         Venda venda = new Venda();
         venda.setProduto(produto);
         venda.setQuantidade(quantidade);
         venda.setFormaPagamento(pagamento);
-        venda.setValorTotal(valorLiquido); // Salva o que realmente caiu na conta!
+        venda.setValorTotal(valorLiquido);
         venda.setDataHoraVenda(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")));
 
         vendaRepository.save(venda);
