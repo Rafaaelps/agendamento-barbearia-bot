@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/estoque")
@@ -29,9 +30,27 @@ public class EstoqueController {
         return produtoRepository.findAll();
     }
 
+    // ✨ MUDANÇA: Inteligência que soma a quantidade se o produto já existir
     @PostMapping("/produtos")
-    public Produto salvarProduto(@RequestBody Produto produto) {
-        return produtoRepository.save(produto);
+    public ResponseEntity<Produto> salvarProduto(@RequestBody Produto novoProduto) {
+        // Remove espaços extras no início e no fim do nome digitado
+        String nomeLimpo = novoProduto.getNome().trim();
+
+        // Verifica se já existe um produto com esse nome no banco (ignorando maiúsculas)
+        Optional<Produto> existente = produtoRepository.findByNomeIgnoreCase(nomeLimpo);
+
+        if (existente.isPresent()) {
+            // Se existe, apenas SOMA o estoque novo com o antigo e atualiza o preço
+            Produto p = existente.get();
+            p.setQuantidadeEstoque(p.getQuantidadeEstoque() + novoProduto.getQuantidadeEstoque());
+            p.setPreco(novoProduto.getPreco());
+
+            return ResponseEntity.ok(produtoRepository.save(p));
+        } else {
+            // Se não existe, cria um novo normalmente
+            novoProduto.setNome(nomeLimpo);
+            return ResponseEntity.ok(produtoRepository.save(novoProduto));
+        }
     }
 
     @PostMapping("/vender")
