@@ -118,7 +118,7 @@
   </div>
 
   <div class="row mb-5 g-3">
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-lg-4" id="coluna-grafico">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-header bg-white py-3 border-bottom-0">
           <h6 class="mb-0 fw-bold text-secondary">A Divisão do Dinheiro</h6>
@@ -129,7 +129,7 @@
       </div>
     </div>
 
-    <div class="col-12 col-lg-8">
+    <div class="col-12 col-lg-8" id="coluna-tabela">
       <div class="card shadow-sm border-0 h-100 bg-transparent bg-md-white">
         <div class="card-header bg-white py-3 d-none d-md-block border-bottom-0 rounded-top">
           <h6 class="mb-0 fw-bold text-secondary">Extrato Detalhado da Conta</h6>
@@ -154,7 +154,9 @@
     </div>
   </div>
 
-</div> <div class="modal fade" id="modalTaxas" tabindex="-1">
+</div>
+
+<div class="modal fade" id="modalTaxas" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-dark text-white">
@@ -217,54 +219,71 @@
     }, 10000);
   });
 
-  // ✨ A MAGIA DA EXPORTAÇÃO EM PDF
+  // ✨ FUNÇÃO DO PDF ATUALIZADA (O Truque da Coluna)
   async function exportarPDF() {
-    // 1. Pega os elementos que vamos manipular
     const elementoAlvo = document.getElementById('area-relatorio');
     const botoes = document.getElementById('botoes-acao');
     const tituloPagina = document.getElementById('titulo-pagina');
     const tituloPDF = document.getElementById('titulo-pdf');
     const containerTabela = document.getElementById('container-tabela-extrato');
 
-    // 2. Esconde os botões e a coluna de "Ações" (Lixeirinha) para o PDF ficar limpo
+    const colunaGrafico = document.getElementById('coluna-grafico');
+    const colunaTabela = document.getElementById('coluna-tabela');
+
+    // 1. Esconde botões e título original
     botoes.style.setProperty('display', 'none', 'important');
     tituloPagina.style.display = 'none';
 
+    // 2. Coloca o título de impressão
     const mesSelecionado = document.getElementById('filtro-mes').value;
     const mesFormatado = mesSelecionado.split('-').reverse().join('/');
     tituloPDF.innerText = `💈 Balanço Financeiro - Referência: ${mesFormatado}`;
     tituloPDF.classList.remove('d-none');
 
+    // 3. Esconde a Lixeirinha
     const colunasAcao = document.querySelectorAll('.coluna-acao');
     colunasAcao.forEach(el => el.style.display = 'none');
 
-    // 3. Remove a barra de rolagem (scrollbar) para a tabela inteira ser impressa!
+    // 4. ✨ TRUQUE: Transforma o layout Lado-a-Lado em layout Empilhado para não cortar a pizza!
+    colunaGrafico.classList.remove('col-lg-4');
+    colunaGrafico.classList.add('w-100', 'mb-4');
+    colunaTabela.classList.remove('col-lg-8');
+    colunaTabela.classList.add('w-100');
+
+    // 5. Destrava a rolagem da tabela para imprimir todas as linhas
     const alturaOriginal = containerTabela.style.maxHeight;
     const overflowOriginal = containerTabela.style.overflowY;
     containerTabela.style.maxHeight = 'none';
     containerTabela.style.overflowY = 'visible';
 
-    // 4. Configura e gera o ficheiro PDF em formato Paisagem (Landscape)
+    // 6. ✨ TRAVA DE PAGEBREAK: 'avoid-all' protege para não fatiar o texto de uma linha no meio
     const opt = {
       margin:       [10, 10, 10, 10],
       filename:     `Extrato_Barbearia_${mesSelecionado}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 }, // Deixa o texto nítido
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
+    // Tira a foto e baixa!
     await html2pdf().set(opt).from(elementoAlvo).save();
 
-    // 5. Restaura tudo ao normal no ecrã após descarregar o ficheiro
+    // 7. Desfaz todo o truque e devolve a tela ao normal
     botoes.style.setProperty('display', 'flex', 'important');
     tituloPagina.style.display = 'block';
     tituloPDF.classList.add('d-none');
+
+    colunaGrafico.classList.add('col-lg-4');
+    colunaGrafico.classList.remove('w-100', 'mb-4');
+    colunaTabela.classList.add('col-lg-8');
+    colunaTabela.classList.remove('w-100');
+
     containerTabela.style.maxHeight = alturaOriginal;
     containerTabela.style.overflowY = overflowOriginal;
     colunasAcao.forEach(el => el.style.display = '');
   }
 
-  // Restante das funções de Configurações, Despesas e Carregar Dados
   async function abrirModalTaxas() {
     const resposta = await fetch('/api/configuracoes/taxas');
     const taxas = await resposta.json();
@@ -486,7 +505,7 @@
               <td data-label="Descrição"><small class="text-muted">${descricao}</small></td>
               <td data-label="Pagamento" class="fw-bold ${corPagamento}">${nomePagamentoAmigavel}</td>
               <td data-label="Valor Líquido" class="text-success fw-bold">+ ${lucroFormatado}</td>
-              <td data-label="Ação" class="coluna-acao text-muted">-</td>
+              <td class="coluna-acao" data-label="Ação" class="text-muted">-</td>
           </tr>
       `;
   }
