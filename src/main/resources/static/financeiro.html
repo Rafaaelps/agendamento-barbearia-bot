@@ -56,13 +56,14 @@
 <div class="container">
 
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-    <h2 class="mb-0">Visão Financeira (BI)</h2>
+    <h2 class="mb-0">Visão Financeira</h2>
 
-    <div class="d-flex gap-2 w-100 w-md-auto">
+    <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
       <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border flex-grow-1">
         <label for="filtro-mes" class="me-2 fw-bold text-secondary mb-0 text-nowrap">Mês:</label>
         <input type="month" id="filtro-mes" class="form-control border-0 p-0 fw-bold text-primary flex-grow-1" onchange="carregarFinanceiro()">
       </div>
+      <button class="btn btn-danger fw-bold shadow-sm px-3" onclick="abrirModalDespesa()" title="Adicionar um custo da barbearia">💸 Lançar Despesa</button>
       <button class="btn btn-dark fw-bold shadow-sm px-3" onclick="abrirModalTaxas()" title="Configurar Taxas da Maquininha">⚙️ Taxas</button>
     </div>
   </div>
@@ -71,9 +72,29 @@
     <div class="col-12 col-lg-3 col-md-6">
       <div class="card shadow-sm border-0 border-success border-start border-5 h-100">
         <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Lucro Líquido Mensal</h6>
-          <h3 class="text-success fw-bold mb-0" id="valor-faturamento">R$ 0,00</h3>
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Lucro no Bolso</h6>
+          <h3 class="text-success fw-bold mb-0" id="valor-lucro-liquido">R$ 0,00</h3>
           <small class="fw-bold" id="indicador-crescimento" style="font-size: 0.80rem;">-</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-3 col-md-6">
+      <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
+        <div class="card-body">
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Entradas Brutas</h6>
+          <h3 class="text-primary fw-bold mb-0" id="valor-entradas">R$ 0,00</h3>
+          <small class="text-muted fw-bold" style="font-size: 0.80rem;">Cortes e Produtos</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-3 col-md-6">
+      <div class="card shadow-sm border-0 border-warning border-start border-5 h-100">
+        <div class="card-body">
+          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Total de Saídas</h6>
+          <h3 class="text-warning fw-bold mb-0" id="valor-saidas" style="color: #fd7e14 !important;">R$ 0,00</h3>
+          <small class="text-muted fw-bold" id="detalhe-saidas" style="font-size: 0.70rem;">Despesas: R$ 0 | Taxas: R$ 0</small>
         </div>
       </div>
     </div>
@@ -83,25 +104,7 @@
         <div class="card-body">
           <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Previsão (Clientes Fiéis)</h6>
           <h3 class="text-info fw-bold mb-0" id="valor-previsao">R$ 0,00</h3>
-          <small class="text-muted fw-bold" style="font-size: 0.80rem;">Com base no histórico</small>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12 col-lg-3 col-md-6">
-      <div class="card shadow-sm border-0 border-suave-danger border-start border-5 h-100">
-        <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Taxas / Perdas</h6>
-          <h3 class="text-suave-danger fw-bold mb-0" id="valor-taxas">R$ 0,00</h3>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12 col-lg-3 col-md-6">
-      <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
-        <div class="card-body">
-          <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.80rem;">Operações Concluídas</h6>
-          <h3 class="text-primary fw-bold mb-0" id="qtd-servicos">0</h3>
+          <small class="text-muted fw-bold" style="font-size: 0.80rem;">Receita recorrente</small>
         </div>
       </div>
     </div>
@@ -111,7 +114,7 @@
     <div class="col-12 col-lg-4">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-header bg-white py-3 border-bottom-0">
-          <h6 class="mb-0 fw-bold text-secondary">Entradas vs Saídas</h6>
+          <h6 class="mb-0 fw-bold text-secondary">A Divisão do Dinheiro</h6>
         </div>
         <div class="card-body d-flex justify-content-center align-items-center">
           <canvas id="graficoFinanceiro" style="max-height: 250px;"></canvas>
@@ -122,17 +125,18 @@
     <div class="col-12 col-lg-8">
       <div class="card shadow-sm border-0 h-100 bg-transparent bg-md-white">
         <div class="card-header bg-white py-3 d-none d-md-block border-bottom-0 rounded-top">
-          <h6 class="mb-0 fw-bold text-secondary">Extrato Detalhado</h6>
+          <h6 class="mb-0 fw-bold text-secondary">Extrato Detalhado da Conta</h6>
         </div>
         <div class="card-body p-0 p-md-3" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-hover align-middle text-center tabela-mobile mb-0">
             <thead class="table-light">
             <tr>
               <th>Data</th>
-              <th>Cliente</th>
-              <th>Operação</th>
+              <th>Origem/Destino</th>
+              <th>Descrição</th>
               <th>Pagamento</th>
-              <th>Lucro Líquido</th>
+              <th>Valor Líquido</th>
+              <th>Ação</th>
             </tr>
             </thead>
             <tbody id="tabela-extrato">
@@ -168,6 +172,28 @@
   </div>
 </div>
 
+<div class="modal fade" id="modalDespesa" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold">💸 Lançar Despesa</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Do que se trata?</label>
+          <input type="text" id="desc-despesa" class="form-control" placeholder="Ex: Conta de Luz, Maquininha Nova...">
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-bold">Valor Gasto (R$):</label>
+          <input type="number" id="valor-despesa" class="form-control fw-bold text-danger" step="0.01">
+        </div>
+        <button class="btn btn-danger w-100 fw-bold" onclick="salvarDespesa()">Registrar Saída</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   let meuGrafico = null;
@@ -182,173 +208,219 @@
 
     setInterval(() => {
       const modalAberto = document.querySelector('.modal.show');
-      if (!modalAberto) {
-        carregarFinanceiro();
-      }
+      if (!modalAberto) { carregarFinanceiro(); }
     }, 10000);
   });
 
-  // ✨ FUNÇÕES PARA LIDAR COM O MODAL DE TAXAS
   async function abrirModalTaxas() {
     const resposta = await fetch('/api/configuracoes/taxas');
     const taxas = await resposta.json();
-
     document.getElementById('taxa-credito').value = taxas.credito;
     document.getElementById('taxa-debito').value = taxas.debito;
-
     new bootstrap.Modal(document.getElementById('modalTaxas')).show();
   }
 
   async function salvarTaxas() {
     const creditoStr = document.getElementById('taxa-credito').value.replace(',', '.');
     const debitoStr = document.getElementById('taxa-debito').value.replace(',', '.');
-
-    const credito = parseFloat(creditoStr) || 0;
-    const debito = parseFloat(debitoStr) || 0;
-
     await fetch('/api/configuracoes/taxas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credito, debito })
+      body: JSON.stringify({ credito: parseFloat(creditoStr) || 0, debito: parseFloat(debitoStr) || 0 })
     });
-
     bootstrap.Modal.getInstance(document.getElementById('modalTaxas')).hide();
     alert("✅ Novas taxas configuradas com sucesso!");
+  }
+
+  // ✨ FUNÇÕES DA DESPESA
+  function abrirModalDespesa() {
+    document.getElementById('desc-despesa').value = '';
+    document.getElementById('valor-despesa').value = '';
+    new bootstrap.Modal(document.getElementById('modalDespesa')).show();
+  }
+
+  async function salvarDespesa() {
+    const descricao = document.getElementById('desc-despesa').value;
+    const valorStr = document.getElementById('valor-despesa').value.replace(',', '.');
+    const valor = parseFloat(valorStr);
+
+    if(!descricao || !valor) { alert("Preencha todos os campos!"); return; }
+
+    await fetch('/api/despesas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ descricao, valor })
+    });
+
+    bootstrap.Modal.getInstance(document.getElementById('modalDespesa')).hide();
+    carregarFinanceiro();
+  }
+
+  async function deletarDespesa(id) {
+    if(confirm("Tem certeza que deseja apagar este custo do histórico?")) {
+      await fetch(`/api/despesas/${id}`, { method: 'DELETE' });
+      carregarFinanceiro();
+    }
   }
 
 
   async function carregarFinanceiro() {
     try {
-      const [respostaAgendamentos, respostaVendas] = await Promise.all([
+      // PUXA TODOS OS 3 MOTORES DO SISTEMA (Cortes, Produtos e Despesas)
+      const [respostaAgendamentos, respostaVendas, respostaDespesas] = await Promise.all([
         fetch('/api/agendamentos'),
-        fetch('/api/estoque/vendas')
+        fetch('/api/estoque/vendas'),
+        fetch('/api/despesas')
       ]);
 
       const todosAgendamentos = await respostaAgendamentos.json();
       const todasVendas = await respostaVendas.json();
+      const todasDespesas = await respostaDespesas.json();
 
       const mesEscolhido = document.getElementById('filtro-mes').value;
 
-      let faturamentoTotal = 0;
-      let taxasTotal = 0;
-      let qtdOperacoes = 0;
+      let receitaBruta = 0; // Tudo que os clientes pagaram
+      let taxasTotal = 0;   // Dinheiro das maquininhas
+      let despesasTotal = 0; // Custos da barbearia
+
+      // ✨ O EXTRATO MISTO (Mistura Cortes, Vendas e Despesas em ordem de data)
+      let extratoMisto = [];
+
+      // 1. PROCESSA CORTES
+      let concluidosAtual = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido));
+      concluidosAtual.forEach(ag => {
+        let lucroLivre = Number(ag.faturamentoBarbeiro);
+        let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : lucroLivre;
+        let taxaDaVenda = Math.max(0, precoCheio - lucroLivre);
+
+        receitaBruta += precoCheio;
+        taxasTotal += taxaDaVenda;
+
+        extratoMisto.push({ data: ag.dataHoraInicio, tipo: 'CORTE', obj: ag, lucroLivre, taxa: taxaDaVenda });
+      });
+
+      // 2. PROCESSA VENDAS
+      let vendasAtual = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesEscolhido));
+      vendasAtual.forEach(v => {
+        let lucroLivre = Number(v.valorTotal);
+        let precoCheio = Number(v.quantidade) * Number(v.produto.preco);
+        let taxaDaVenda = Math.max(0, precoCheio - lucroLivre);
+
+        receitaBruta += precoCheio;
+        taxasTotal += taxaDaVenda;
+
+        extratoMisto.push({ data: v.dataHoraVenda, tipo: 'VENDA', obj: v, lucroLivre, taxa: taxaDaVenda });
+      });
+
+      // 3. PROCESSA DESPESAS (NOVO)
+      let despesasAtual = todasDespesas.filter(d => d.dataHora && d.dataHora.startsWith(mesEscolhido));
+      despesasAtual.forEach(d => {
+        despesasTotal += Number(d.valor);
+        extratoMisto.push({ data: d.dataHora, tipo: 'DESPESA', obj: d });
+      });
+
+      // ORDENA O EXTRATO DO MAIS NOVO PRO MAIS VELHO
+      extratoMisto.sort((a, b) => new Date(b.data) - new Date(a.data));
 
       const corpoTabela = document.getElementById('tabela-extrato');
       corpoTabela.innerHTML = '';
 
-      let concluidosAtual = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido));
-      concluidosAtual.forEach(agendamento => {
-        let lucroReal = Number(agendamento.faturamentoBarbeiro);
-        let precoTabelaHistorico = agendamento.valorTotalHistorico != null && agendamento.valorTotalHistorico > 0 ? Number(agendamento.valorTotalHistorico) : (agendamento.valorFinal != null ? Number(agendamento.valorFinal) : lucroReal);
-        let taxaPerdida = Math.max(0, precoTabelaHistorico - lucroReal);
+      if (extratoMisto.length === 0) {
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum movimento financeiro neste mês.</td></tr>';
+      } else {
+        extratoMisto.forEach(item => {
+          if (item.tipo === 'CORTE') {
+            corpoTabela.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, `✂️ ${item.obj.servicoEscolhido.nome}`, item.obj.formaPagamento, item.lucroLivre, '');
+          } else if (item.tipo === 'VENDA') {
+            corpoTabela.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", `📦 ${item.obj.quantidade}x ${item.obj.produto.nome}`, item.obj.formaPagamento, item.lucroLivre, '');
+          } else if (item.tipo === 'DESPESA') {
+            // LINHA VERMELHA DA DESPESA
+            const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            const valFmt = Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const btnTrash = `<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})" title="Apagar Despesa">🗑️</button>`;
 
-        faturamentoTotal += lucroReal;
-        taxasTotal += taxaPerdida;
-        qtdOperacoes++;
-
-        corpoTabela.innerHTML += criarLinhaTabela(
-                agendamento.dataHoraInicio,
-                agendamento.nomeCliente,
-                `✂️ ${agendamento.servicoEscolhido.nome}`,
-                agendamento.formaPagamento,
-                lucroReal
-        );
-      });
-
-      let vendasAtual = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesEscolhido));
-      vendasAtual.forEach(venda => {
-        let lucroVenda = Number(venda.valorTotal);
-        let precoCheio = Number(venda.quantidade) * Number(venda.produto.preco);
-        let taxaDaMaquininha = Math.max(0, precoCheio - lucroVenda);
-
-        faturamentoTotal += lucroVenda;
-        taxasTotal += taxaDaMaquininha;
-        qtdOperacoes++;
-
-        corpoTabela.innerHTML += criarLinhaTabela(
-                venda.dataHoraVenda,
-                "Cliente Avulso",
-                `📦 ${venda.quantidade}x ${venda.produto.nome}`,
-                venda.formaPagamento,
-                lucroVenda
-        );
-      });
-
-      if (qtdOperacoes === 0) {
-        corpoTabela.innerHTML = '<tr><td colspan="5" class="text-muted py-4 text-center">Nenhuma operação concluída neste mês.</td></tr>';
+            corpoTabela.innerHTML += `
+                    <tr class="table-danger bg-opacity-10 border-danger">
+                        <td data-label="Data" class="text-muted">${dFmt}</td>
+                        <td data-label="Origem/Destino"><strong>Barbearia (Caixa)</strong></td>
+                        <td data-label="Descrição"><small class="text-danger fw-bold">📉 Pagto: ${item.obj.descricao}</small></td>
+                        <td data-label="Pagamento" class="fw-bold text-muted">-</td>
+                        <td data-label="Valor" class="text-danger fw-bold">- ${valFmt}</td>
+                        <td data-label="Ação">${btnTrash}</td>
+                    </tr>
+                `;
+          }
+        });
       }
 
-      const dataSelecionadaObj = new Date(mesEscolhido + '-01T00:00:00');
-      const dataAnteriorObj = new Date(dataSelecionadaObj);
+      // MATEMÁTICA FINAL DO MÊS
+      let receitaLivreDeTaxas = receitaBruta - taxasTotal;
+      let lucroNoBolso = receitaLivreDeTaxas - despesasTotal;
+      let saidasTotais = taxasTotal + despesasTotal;
+
+      // CÁLCULO DE CRESCIMENTO MÊS A MÊS (Comparando o Lucro Real)
+      const dataAnteriorObj = new Date(mesEscolhido + '-01T00:00:00');
       dataAnteriorObj.setMonth(dataAnteriorObj.getMonth() - 1);
       const mesAnterior = `${dataAnteriorObj.getFullYear()}-${String(dataAnteriorObj.getMonth() + 1).padStart(2, '0')}`;
 
-      let concluidosAnterior = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesAnterior));
-      let vendasAnterior = todasVendas.filter(v => v.dataHoraVenda.startsWith(mesAnterior));
+      let entradasAnt = 0, taxasAnt = 0, despesasAnt = 0;
 
-      let faturamentoAnterior = 0;
-      concluidosAnterior.forEach(ag => faturamentoAnterior += Number(ag.faturamentoBarbeiro || 0));
-      vendasAnterior.forEach(v => faturamentoAnterior += Number(v.valorTotal || 0));
-
-      let textoCrescimento = `<span class="text-muted">Sem dados do mês anterior</span>`;
-      if (faturamentoAnterior > 0) {
-        let percentual = ((faturamentoTotal - faturamentoAnterior) / faturamentoAnterior) * 100;
-        if (percentual >= 0) {
-          textoCrescimento = `<span class="text-success">📈 +${percentual.toFixed(1)}% vs Mês Anterior</span>`;
-        } else {
-          textoCrescimento = `<span class="text-danger">📉 ${percentual.toFixed(1)}% vs Mês Anterior</span>`;
-        }
-      } else if (faturamentoTotal > 0) {
-        textoCrescimento = `<span class="text-success">📈 +100% vs Mês Anterior</span>`;
-      }
-
-      let historicoTelefones = {};
-      let faturamentoGlobal = 0;
-      let totalCortesGlobal = 0;
-
-      todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO').forEach(ag => {
-        faturamentoGlobal += Number(ag.faturamentoBarbeiro || 0);
-        totalCortesGlobal++;
-        let tel = ag.telefoneCliente;
-        historicoTelefones[tel] = (historicoTelefones[tel] || 0) + 1;
+      todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesAnterior)).forEach(ag => {
+        let livre = Number(ag.faturamentoBarbeiro); entradasAnt += (ag.valorFinal ? Number(ag.valorFinal) : livre); taxasAnt += ((ag.valorFinal ? Number(ag.valorFinal) : livre) - livre);
+      });
+      todasVendas.filter(v => v.dataHoraVenda.startsWith(mesAnterior)).forEach(v => {
+        let livre = Number(v.valorTotal); let cheio = Number(v.quantidade) * Number(v.produto.preco); entradasAnt += cheio; taxasAnt += (cheio - livre);
+      });
+      todasDespesas.filter(d => d.dataHora && d.dataHora.startsWith(mesAnterior)).forEach(d => {
+        despesasAnt += Number(d.valor);
       });
 
+      let lucroAnterior = (entradasAnt - taxasAnt) - despesasAnt;
+
+      let textoCrescimento = `<span class="text-muted">Sem dados do mês anterior</span>`;
+      if (lucroAnterior !== 0) {
+        let percentual = ((lucroNoBolso - lucroAnterior) / Math.abs(lucroAnterior)) * 100;
+        if (percentual >= 0) textoCrescimento = `<span class="text-success">📈 +${percentual.toFixed(1)}% vs Mês Anterior</span>`;
+        else textoCrescimento = `<span class="text-danger">📉 ${percentual.toFixed(1)}% vs Mês Anterior</span>`;
+      }
+
+      // PREVISÃO CLIENTES FIÉIS
+      let historicoTelefones = {};
+      let totalCortesGlobal = 0, faturamentoGlobal = 0;
+      todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO').forEach(ag => {
+        faturamentoGlobal += Number(ag.faturamentoBarbeiro || 0); totalCortesGlobal++;
+        historicoTelefones[ag.telefoneCliente] = (historicoTelefones[ag.telefoneCliente] || 0) + 1;
+      });
       let ticketMedio = totalCortesGlobal > 0 ? (faturamentoGlobal / totalCortesGlobal) : 0;
       let clientesRecorrentes = Object.values(historicoTelefones).filter(visitas => visitas > 1).length;
-      let previsaoFaturamento = clientesRecorrentes * ticketMedio;
 
-      document.getElementById('qtd-servicos').innerText = qtdOperacoes;
-      document.getElementById('valor-faturamento').innerText = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      // ATUALIZA A TELA (OS 4 CARDS)
+      document.getElementById('valor-lucro-liquido').innerText = lucroNoBolso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('indicador-crescimento').innerHTML = textoCrescimento;
-      document.getElementById('valor-previsao').innerText = previsaoFaturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      document.getElementById('valor-taxas').innerText = taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('valor-entradas').innerText = receitaBruta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('valor-saidas').innerText = saidasTotais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('detalhe-saidas').innerText = `Despesas: ${despesasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Taxas: ${taxasTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+      document.getElementById('valor-previsao').innerText = (clientesRecorrentes * ticketMedio).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+      // ATUALIZA O GRÁFICO (AGORA EM 3 CORES!)
       const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
       if (meuGrafico) meuGrafico.destroy();
 
-      let dadosGrafico = [faturamentoTotal, taxasTotal];
-      let coresGrafico = ['#198754', '#c94c4c'];
-      if (faturamentoTotal === 0 && taxasTotal === 0) {
-        dadosGrafico = [1];
-        coresGrafico = ['#e9ecef'];
+      // Para o gráfico não quebrar se o lucro for negativo (teve mais despesa que receita)
+      let graficoLucro = lucroNoBolso < 0 ? 0 : lucroNoBolso;
+
+      let dadosGrafico = [graficoLucro, despesasTotal, taxasTotal];
+      let coresGrafico = ['#198754', '#fd7e14', '#c94c4c']; // Verde, Laranja, Vermelho
+      let labelsGrafico = ['Lucro no Bolso', 'Despesas', 'Taxas'];
+
+      if (receitaBruta === 0 && despesasTotal === 0) {
+        dadosGrafico = [1]; coresGrafico = ['#e9ecef']; labelsGrafico = ['Sem Dados'];
       }
 
       meuGrafico = new Chart(ctx, {
         type: 'doughnut',
-        data: {
-          labels: (faturamentoTotal === 0 && taxasTotal === 0) ? ['Sem Dados'] : ['Lucro Líquido', 'Taxas / Perdas'],
-          datasets: [{
-            data: dadosGrafico,
-            backgroundColor: coresGrafico,
-            borderWidth: 0,
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          cutout: '70%',
-          plugins: { legend: { display: false } }
-        }
+        data: { labels: labelsGrafico, datasets: [{ data: dadosGrafico, backgroundColor: coresGrafico, borderWidth: 0, hoverOffset: 4 }] },
+        options: { responsive: true, cutout: '70%', plugins: { legend: { display: false } } }
       });
 
     } catch (erro) {
@@ -356,37 +428,27 @@
     }
   }
 
-  function criarLinhaTabela(dataBruta, cliente, descricao, pgto, valor) {
+  function criarLinhaTabela(dataBruta, cliente, descricao, pgto, valor, acaoExtra) {
     const dataFormatada = new Date(dataBruta).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     const lucroFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     let formaPgtoBruta = pgto || 'NÃO INFORMADA';
     let strNormalizada = formaPgtoBruta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
-    let corPagamento = 'text-dark';
-    let nomePagamentoAmigavel = formaPgtoBruta;
-
-    if (strNormalizada.includes('CREDITO')) {
-      corPagamento = 'text-primary';
-      nomePagamentoAmigavel = 'Cartão de Crédito';
-    } else if (strNormalizada.includes('DEBITO')) {
-      corPagamento = 'text-info';
-      nomePagamentoAmigavel = 'Cartão de Débito';
-    } else if (strNormalizada.includes('PIX') || strNormalizada.includes('DINHEIRO')) {
-      corPagamento = 'text-success';
-      nomePagamentoAmigavel = 'Dinheiro / PIX';
-    } else if (strNormalizada === 'PENDENTE') {
-      corPagamento = 'text-danger';
-      nomePagamentoAmigavel = 'Pendente';
-    }
+    let corPagamento = 'text-dark'; let nomePagamentoAmigavel = formaPgtoBruta;
+    if (strNormalizada.includes('CREDITO')) { corPagamento = 'text-primary'; nomePagamentoAmigavel = 'Cartão de Crédito'; }
+    else if (strNormalizada.includes('DEBITO')) { corPagamento = 'text-info'; nomePagamentoAmigavel = 'Cartão de Débito'; }
+    else if (strNormalizada.includes('PIX') || strNormalizada.includes('DINHEIRO')) { corPagamento = 'text-success'; nomePagamentoAmigavel = 'Dinheiro / PIX'; }
+    else if (strNormalizada === 'PENDENTE') { corPagamento = 'text-danger'; nomePagamentoAmigavel = 'Pendente'; }
 
     return `
           <tr>
               <td data-label="Data" class="text-muted">${dataFormatada}</td>
-              <td data-label="Cliente"><strong>${cliente}</strong></td>
-              <td data-label="Operação"><small class="text-muted">${descricao}</small></td>
+              <td data-label="Origem/Destino"><strong>${cliente}</strong></td>
+              <td data-label="Descrição"><small class="text-muted">${descricao}</small></td>
               <td data-label="Pagamento" class="fw-bold ${corPagamento}">${nomePagamentoAmigavel}</td>
-              <td data-label="Lucro" class="text-success fw-bold">${lucroFormatado}</td>
+              <td data-label="Valor Líquido" class="text-success fw-bold">+ ${lucroFormatado}</td>
+              <td data-label="Ação" class="text-muted">-</td>
           </tr>
       `;
   }
