@@ -11,19 +11,22 @@
     <style>
         :root {
             --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-            --text-main: #F8FAFC; --text-muted: #CBD5E1; /* ✨ Mais legível */
+            --text-main: #F8FAFC; --text-muted: #94A3B8; /* ✨ Cinza Gelo super legível */
             --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
 
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+
+        /* ✨ BLINDAGEM CONTRA O BOOTSTRAP (Força as cores legíveis) */
+        .text-muted { color: var(--text-muted) !important; }
+        .text-secondary { color: var(--text-muted) !important; }
+
         .app-container { display: flex; height: 100vh; flex-direction: column; }
 
-        /* ✨ TOPBAR MOBILE (NOVO) */
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-        /* SIDEBAR */
         .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; }
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
@@ -42,8 +45,11 @@
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
 
+        /* ✨ BARRA DE AÇÕES (Corrigida para Desktop) */
+        .action-bar { display: flex; flex-direction: row; gap: 12px; align-items: center; }
+
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
         .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
 
         .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
@@ -56,9 +62,8 @@
         .btn-warning-modern { background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color); border: 1px solid rgba(245, 158, 11, 0.2); }
         .btn-warning-modern:hover { background-color: var(--warning-color); color: white; }
 
-        /* ✨ TABELAS MAIS NÍTIDAS */
         .table-modern { color: var(--text-main); margin: 0; }
-        .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
@@ -80,7 +85,9 @@
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
             .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
-            .action-bar { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+            /* ✨ BARRA DE AÇÕES (Corrigida para Mobile) */
+            .action-bar { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
 
             .table-modern thead { display: none; }
             .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
@@ -144,14 +151,14 @@
                 </div>
             </div>
 
-            <div class="custom-card mb-4">
+            <div class="custom-card p-3 mb-4">
                 <div class="row g-3 align-items-center">
                     <div class="col-12 col-md-4">
-                        <label class="form-label text-light small fw-bold mb-1">DATA DO AGENDAMENTO</label>
+                        <label class="form-label text-white small fw-bold mb-1">DATA DO AGENDAMENTO</label>
                         <input type="date" id="filtro-data" class="form-control custom-input" onchange="carregarAgendamentos()">
                     </div>
                     <div class="col-12 col-md-4">
-                        <label class="form-label text-light small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
+                        <label class="form-label text-white small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
                         <select id="filtro-status" class="form-select custom-select" onchange="carregarAgendamentos()">
                             <option value="PADRAO">Pendentes / Bloqueios</option>
                             <option value="CONCLUIDO">Concluídos</option>
@@ -193,24 +200,24 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">NOME DO CLIENTE</label>
+                    <label class="form-label fw-bold text-white small">NOME DO CLIENTE</label>
                     <input type="text" id="nome-encaixe" class="form-control custom-input" placeholder="Digite o nome...">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">TELEFONE (OPCIONAL)</label>
+                    <label class="form-label fw-bold text-white small">TELEFONE (OPCIONAL)</label>
                     <input type="text" id="tel-encaixe" class="form-control custom-input" placeholder="(00) 00000-0000">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">SERVIÇO</label>
+                    <label class="form-label fw-bold text-white small">SERVIÇO</label>
                     <select id="servico-encaixe" class="form-select custom-select"></select>
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-light small">DATA</label>
+                        <label class="form-label fw-bold text-white small">DATA</label>
                         <input type="date" id="data-encaixe" class="form-control custom-input">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-light small">HORÁRIO</label>
+                        <label class="form-label fw-bold text-white small">HORÁRIO</label>
                         <input type="time" id="hora-encaixe" class="form-control custom-input">
                     </div>
                 </div>
@@ -235,10 +242,10 @@
                     <label class="form-check-label fw-bold ms-2" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label>
                 </div>
                 <div id="campos-bot-config">
-                    <label class="form-label fw-bold text-light small">AVISAR QUANTO TEMPO ANTES?</label>
+                    <label class="form-label fw-bold text-white small">AVISAR QUANTO TEMPO ANTES?</label>
                     <div class="input-group">
                         <input type="number" id="minutos-bot" class="form-control custom-input text-center" min="25" step="5">
-                        <span class="input-group-text bg-body border-color text-light">min</span>
+                        <span class="input-group-text bg-body border-color text-muted">min</span>
                     </div>
                     <p class="text-muted mt-3" style="font-size: 0.75rem;">
                         O bot aguardará 20 min pela resposta. Sem resposta, cancela.
@@ -261,21 +268,21 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">DATA</label>
+                    <label class="form-label fw-bold text-white small">DATA</label>
                     <input type="date" id="data-bloqueio" class="form-control custom-input">
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-light small">INÍCIO</label>
+                        <label class="form-label fw-bold text-white small">INÍCIO</label>
                         <input type="time" id="hora-inicio-bloqueio" class="form-control custom-input">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-light small">FIM</label>
+                        <label class="form-label fw-bold text-white small">FIM</label>
                         <input type="time" id="hora-fim-bloqueio" class="form-control custom-input">
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">MOTIVO</label>
+                    <label class="form-label fw-bold text-white small">MOTIVO</label>
                     <input type="text" id="motivo-bloqueio" class="form-control custom-input" placeholder="Ex: Horário de Almoço">
                 </div>
             </div>
@@ -309,7 +316,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <p class="mb-3 text-light">Como o cliente pagou?</p>
+                <p class="mb-3 text-muted">Como o cliente pagou?</p>
                 <input type="hidden" id="id-agendamento-pagamento">
                 <div class="d-grid gap-2">
                     <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button>
@@ -349,7 +356,6 @@
         }, 10000);
     });
 
-    // ✨ LÓGICA DE AGENDAMENTOS MANTIDA INTACTA!
     async function carregarServicosEncaixe() {
         const res = await fetch('/api/servicos'); const servicos = await res.json();
         const select = document.getElementById('servico-encaixe'); select.innerHTML = '';
@@ -395,11 +401,11 @@
                     </div>
                     <div class="row g-2">
                         <div class="col-6">
-                            <label class="form-label text-light small fw-bold">Abertura</label>
+                            <label class="form-label text-white small fw-bold">Abertura</label>
                             <input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})">
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-light small fw-bold">Fechamento</label>
+                            <label class="form-label text-white small fw-bold">Fechamento</label>
                             <input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})">
                         </div>
                     </div>
@@ -431,7 +437,8 @@
             listaMista.sort((a, b) => new Date(a.dado.dataHoraInicio) - new Date(b.dado.dataHoraInicio));
 
             const corpoTabela = document.getElementById('tabela-agendamentos'); corpoTabela.innerHTML = '';
-            if (listaMista.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4">Nenhum registro encontrado.</td></tr>';
+
+            if (listaMista.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4">Nenhum registro encontrado para este filtro e data.</td></tr>';
 
             listaMista.forEach(item => {
                 if (item.tipo === 'AGENDAMENTO') {
@@ -446,12 +453,11 @@
                          <button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` :
                         `<span class="text-muted small">${ag.status}</span>`;
 
-                    // ✨ TELEFONE E SERVIÇOS MAIS CLAROS
                     corpoTabela.innerHTML += `
                         <tr>
                             <td><strong class="text-white">${ag.nomeCliente}</strong></td>
-                            <td class="text-light fw-bold">${ag.telefoneCliente}</td>
-                            <td><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td>
+                            <td class="text-muted fw-bold">${ag.telefoneCliente}</td>
+                            <td><span class="text-muted">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td>
                             <td class="text-primary fw-bold">${hi} - ${hf}</td>
                             <td><span class="badge-modern ${bClass}">${ag.status}</span></td>
                             <td>${botoes}</td>

@@ -11,11 +11,15 @@
     <style>
         :root {
             --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-            --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1;
+            --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
             --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+
+        .text-muted { color: var(--text-muted) !important; }
+        .text-secondary { color: var(--text-muted) !important; }
+
         .app-container { display: flex; height: 100vh; flex-direction: column; }
 
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
@@ -39,7 +43,7 @@
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
         .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
 
         .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
@@ -48,7 +52,7 @@
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
 
         .table-modern { color: var(--text-main); margin: 0; }
-        .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
@@ -105,11 +109,11 @@
         </aside>
 
         <main class="main-content">
-            <div class="page-header">
+            <div class="page-header gap-3">
                 <h1 class="page-title">Gestão de Clientes (CRM)</h1>
-                <div class="d-flex align-items-center custom-card p-1 flex-grow-1 flex-md-grow-0" style="padding: 4px !important;">
-                    <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
-                    <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary); box-shadow: none;" onchange="renderizarTabela()">
+                <div class="d-flex align-items-center custom-card p-3 flex-grow-1 flex-md-grow-0">
+                    <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-white mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
+                    <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="renderizarTabela()">
                         <option value="GASTO" style="color: black;">Quem mais gastou</option>
                         <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
                         <option value="FREQUENTES" style="color: black;">Mais visitas</option>
@@ -120,13 +124,13 @@
             <div class="row mb-4 g-3">
                 <div class="col-12 col-md-6">
                     <div class="custom-card border-start border-primary border-4 h-100 p-4">
-                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
+                        <h6 class="text-white text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
                         <h2 class="fw-bold mb-0" style="color: var(--accent-primary);" id="total-clientes">0</h2>
                     </div>
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="custom-card border-start border-success border-4 h-100 p-4">
-                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
+                        <h6 class="text-white text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
                         <h2 class="fw-bold mb-0" style="color: var(--success-color);" id="ticket-medio">R$ 0,00</h2>
                     </div>
                 </div>
@@ -222,10 +226,10 @@
             corpoTabela.innerHTML += `
             <tr>
                 <td><strong class="text-white">${c.nome}</strong></td>
-                <td class="text-light fw-bold">${c.telefone}</td>
+                <td class="text-muted fw-bold">${c.telefone}</td>
                 <td><span class="badge-modern">${c.totalVisitas}x</span></td>
                 <td style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                <td><span class="text-light">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
+                <td><span class="text-muted">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
                 <td>${btnWhats}</td>
             </tr>`;
         });

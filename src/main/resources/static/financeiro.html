@@ -13,11 +13,15 @@
   <style>
     :root {
         --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-        --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1;
+        --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
         --accent-hover: #4F46E5; --border-color: #334155;
         --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B; --info-color: #0EA5E9;
     }
     body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+
+    .text-muted { color: var(--text-muted) !important; }
+    .text-secondary { color: var(--text-muted) !important; }
+
     .app-container { display: flex; height: 100vh; flex-direction: column;}
 
     .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
@@ -41,7 +45,7 @@
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
     .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
     .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-    .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+    .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
     .custom-input:focus, .custom-select:focus { background-color: var(--bg-body); color: var(--text-main); border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
 
     .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
@@ -52,7 +56,7 @@
     .btn-danger-modern:hover { background-color: var(--danger-color); color: white; }
 
     .table-modern { color: var(--text-main); margin: 0; }
-    .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+    .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
     .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
     .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
@@ -126,8 +130,8 @@
 
         <div id="botoes-acao" class="d-flex flex-wrap gap-2 w-100 w-md-auto">
           <div class="d-flex align-items-center custom-card p-1 flex-grow-1" style="padding: 4px !important;">
-            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-light mb-0 small">MÊS:</label>
-            <input type="month" id="filtro-mes" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main); box-shadow: none;" onchange="carregarFinanceiro()">
+            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-white mb-0 small">MÊS:</label>
+            <input type="month" id="filtro-mes" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none;" onchange="carregarFinanceiro()">
           </div>
           <button class="btn-modern btn-outline-modern" onclick="exportarPDF()"><i class="bi bi-printer"></i> PDF</button>
           <button class="btn-modern btn-danger-modern" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Despesa</button>
@@ -138,28 +142,28 @@
       <div class="row mb-4 g-3">
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-success h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
             <h3 class="text-success-custom fw-bold mb-1" id="valor-lucro-liquido">R$ 0,00</h3>
             <small class="fw-bold" id="indicador-crescimento" style="font-size: 0.75rem;">-</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-primary h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
             <h3 class="fw-bold mb-1" style="color: var(--accent-primary);" id="valor-entradas">R$ 0,00</h3>
             <small class="text-muted fw-bold" style="font-size: 0.75rem;">Cortes e Produtos</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-warning h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
             <h3 class="text-warning-custom fw-bold mb-1" id="valor-saidas">R$ 0,00</h3>
             <small class="text-muted fw-bold" id="detalhe-saidas" style="font-size: 0.75rem;">Despesas: R$ 0 | Taxas: R$ 0</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-info h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
             <h3 class="fw-bold mb-1" style="color: var(--info-color);" id="valor-previsao">R$ 0,00</h3>
             <small class="text-muted fw-bold" style="font-size: 0.75rem;">Receita recorrente</small>
           </div>
@@ -170,7 +174,7 @@
         <div class="col-12 col-lg-4" id="coluna-grafico">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card">
-              <h6 class="mb-0 fw-bold text-light text-uppercase small">A Divisão do Dinheiro</h6>
+              <h6 class="mb-0 fw-bold text-white text-uppercase small">A Divisão do Dinheiro</h6>
             </div>
             <div class="card-body d-flex justify-content-center align-items-center flex-grow-1 p-4">
               <canvas id="graficoFinanceiro" style="max-height: 250px;"></canvas>
@@ -181,7 +185,7 @@
         <div class="col-12 col-lg-8" id="coluna-tabela">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card d-none d-md-block">
-              <h6 class="mb-0 fw-bold text-light text-uppercase small">Extrato Detalhado da Conta</h6>
+              <h6 class="mb-0 fw-bold text-white text-uppercase small">Extrato Detalhado da Conta</h6>
             </div>
             <div id="container-tabela-extrato" class="table-responsive flex-grow-1" style="max-height: 400px;">
               <table class="table table-modern text-center align-middle mb-0">
@@ -216,11 +220,11 @@
       <div class="modal-body">
         <p class="text-muted small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p>
         <div class="mb-3">
-          <label class="form-label fw-bold text-light small">TAXA CRÉDITO (%):</label>
+          <label class="form-label fw-bold text-white small">TAXA CRÉDITO (%):</label>
           <input type="number" id="taxa-credito" class="form-control custom-input fw-bold" step="0.01">
         </div>
         <div class="mb-4">
-          <label class="form-label fw-bold text-light small">TAXA DÉBITO (%):</label>
+          <label class="form-label fw-bold text-white small">TAXA DÉBITO (%):</label>
           <input type="number" id="taxa-debito" class="form-control custom-input fw-bold" step="0.01">
         </div>
         <button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarTaxas()">Salvar Novas Taxas</button>
@@ -238,11 +242,11 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label fw-bold text-light small">DO QUE SE TRATA?</label>
+          <label class="form-label fw-bold text-white small">DO QUE SE TRATA?</label>
           <input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz, Produtos...">
         </div>
         <div class="mb-4">
-          <label class="form-label fw-bold text-light small">VALOR GASTO (R$):</label>
+          <label class="form-label fw-bold text-white small">VALOR GASTO (R$):</label>
           <input type="number" id="valor-despesa" class="form-control custom-input fw-bold text-danger" step="0.01">
         </div>
         <button class="btn-modern btn-danger-modern w-100 justify-content-center" onclick="salvarDespesa()">Registrar Saída</button>
@@ -298,6 +302,7 @@
 
     document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333');
     document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333');
+    document.querySelectorAll('.text-muted').forEach(el => el.style.color = '#666'); // Garante contraste na impressão
 
     await html2pdf().set({
       margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-mes').value}.pdf`,
@@ -308,6 +313,7 @@
     document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color;
     el.style.backgroundColor = "";
     document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '');
+    document.querySelectorAll('.text-muted').forEach(el => el.style.color = '');
 
     botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none');
     if(mobileTop) mobileTop.style.display = '';
@@ -347,7 +353,7 @@
       extratoMisto.sort((a, b) => new Date(b.data) - new Date(a.data));
       const corpoTb = document.getElementById('tabela-extrato'); corpoTb.innerHTML = '';
 
-      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Sem dados no mês.</td></tr>';
+      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum movimento financeiro neste mês.</td></tr>';
       else {
         extratoMisto.forEach(item => {
           if (item.tipo === 'CORTE') corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}`, item.obj.formaPagamento, item.lucroLivre);
@@ -356,7 +362,7 @@
             const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             corpoTb.innerHTML += `
               <tr style="background-color: rgba(239, 68, 68, 0.05);">
-                  <td class="text-light">${dFmt}</td><td><strong class="text-white">Caixa (Barbearia)</strong></td>
+                  <td class="text-muted">${dFmt}</td><td><strong class="text-white">Caixa (Barbearia)</strong></td>
                   <td><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small></td>
                   <td class="fw-bold text-muted">-</td><td class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                   <td class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})"><i class="bi bi-trash3"></i></button></td>
@@ -406,7 +412,7 @@
     if (pNorm.includes('CREDITO')) { cor = 'text-primary'; nPgto = '<i class="bi bi-credit-card"></i> Crédito'; }
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
-    return `<tr><td class="text-light">${dFmt}</td><td><strong class="text-main">${cl}</strong></td><td><small class="text-light">${desc}</small></td><td class="fw-bold ${cor}">${nPgto}</td><td class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td class="coluna-acao text-muted">-</td></tr>`;
+    return `<tr><td class="text-muted">${dFmt}</td><td><strong class="text-main">${cl}</strong></td><td><small class="text-muted">${desc}</small></td><td class="fw-bold ${cor}">${nPgto}</td><td class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td class="coluna-acao text-muted">-</td></tr>`;
   }
 </script>
 </body>

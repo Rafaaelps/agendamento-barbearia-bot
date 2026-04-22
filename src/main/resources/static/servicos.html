@@ -11,11 +11,15 @@
     <style>
         :root {
             --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-            --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1;
+            --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
             --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+
+        .text-muted { color: var(--text-muted) !important; }
+        .text-secondary { color: var(--text-muted) !important; }
+
         .app-container { display: flex; height: 100vh; flex-direction: column;}
 
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
@@ -40,7 +44,7 @@
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
 
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-input { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-input { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
         .custom-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
 
         .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
@@ -50,7 +54,7 @@
         .btn-outline-modern:hover { border-color: var(--text-muted); color: white; }
 
         .table-modern { color: var(--text-main); margin: 0; }
-        .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
@@ -147,16 +151,16 @@
             <div class="modal-body">
                 <input type="hidden" id="id-servico">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">NOME DO SERVIÇO</label>
+                    <label class="form-label fw-bold text-white small">NOME DO SERVIÇO</label>
                     <input type="text" id="nome-servico" class="form-control custom-input" placeholder="Ex: Sobrancelha">
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-light small">PREÇO (R$)</label>
+                        <label class="form-label fw-bold text-white small">PREÇO (R$)</label>
                         <input type="number" id="preco-servico" class="form-control custom-input" step="0.01">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-light small">DURAÇÃO (MIN)</label>
+                        <label class="form-label fw-bold text-white small">DURAÇÃO (MIN)</label>
                         <input type="number" id="duracao-servico" class="form-control custom-input">
                     </div>
                 </div>
@@ -191,7 +195,7 @@
                         <td data-label="ID" class="text-muted fw-bold">#${s.id}</td>
                         <td data-label="Nome"><strong class="text-white">${s.nome}</strong></td>
                         <td data-label="Preço" style="color: var(--success-color);" class="fw-bold">R$ ${Number(s.preco).toFixed(2)}</td>
-                        <td data-label="Duração" class="text-light"><i class="bi bi-clock me-1"></i> ${s.duracaoMinutos} min</td>
+                        <td data-label="Duração" class="text-muted"><i class="bi bi-clock me-1"></i> ${s.duracaoMinutos} min</td>
                         <td data-label="Ações"><button class="btn-modern btn-outline-modern py-1 px-3 w-100 justify-content-center" onclick="abrirModalServico(${s.id}, '${s.nome}', ${s.preco}, ${s.duracaoMinutos})"><i class="bi bi-pencil-square"></i> Editar</button></td>
                     </tr>`;
             });
