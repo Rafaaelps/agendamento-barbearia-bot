@@ -5,226 +5,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes (CRM) - Barbearia</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        @media (max-width: 767.98px) {
-            .tabela-mobile thead { display: none; }
-            .tabela-mobile tbody tr {
-                display: block; margin-bottom: 1rem; background-color: #fff;
-                border: 1px solid #dee2e6; border-radius: 0.5rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-            }
-            .tabela-mobile tbody td {
-                display: flex; justify-content: space-between; align-items: center;
-                text-align: right; border-bottom: 1px solid #dee2e6; padding: 0.75rem 1rem;
-            }
-            .tabela-mobile tbody td:last-child { border-bottom: none; }
-            .tabela-mobile tbody td::before {
-                content: attr(data-label); font-weight: bold; color: #6c757d;
-                text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left;
-            }
+        :root {
+            --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
+            --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
+            --accent-hover: #4F46E5; --border-color: #222B38;
+            --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+        .app-container { display: flex; height: 100vh; }
+
+        /* Sidebar */
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: all 0.3s; }
+        .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
+        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
+        .nav-item { margin-bottom: 4px; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
+        .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
+        .nav-link.active { color: #fff; background-color: var(--accent-primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .sidebar-footer { padding: 24px; border-top: 1px solid var(--border-color); }
+        .btn-logout { width: 100%; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: 0.2s; }
+        .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
+
+        /* Main Content */
+        .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
+        .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
+        .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+
+        .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 16px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .btn-success-modern:hover { background-color: var(--success-color); color: white; }
+
+        /* Tables */
+        .table-modern { color: var(--text-main); margin: 0; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); }
+        .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+
+        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
+
+        @media (max-width: 991.98px) { .sidebar { display: none; } .main-content { padding: 16px; } .page-header{ flex-direction: column; align-items: start;} }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="#">💈 Barbearia Bot</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNavegacao">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="menuNavegacao">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-2 mt-lg-0">
-                <li class="nav-item"><a class="nav-link" href="index.html">📅 Agenda do Dia</a></li>
-                <li class="nav-item"><a class="nav-link" href="financeiro.html">💰 Financeiro</a></li>
-                <li class="nav-item"><a class="nav-link" href="servicos.html">✂️ Serviços</a></li>
-                <li class="nav-item"><a class="nav-link" href="estoque.html">📦 Estoque</a></li>
-                <li class="nav-item"><a class="nav-link active" href="clientes.html">👥 Clientes</a></li> </ul>
-            <div class="d-flex align-items-center mt-2 mt-lg-0">
-                <form action="/sair" method="POST" class="m-0">
-                    <button type="submit" class="btn btn-outline-danger btn-sm fw-bold">Sair do Sistema</button>
-                </form>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="bi bi-scissors"></i>
+            <span>Barbearia Bot</span>
+        </div>
+        <div class="nav-section-title">Geral</div>
+        <ul class="sidebar-nav">
+            <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
+            <li class="nav-item"><a href="financeiro.html" class="nav-link"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
+        </ul>
+        <div class="nav-section-title">Administração</div>
+        <ul class="sidebar-nav">
+            <li class="nav-item"><a href="servicos.html" class="nav-link"><i class="bi bi-list-check"></i> Serviços</a></li>
+            <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="bi bi-box-seam"></i> Estoque</a></li>
+            <li class="nav-item"><a href="clientes.html" class="nav-link active"><i class="bi bi-people"></i> Clientes</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <form action="/sair" method="POST" class="m-0">
+                <button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button>
+            </form>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header gap-3">
+            <h1 class="page-title">Gestão de Clientes (CRM)</h1>
+            <div class="d-flex align-items-center custom-card p-1 flex-grow-1 flex-md-grow-0" style="padding: 4px !important;">
+                <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-muted mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
+                <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary); box-shadow: none;" onchange="renderizarTabela()">
+                    <option value="GASTO" style="color: black;">Quem mais gastou</option>
+                    <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
+                    <option value="FREQUENTES" style="color: black;">Mais visitas</option>
+                </select>
             </div>
         </div>
-    </div>
-</nav>
 
-<div class="container">
-
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <h2 class="mb-0">Gestão de Clientes</h2>
-
-        <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border w-100 w-md-auto">
-            <label for="filtro-ordem" class="me-2 fw-bold text-secondary mb-0 text-nowrap">Ordenar por:</label>
-            <select id="filtro-ordem" class="form-select border-0 p-0 text-primary fw-bold" onchange="renderizarTabela()">
-                <option value="GASTO">💰 Quem mais gastou (Melhores)</option>
-                <option value="SUMIDOS">🚨 Há mais tempo sem vir (Sumidos)</option>
-                <option value="FREQUENTES">🔥 Mais visitas</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="row mb-4 g-3">
-        <div class="col-12 col-md-6">
-            <div class="card shadow-sm border-0 border-primary border-start border-5 h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Total de Clientes Únicos</h6>
-                    <h2 class="text-primary fw-bold mb-0" id="total-clientes">0</h2>
+        <div class="row mb-4 g-3">
+            <div class="col-12 col-md-6">
+                <div class="custom-card border-start border-primary border-4 h-100 p-4">
+                    <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
+                    <h2 class="fw-bold mb-0" style="color: var(--accent-primary);" id="total-clientes">0</h2>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="custom-card border-start border-success border-4 h-100 p-4">
+                    <h6 class="text-muted text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
+                    <h2 class="fw-bold mb-0" style="color: var(--success-color);" id="ticket-medio">R$ 0,00</h2>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-6">
-            <div class="card shadow-sm border-0 border-success border-start border-5 h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.85rem;">Ticket Médio Geral</h6>
-                    <h2 class="text-success fw-bold mb-0" id="ticket-medio">R$ 0,00</h2>
-                </div>
+
+        <div class="custom-card p-0 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-modern text-center align-middle">
+                    <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Contato</th>
+                        <th>Visitas Totais</th>
+                        <th>Total Gasto (LTV)</th>
+                        <th>Última Visita</th>
+                        <th>Ação</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tabela-clientes">
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
-
-    <div class="card shadow-sm border-0 mb-5 bg-transparent bg-md-white">
-        <div class="card-body p-0 p-md-3">
-            <table class="table table-hover align-middle text-center tabela-mobile mb-0">
-                <thead class="table-dark rounded-top">
-                <tr>
-                    <th>Nome</th>
-                    <th>Telefone</th>
-                    <th>Visitas Totais</th>
-                    <th>Total Gasto (LTV)</th>
-                    <th>Última Visita</th>
-                    <th>Ação</th>
-                </tr>
-                </thead>
-                <tbody id="tabela-clientes">
-                </tbody>
-            </table>
-        </div>
-    </div>
-
+    </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let clientesGlobal = [];
+    let clientesGlobal = [];
+    document.addEventListener("DOMContentLoaded", carregarCRM);
 
-document.addEventListener("DOMContentLoaded", carregarCRM);
+    async function carregarCRM() {
+        try {
+            const resposta = await fetch('/api/agendamentos');
+            const todosAgendamentos = await resposta.json();
+            const concluidos = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO');
+            const mapaClientes = {};
+            let faturamentoGeral = 0; let visitasGerais = 0;
 
-async function carregarCRM() {
-try {
-const resposta = await fetch('/api/agendamentos');
-const todosAgendamentos = await resposta.json();
+            concluidos.forEach(ag => {
+                const tel = ag.telefoneCliente; const valorLivre = Number(ag.faturamentoBarbeiro || 0);
+                const precoCheio = ag.valorFinal ? Number(ag.valorFinal) : valorLivre;
+                const dataAgendamento = new Date(ag.dataHoraInicio);
 
-const concluidos = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO');
-const mapaClientes = {};
-let faturamentoGeral = 0;
-let visitasGerais = 0;
+                if (!mapaClientes[tel]) mapaClientes[tel] = { telefone: tel, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento };
+                mapaClientes[tel].totalVisitas += 1; mapaClientes[tel].gastoTotal += precoCheio;
+                faturamentoGeral += precoCheio; visitasGerais += 1;
 
-concluidos.forEach(ag => {
-const tel = ag.telefoneCliente;
-const valorLivre = Number(ag.faturamentoBarbeiro || 0);
-const precoCheio = ag.valorFinal ? Number(ag.valorFinal) : valorLivre;
-const dataAgendamento = new Date(ag.dataHoraInicio);
+                if (dataAgendamento > mapaClientes[tel].ultimaVisita) { mapaClientes[tel].ultimaVisita = dataAgendamento; mapaClientes[tel].nome = ag.nomeCliente; }
+            });
 
-if (!mapaClientes[tel]) {
-mapaClientes[tel] = { telefone: tel, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento };
-}
+            clientesGlobal = Object.values(mapaClientes);
+            document.getElementById('total-clientes').innerText = clientesGlobal.length;
+            document.getElementById('ticket-medio').innerText = (visitasGerais > 0 ? (faturamentoGeral / visitasGerais) : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            renderizarTabela();
+        } catch (erro) { console.error("Erro CRM:", erro); }
+    }
 
-mapaClientes[tel].totalVisitas += 1;
-mapaClientes[tel].gastoTotal += precoCheio;
-faturamentoGeral += precoCheio;
-visitasGerais += 1;
+    function renderizarTabela() {
+        const ordem = document.getElementById('filtro-ordem').value; const hoje = new Date();
+        if (ordem === 'GASTO') clientesGlobal.sort((a, b) => b.gastoTotal - a.gastoTotal);
+        else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
+        else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
 
-if (dataAgendamento > mapaClientes[tel].ultimaVisita) {
-mapaClientes[tel].ultimaVisita = dataAgendamento;
-mapaClientes[tel].nome = ag.nomeCliente;
-}
-});
+        const corpoTabela = document.getElementById('tabela-clientes');
+        corpoTabela.innerHTML = '';
+        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4">Ainda não há clientes.</td></tr>';
 
-clientesGlobal = Object.values(mapaClientes);
+        clientesGlobal.forEach(c => {
+            const dFmt = c.ultimaVisita.toLocaleDateString('pt-BR');
+            const diasSumido = Math.ceil(Math.abs(hoje - c.ultimaVisita) / (1000 * 60 * 60 * 24)) - 1;
+            let corDias = 'text-success', txtSumido = `${diasSumido} dias atrás`;
 
-document.getElementById('total-clientes').innerText = clientesGlobal.length;
-document.getElementById('ticket-medio').innerText = (visitasGerais > 0 ? (faturamentoGeral / visitasGerais) : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            if (diasSumido === 0) txtSumido = 'Veio hoje!';
+            else if (diasSumido > 30) { corDias = 'text-danger fw-bold'; txtSumido += ' (Sumido)'; }
+            else if (diasSumido >= 15) { corDias = 'text-warning fw-bold'; }
 
-renderizarTabela();
+            let numLimpo = c.telefone.replace(/\D/g, '');
+            if (!numLimpo.startsWith('55')) numLimpo = '55' + numLimpo;
 
-} catch (erro) {
-console.error("Erro ao carregar o CRM:", erro);
-}
-}
+            const btnWhats = `<button onclick="dispararMensagem('${numLimpo}', '${c.nome}', ${diasSumido})" class="btn-success-modern w-100 justify-content-center border-0"><i class="bi bi-whatsapp"></i> Lembrete</button>`;
 
-function renderizarTabela() {
-const ordem = document.getElementById('filtro-ordem').value;
-const hoje = new Date();
+            corpoTabela.innerHTML += `
+            <tr>
+                <td><strong class="text-white">${c.nome}</strong></td>
+                <td class="text-muted">${c.telefone}</td>
+                <td><span class="badge-modern">${c.totalVisitas}x</span></td>
+                <td style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                <td>${dFmt} <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
+                <td>${btnWhats}</td>
+            </tr>`;
+        });
+    }
 
-if (ordem === 'GASTO') clientesGlobal.sort((a, b) => b.gastoTotal - a.gastoTotal);
-else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
-else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
-
-const corpoTabela = document.getElementById('tabela-clientes');
-corpoTabela.innerHTML = '';
-
-if (clientesGlobal.length === 0) {
-corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Ainda não há clientes com serviços concluídos.</td></tr>';
-return;
-}
-
-clientesGlobal.forEach(cliente => {
-const gastoFormatado = cliente.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const dataFmt = cliente.ultimaVisita.toLocaleDateString('pt-BR');
-const diffTempo = Math.abs(hoje - cliente.ultimaVisita);
-const diasSumido = Math.ceil(diffTempo / (1000 * 60 * 60 * 24)) - 1;
-
-let corDias = 'text-success';
-let textoSumido = `${diasSumido} dias atrás`;
-
-if (diasSumido === 0) { textoSumido = 'Veio hoje!'; }
-else if (diasSumido > 30) { corDias = 'text-danger fw-bold'; textoSumido += ' (Sumido!)'; }
-else if (diasSumido >= 15) { corDias = 'text-warning text-dark fw-bold'; }
-
-let numeroLimpo = cliente.telefone.replace(/\D/g, '');
-if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
-
-// ✨ NOVO: BOTÃO INTEGRADO COM EVOLUTION API
-const btnWhats = `<button onclick="dispararMensagem('${numeroLimpo}', '${cliente.nome}', ${diasSumido})" class="btn btn-sm btn-success fw-bold w-100 w-md-auto">📲 Enviar Lembrete</button>`;
-
-corpoTabela.innerHTML += `
-<tr>
-    <td data-label="Nome"><strong>${cliente.nome}</strong></td>
-    <td data-label="Telefone" class="text-muted">${cliente.telefone}</td>
-    <td data-label="Visitas Totais"><span class="badge bg-secondary">${cliente.totalVisitas} vezes</span></td>
-    <td data-label="Total Gasto" class="text-primary fw-bold">${gastoFormatado}</td>
-    <td data-label="Última Visita">${dataFmt} <br> <small class="${corDias}">${textoSumido}</small></td>
-    <td data-label="Ação">${btnWhats}</td>
-</tr>
-`;
-});
-}
-
-// ✨ NOVA FUNÇÃO: Dispara a mensagem via back-end
-async function dispararMensagem(telefone, nome, dias) {
-// Monta o texto dinâmico (com o nome e a quantidade de dias)
-let textoMensagem = `Fala *${nome}*, tudo bem? 💈\n\nVi aqui no nosso sistema que já faz um tempinho que você não dá um talento no visual.\n\nBora agendar um horário? É só me mandar um *Oi* aqui para começarmos!`;
-
-if(confirm(`Deseja enviar a mensagem automática de retorno para ${nome}?`)) {
-try {
-// Envia para o Java fazer o disparo
-const resposta = await fetch('/api/crm/lembrete', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ telefone: telefone, mensagem: textoMensagem })
-});
-
-if(resposta.ok) {
-alert('✅ Lembrete disparado com sucesso pelo robô!');
-} else {
-alert('⚠️ Erro ao enviar mensagem. Verifique se a Evolution API está rodando.');
-}
-} catch (e) {
-alert('⚠️ Erro de conexão com o servidor.');
-}
-}
-}
+    async function dispararMensagem(tel, nome, dias) {
+        let msg = `Fala *${nome}*, tudo bem? 💈\n\nVi aqui no nosso sistema que já faz um tempinho que você não dá um talento no visual.\n\nBora agendar um horário? É só me mandar um *Oi* aqui para começarmos!`;
+        if(confirm(`Deseja enviar lembrete para ${nome}?`)) {
+            try {
+                const res = await fetch('/api/crm/lembrete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telefone: tel, mensagem: msg }) });
+                if(res.ok) alert('✅ Disparado com sucesso!'); else alert('⚠️ Erro na Evolution API.');
+            } catch (e) { alert('⚠️ Erro de conexão.'); }
+        }
+    }
 </script>
 </body>
 </html>

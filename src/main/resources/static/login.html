@@ -5,65 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Barbearia Bot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-body: #0B0E14;
+            --bg-card: #1A1F2B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-primary: #6366F1;
+            --accent-hover: #4F46E5;
+            --border-color: #222B38;
+        }
         body {
-            background-color: #f8f9fa;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--text-main);
+            margin: 0;
         }
         .login-card {
+            background-color: var(--bg-card);
             max-width: 400px;
             width: 100%;
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             overflow: hidden;
         }
         .login-header {
-            background-color: #212529;
-            color: white;
+            background-color: rgba(0,0,0,0.2);
             padding: 2rem;
             text-align: center;
+            border-bottom: 1px solid var(--border-color);
         }
+        .login-header i { font-size: 2.5rem; color: var(--accent-primary); margin-bottom: 10px; }
+        .custom-input {
+            background-color: var(--bg-body);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .custom-input:focus {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+        }
+        .btn-modern { background-color: var(--accent-primary); color: white; border: none; font-weight: 500; transition: 0.2s; }
+        .btn-modern:hover { background-color: var(--accent-hover); color: white; }
     </style>
 </head>
 <body>
 
-<div class="login-card bg-white border-0">
+<div class="login-card">
     <div class="login-header">
-        <h2 class="fw-bold mb-0">💈 Barbearia Bot</h2>
+        <i class="bi bi-scissors d-block"></i>
+        <h2 class="fw-bold mb-0">Barbearia Bot</h2>
         <p class="text-muted mb-0 mt-2" style="font-size: 0.9rem;">Área Restrita do Gestor</p>
     </div>
 
     <div class="card-body p-4">
         <script>
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('erro')) {
-                document.write('<div class="alert alert-danger fw-bold text-center p-2">❌ Usuário ou senha incorretos!</div>');
-            }
-            if (urlParams.has('saiu')) {
-                document.write('<div class="alert alert-success fw-bold text-center p-2">👋 Você saiu do sistema com segurança.</div>');
-            }
+            if (urlParams.has('erro')) { document.write('<div class="alert alert-danger fw-bold text-center p-2 border-0 bg-danger text-white bg-opacity-75"><i class="bi bi-exclamation-triangle"></i> Usuário ou senha incorretos!</div>'); }
+            if (urlParams.has('saiu')) { document.write('<div class="alert alert-success fw-bold text-center p-2 border-0 bg-success text-white bg-opacity-75"><i class="bi bi-shield-check"></i> Saída segura realizada.</div>'); }
         </script>
 
         <form action="/fazer-login" method="POST">
             <div class="mb-3">
-                <label class="form-label fw-bold text-secondary">Usuário</label>
-                <input type="text" name="username" class="form-control form-control-lg bg-light" placeholder="Ex: barbearia" required autofocus>
+                <label class="form-label fw-bold text-muted small">USUÁRIO</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-body border-color text-muted border-end-0"><i class="bi bi-person"></i></span>
+                    <input type="text" name="username" class="form-control form-control-lg custom-input border-start-0" placeholder="Ex: barbearia" required autofocus>
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold text-secondary">Senha</label>
-                <input type="password" name="password" class="form-control form-control-lg bg-light" placeholder="••••••••" required>
+            <div class="mb-4">
+                <label class="form-label fw-bold text-muted small">SENHA</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-body border-color text-muted border-end-0"><i class="bi bi-lock"></i></span>
+                    <input type="password" name="password" class="form-control form-control-lg custom-input border-start-0" placeholder="••••••••" required>
+                </div>
             </div>
 
             <div class="mb-4 form-check d-flex align-items-center">
-                <input type="checkbox" name="lembrar_de_mim" class="form-check-input me-2" id="lembrar" style="width: 1.2em; height: 1.2em;">
-                <label class="form-check-label text-muted fw-bold" for="lembrar">Manter conectado neste dispositivo</label>
+                <input type="checkbox" name="lembrar_de_mim" class="form-check-input me-2" id="lembrar" style="width: 1.2em; height: 1.2em; background-color: var(--bg-body); border-color: var(--border-color);">
+                <label class="form-check-label text-muted fw-bold" for="lembrar">Manter conectado</label>
             </div>
 
-            <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold">Entrar no Painel</button>
+            <button type="submit" class="btn btn-modern btn-lg w-100"><i class="bi bi-box-arrow-in-right me-2"></i>Entrar no Painel</button>
         </form>
     </div>
 </div>
