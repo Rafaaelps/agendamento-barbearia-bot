@@ -17,25 +17,50 @@ public class ConfiguracaoController {
         this.repository = repository;
     }
 
+    @GetMapping("/geral")
+    public Map<String, Object> getConfigs() {
+        String credito = repository.findById("TAXA_CREDITO").map(Configuracao::getValor).orElse("5.0");
+        String debito = repository.findById("TAXA_DEBITO").map(Configuracao::getValor).orElse("2.0");
+
+        String botAtivo = repository.findById("BOT_CONFIRMACAO_ATIVO").map(Configuracao::getValor).orElse("false");
+        String minutos = repository.findById("BOT_MINUTOS_CONFIRMACAO").map(Configuracao::getValor).orElse("35");
+
+        Map<String, Object> configs = new HashMap<>();
+        configs.put("taxaCredito", Double.parseDouble(credito));
+        configs.put("taxaDebito", Double.parseDouble(debito));
+        configs.put("botAtivo", Boolean.parseBoolean(botAtivo));
+        configs.put("minutosConfirmacao", Integer.parseInt(minutos));
+
+        return configs;
+    }
+
+    @PostMapping("/geral")
+    public void setConfigs(@RequestBody Map<String, Object> configs) {
+        if (configs.containsKey("taxaCredito"))
+            repository.save(new Configuracao("TAXA_CREDITO", String.valueOf(configs.get("taxaCredito"))));
+        if (configs.containsKey("taxaDebito"))
+            repository.save(new Configuracao("TAXA_DEBITO", String.valueOf(configs.get("taxaDebito"))));
+        if (configs.containsKey("botAtivo"))
+            repository.save(new Configuracao("BOT_CONFIRMACAO_ATIVO", String.valueOf(configs.get("botAtivo"))));
+        if (configs.containsKey("minutosConfirmacao"))
+            repository.save(new Configuracao("BOT_MINUTOS_CONFIRMACAO", String.valueOf(configs.get("minutosConfirmacao"))));
+    }
+
+    // Mantém a rota antiga "/taxas" funcionando para o financeiro.html não quebrar
     @GetMapping("/taxas")
     public Map<String, Double> getTaxas() {
-        // Se não tiver nada no banco, assume 5% e 2% como padrão inicial
-        double credito = repository.findById("TAXA_CREDITO").map(c -> Double.parseDouble(c.getValor())).orElse(5.0);
-        double debito = repository.findById("TAXA_DEBITO").map(c -> Double.parseDouble(c.getValor())).orElse(2.0);
-
+        Map<String, Object> geral = getConfigs();
         Map<String, Double> taxas = new HashMap<>();
-        taxas.put("credito", credito);
-        taxas.put("debito", debito);
+        taxas.put("credito", (Double) geral.get("taxaCredito"));
+        taxas.put("debito", (Double) geral.get("taxaDebito"));
         return taxas;
     }
 
     @PostMapping("/taxas")
     public void setTaxas(@RequestBody Map<String, Double> taxas) {
-        if (taxas.containsKey("credito")) {
-            repository.save(new Configuracao("TAXA_CREDITO", String.valueOf(taxas.get("credito"))));
-        }
-        if (taxas.containsKey("debito")) {
-            repository.save(new Configuracao("TAXA_DEBITO", String.valueOf(taxas.get("debito"))));
-        }
+        Map<String, Object> formatado = new HashMap<>();
+        if (taxas.containsKey("credito")) formatado.put("taxaCredito", taxas.get("credito"));
+        if (taxas.containsKey("debito")) formatado.put("taxaDebito", taxas.get("debito"));
+        setConfigs(formatado);
     }
 }

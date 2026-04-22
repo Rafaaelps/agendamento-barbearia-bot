@@ -78,12 +78,16 @@
                 </select>
             </div>
 
+            <button class="btn btn-outline-primary fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalConfigBot" onclick="carregarConfigsBot()">
+                🤖 Robô
+            </button>
+
             <button class="btn btn-outline-dark fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
-                ⏰ Configurar Horários
+                ⏰ Horários
             </button>
 
             <button class="btn btn-warning fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
-                🔒 Bloquear Período
+                🔒 Bloquear
             </button>
         </div>
     </div>
@@ -104,6 +108,37 @@
                 <tbody id="tabela-agendamentos">
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalConfigBot" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">🤖 Configurar Robô</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" role="switch" id="switch-bot-ativo" style="width: 2.5em; height: 1.25em;">
+                    <label class="form-check-label fw-bold ms-2" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label>
+                </div>
+
+                <div id="campos-bot-config">
+                    <label class="form-label fw-bold small text-muted">Avisar quanto tempo antes?</label>
+                    <div class="input-group">
+                        <input type="number" id="minutos-bot" class="form-control fw-bold text-center" min="25" step="5">
+                        <span class="input-group-text">minutos</span>
+                    </div>
+                    <p class="text-muted mt-2" style="font-size: 0.75rem;">
+                        O bot enviará o lembrete e aguardará 20 minutos. Se o cliente não responder "SIM", o horário será cancelado.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-primary w-100 fw-bold" onclick="salvarConfigsBot()">💾 Salvar Preferências</button>
+            </div>
         </div>
     </div>
 </div>
@@ -198,6 +233,54 @@
             }
         }, 10000);
     });
+
+    // ✨ FUNÇÕES DO MODAL DO ROBÔ
+    async function carregarConfigsBot() {
+        const res = await fetch('/api/configuracoes/geral');
+        const data = await res.json();
+
+        document.getElementById('switch-bot-ativo').checked = data.botAtivo;
+        document.getElementById('minutos-bot').value = data.minutosConfirmacao;
+
+        atualizarLabelBot(data.botAtivo);
+    }
+
+    document.getElementById('switch-bot-ativo').onchange = function() {
+        atualizarLabelBot(this.checked);
+    };
+
+    function atualizarLabelBot(ativo) {
+        const label = document.getElementById('label-bot-status');
+        const campos = document.getElementById('campos-bot-config');
+        if(ativo) {
+            label.innerText = "Robô Ligado";
+            label.classList.add('text-success');
+            campos.style.opacity = "1";
+            campos.style.pointerEvents = "auto";
+        } else {
+            label.innerText = "Robô Desligado";
+            label.classList.remove('text-success');
+            campos.style.opacity = "0.5";
+            campos.style.pointerEvents = "none";
+        }
+    }
+
+    async function salvarConfigsBot() {
+        const configs = {
+            botAtivo: document.getElementById('switch-bot-ativo').checked,
+            minutosConfirmacao: parseInt(document.getElementById('minutos-bot').value)
+        };
+
+        await fetch('/api/configuracoes/geral', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(configs)
+        });
+
+        bootstrap.Modal.getInstance(document.getElementById('modalConfigBot')).hide();
+        alert("✅ Preferências do Robô atualizadas!");
+    }
+
 
     let gradeHorariosGlobal = [];
 

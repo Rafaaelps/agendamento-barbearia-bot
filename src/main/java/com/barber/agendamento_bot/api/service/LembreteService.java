@@ -2,6 +2,7 @@ package com.barber.agendamento_bot.api.service;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
 import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
+import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,25 +23,37 @@ import java.util.Map;
 public class LembreteService {
 
     private final AgendamentoRepository agendamentoRepository;
+    private final ConfiguracaoRepository configuracaoRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     private final String EVOLUTION_URL = "http://187.77.224.241:47851";
     private final String INSTANCE_NAME = "barbearia";
     private final String API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
 
-    public LembreteService(AgendamentoRepository agendamentoRepository) {
+    public LembreteService(AgendamentoRepository agendamentoRepository, ConfiguracaoRepository configuracaoRepository) {
         this.agendamentoRepository = agendamentoRepository;
+        this.configuracaoRepository = configuracaoRepository;
     }
 
-    // ⏰ CRON 1: ENVIA O LEMBRETE (Faltando 35 min)
+    // ⏰ CRON 1: ENVIA O LEMBRETE
     @Scheduled(cron = "0 * * * * *")
     public void verificarEEnviarLembretes() {
+        boolean botAtivo = configuracaoRepository.findById("BOT_CONFIRMACAO_ATIVO")
+                .map(c -> Boolean.parseBoolean(c.getValor()))
+                .orElse(false);
+
+        if (!botAtivo) return;
+
+        int minutosAviso = configuracaoRepository.findById("BOT_MINUTOS_CONFIRMACAO")
+                .map(c -> Integer.parseInt(c.getValor()))
+                .orElse(35);
+
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
-        LocalDateTime daquiA35Minutos = agora.plusMinutes(35);
+        LocalDateTime limiteDaBusca = agora.plusMinutes(minutosAviso);
 
         List<Agendamento> agendamentos = agendamentoRepository
-                .buscarAgendamentosParaLembrar("AGENDADO", agora, daquiA35Minutos);
+                .buscarAgendamentosParaLembrar("AGENDADO", agora, limiteDaBusca);
 
         for (Agendamento agendamento : agendamentos) {
             boolean sucesso = enviarMensagemEvolution(agendamento, false);
@@ -51,25 +64,33 @@ public class LembreteService {
         }
     }
 
-    // 🪓 CRON 2: O CARRASCO (Cancela quem não respondeu até faltar 15 min)
+    // 🪓 CRON 2: O CARRASCO (Cancela após 20 minutos de espera)
     @Scheduled(cron = "0 * * * * *")
     public void verificarECancelarNaoConfirmados() {
+        boolean botAtivo = configuracaoRepository.findById("BOT_CONFIRMACAO_ATIVO")
+                .map(c -> Boolean.parseBoolean(c.getValor()))
+                .orElse(false);
+
+        if (!botAtivo) return;
+
+        int minutosAviso = configuracaoRepository.findById("BOT_MINUTOS_CONFIRMACAO")
+                .map(c -> Integer.parseInt(c.getValor()))
+                .orElse(35);
+
+        // Dá 20 minutos de prazo. Nunca cancela no passado (Math.max(5,...))
+        int minutosParaCancelar = Math.max(5, minutosAviso - 20);
+
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
-
-        // Se falta 15 minutos e não confirmou, significa que passaram 20 minutos desde o lembrete!
-        LocalDateTime daquiA15Minutos = agora.plusMinutes(15);
+        LocalDateTime limiteCancelamento = agora.plusMinutes(minutosParaCancelar);
 
         List<Agendamento> agendamentos = agendamentoRepository
-                .buscarNaoConfirmados("AGENDADO", agora, daquiA15Minutos);
+                .buscarNaoConfirmados("AGENDADO", agora, limiteCancelamento);
 
         for (Agendamento agendamento : agendamentos) {
             try {
-                // 1. Cancela no banco para liberar a vaga
                 agendamento.setStatus("CANCELADO");
                 agendamentoRepository.save(agendamento);
-
-                // 2. Avisa o cliente do ocorrido
                 enviarMensagemEvolution(agendamento, true);
                 System.out.println("🪓 [CANCELADO] Cliente " + agendamento.getNomeCliente() + " não confirmou a tempo.");
             } catch (Exception e) {
@@ -108,10 +129,8 @@ public class LembreteService {
         HttpEntity<Map<String, Object>> pacote = new HttpEntity<>(corpoRequisicao, headers);
 
         try {
-            ResponseEntity<String> resposta = restTemplate.postForEntity(urlDeDisparo, pacote, String.class);
+            restTemplate.postForEntity(urlDeDisparo, pacote, String.class);
             return true;
-        } catch (HttpClientErrorException e) {
-            return false;
         } catch (Exception e) {
             return false;
         }
