@@ -13,14 +13,11 @@
   <style>
     :root {
         --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-        --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
-        --accent-hover: #4F46E5; --border-color: #334155;
+        --text-main: #F8FAFC; --text-muted: #CBD5E1; /* ✨ Mais claro */
+        --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
         --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B; --info-color: #0EA5E9;
     }
     body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
-
-    .text-muted { color: var(--text-muted) !important; }
-    .text-secondary { color: var(--text-muted) !important; }
 
     .app-container { display: flex; height: 100vh; flex-direction: column;}
 
@@ -30,7 +27,7 @@
     .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; }
     .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
     .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
-    .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
+    .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
     .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
     .nav-item { margin-bottom: 4px; }
     .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
@@ -85,7 +82,7 @@
         .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
         .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
         .table-modern tbody td:last-child { border-bottom: none; }
-        .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+        .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
     }
   </style>
 </head>
@@ -130,7 +127,7 @@
 
         <div id="botoes-acao" class="d-flex flex-wrap gap-2 w-100 w-md-auto">
           <div class="d-flex align-items-center custom-card p-1 flex-grow-1" style="padding: 4px !important;">
-            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-white mb-0 small">MÊS:</label>
+            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-light mb-0 small">MÊS:</label>
             <input type="month" id="filtro-mes" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none;" onchange="carregarFinanceiro()">
           </div>
           <button class="btn-modern btn-outline-modern" onclick="exportarPDF()"><i class="bi bi-printer"></i> PDF</button>
@@ -142,31 +139,28 @@
       <div class="row mb-4 g-3">
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-success h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
             <h3 class="text-success-custom fw-bold mb-1" id="valor-lucro-liquido">R$ 0,00</h3>
             <small class="fw-bold" id="indicador-crescimento" style="font-size: 0.75rem;">-</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-primary h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
             <h3 class="fw-bold mb-1" style="color: var(--accent-primary);" id="valor-entradas">R$ 0,00</h3>
-            <small class="text-muted fw-bold" style="font-size: 0.75rem;">Cortes e Produtos</small>
-          </div>
+            <small class="text-light fw-bold" style="font-size: 0.75rem;">Cortes e Produtos</small> </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-warning h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
             <h3 class="text-warning-custom fw-bold mb-1" id="valor-saidas">R$ 0,00</h3>
-            <small class="text-muted fw-bold" id="detalhe-saidas" style="font-size: 0.75rem;">Despesas: R$ 0 | Taxas: R$ 0</small>
-          </div>
+            <small class="text-light fw-bold" id="detalhe-saidas" style="font-size: 0.75rem;">Despesas: R$ 0 | Taxas: R$ 0</small> </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-info h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
             <h3 class="fw-bold mb-1" style="color: var(--info-color);" id="valor-previsao">R$ 0,00</h3>
-            <small class="text-muted fw-bold" style="font-size: 0.75rem;">Receita recorrente</small>
-          </div>
+            <small class="text-light fw-bold" style="font-size: 0.75rem;">Receita recorrente</small> </div>
         </div>
       </div>
 
@@ -174,7 +168,7 @@
         <div class="col-12 col-lg-4" id="coluna-grafico">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card">
-              <h6 class="mb-0 fw-bold text-white text-uppercase small">A Divisão do Dinheiro</h6>
+              <h6 class="mb-0 fw-bold text-light text-uppercase small">A Divisão do Dinheiro</h6>
             </div>
             <div class="card-body d-flex justify-content-center align-items-center flex-grow-1 p-4">
               <canvas id="graficoFinanceiro" style="max-height: 250px;"></canvas>
@@ -185,7 +179,7 @@
         <div class="col-12 col-lg-8" id="coluna-tabela">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card d-none d-md-block">
-              <h6 class="mb-0 fw-bold text-white text-uppercase small">Extrato Detalhado da Conta</h6>
+              <h6 class="mb-0 fw-bold text-light text-uppercase small">Extrato Detalhado da Conta</h6>
             </div>
             <div id="container-tabela-extrato" class="table-responsive flex-grow-1" style="max-height: 400px;">
               <table class="table table-modern text-center align-middle mb-0">
@@ -214,17 +208,17 @@
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">
       <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold"><i class="bi bi-gear text-muted me-2"></i> Configurar Taxas</h5>
+        <h5 class="modal-title fw-bold"><i class="bi bi-gear text-light me-2"></i> Configurar Taxas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p>
+        <p class="text-light small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p>
         <div class="mb-3">
-          <label class="form-label fw-bold text-white small">TAXA CRÉDITO (%):</label>
+          <label class="form-label fw-bold text-light small">TAXA CRÉDITO (%):</label>
           <input type="number" id="taxa-credito" class="form-control custom-input fw-bold" step="0.01">
         </div>
         <div class="mb-4">
-          <label class="form-label fw-bold text-white small">TAXA DÉBITO (%):</label>
+          <label class="form-label fw-bold text-light small">TAXA DÉBITO (%):</label>
           <input type="number" id="taxa-debito" class="form-control custom-input fw-bold" step="0.01">
         </div>
         <button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarTaxas()">Salvar Novas Taxas</button>
@@ -242,11 +236,11 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label fw-bold text-white small">DO QUE SE TRATA?</label>
+          <label class="form-label fw-bold text-light small">DO QUE SE TRATA?</label>
           <input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz, Produtos...">
         </div>
         <div class="mb-4">
-          <label class="form-label fw-bold text-white small">VALOR GASTO (R$):</label>
+          <label class="form-label fw-bold text-light small">VALOR GASTO (R$):</label>
           <input type="number" id="valor-despesa" class="form-control custom-input fw-bold text-danger" step="0.01">
         </div>
         <button class="btn-modern btn-danger-modern w-100 justify-content-center" onclick="salvarDespesa()">Registrar Saída</button>
@@ -258,8 +252,11 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   let meuGrafico = null;
+  // Variáveis para a Proteção Matemática
+  let taxaCredGlobal = 0.05;
+  let taxaDebGlobal = 0.02;
 
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
     const btnMenu = document.getElementById('mobile-menu-btn');
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -272,6 +269,15 @@
     const ano = dataHoje.getFullYear();
     const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
     document.getElementById('filtro-mes').value = `${ano}-${mes}`;
+
+    // Busca as taxas reais antes de carregar o financeiro
+    try {
+        const res = await fetch('/api/configuracoes/taxas');
+        const taxas = await res.json();
+        taxaCredGlobal = (taxas.credito || 5) / 100;
+        taxaDebGlobal = (taxas.debito || 2) / 100;
+    } catch(e) {}
+
     carregarFinanceiro();
     setInterval(() => { const modalAberto = document.querySelector('.modal.show'); if (!modalAberto) { carregarFinanceiro(); } }, 10000);
   });
@@ -302,7 +308,7 @@
 
     document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333');
     document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333');
-    document.querySelectorAll('.text-muted').forEach(el => el.style.color = '#666'); // Garante contraste na impressão
+    document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); // Contraste no PDF
 
     await html2pdf().set({
       margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-mes').value}.pdf`,
@@ -313,7 +319,7 @@
     document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color;
     el.style.backgroundColor = "";
     document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '');
-    document.querySelectorAll('.text-muted').forEach(el => el.style.color = '');
+    document.querySelectorAll('.text-light').forEach(el => el.style.color = '');
 
     botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none');
     if(mobileTop) mobileTop.style.display = '';
@@ -329,31 +335,68 @@
   async function salvarDespesa() { const d = document.getElementById('desc-despesa').value, v = parseFloat(document.getElementById('valor-despesa').value.replace(',','.')); if(!d||!v) return; await fetch('/api/despesas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao: d, valor: v }) }); bootstrap.Modal.getInstance(document.getElementById('modalDespesa')).hide(); carregarFinanceiro(); }
   async function deletarDespesa(id) { if(confirm("Apagar despesa?")) { await fetch(`/api/despesas/${id}`, { method: 'DELETE' }); carregarFinanceiro(); } }
 
+  // Função robusta de data para não falhar nunca
+  const ehDoMesmoMes = (dataStringOuArray, mesFiltro) => {
+      if (!dataStringOuArray) return false;
+      if (typeof dataStringOuArray === 'string') return dataStringOuArray.substring(0, 7) === mesFiltro;
+      if (Array.isArray(dataStringOuArray)) {
+          const ano = dataStringOuArray[0]; const mes = String(dataStringOuArray[1]).padStart(2, '0');
+          return `${ano}-${mes}` === mesFiltro;
+      }
+      return false;
+  };
+
   async function carregarFinanceiro() {
     try {
       const [resAg, resV, resD] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/estoque/vendas'), fetch('/api/despesas')]);
       const [todosAg, todasV, todasD] = [await resAg.json(), await resV.json(), await resD.json()];
-      const mesEscolhido = document.getElementById('filtro-mes').value;
+      const mesEscolhido = document.getElementById('filtro-mes').value; // Ex: "2026-04"
       let [receitaBruta, taxasTotal, despesasTotal, extratoMisto] = [0, 0, 0, []];
 
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.startsWith(mesEscolhido)).forEach(ag => {
-        let lucro = Number(ag.faturamentoBarbeiro), preco = ag.valorFinal ? Number(ag.valorFinal) : lucro, tx = Math.max(0, preco - lucro);
-        receitaBruta += preco; taxasTotal += tx; extratoMisto.push({ data: ag.dataHoraInicio, tipo: 'CORTE', obj: ag, lucro, taxa: tx });
+      todosAg.filter(ag => ag.status === 'CONCLUIDO' && ehDoMesmoMes(ag.dataHoraInicio, mesEscolhido)).forEach(ag => {
+        // ✨ CORREÇÃO MATEMÁTICA: O escudo contra os Encaixes que zeravam as contas!
+        let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
+        let lucroLivre = Number(ag.faturamentoBarbeiro || 0);
+
+        let pNorm = (ag.formaPagamento || '').toUpperCase();
+        let taxaDaVenda = 0;
+
+        // Se for um Encaixe (lucro zero no banco), o JS calcula a taxa sozinho para não engolir o dinheiro!
+        if (lucroLivre === 0 && pNorm !== 'PENDENTE') {
+            if (pNorm.includes('CREDITO')) taxaDaVenda = precoCheio * taxaCredGlobal;
+            else if (pNorm.includes('DEBITO')) taxaDaVenda = precoCheio * taxaDebGlobal;
+            lucroLivre = precoCheio - taxaDaVenda; // O que sobrou é o lucro verdadeiro
+        } else {
+            taxaDaVenda = Math.max(0, precoCheio - lucroLivre);
+        }
+
+        receitaBruta += precoCheio; taxasTotal += taxaDaVenda;
+
+        // Para organizar a lista, pega a data de forma segura
+        let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
+        extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: ag, lucroLivre: lucroLivre, taxa: taxaDaVenda });
       });
 
-      todasV.filter(v => v.dataHoraVenda.startsWith(mesEscolhido)).forEach(v => {
-        let lucro = Number(v.valorTotal), preco = Number(v.quantidade) * Number(v.produto.preco), tx = Math.max(0, preco - lucro);
-        receitaBruta += preco; taxasTotal += tx; extratoMisto.push({ data: v.dataHoraVenda, tipo: 'VENDA', obj: v, lucro, taxa: tx });
+      todasV.filter(v => ehDoMesmoMes(v.dataHoraVenda, mesEscolhido)).forEach(v => {
+        let lucro = Number(v.valorTotal || 0);
+        let preco = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
+        let tx = Math.max(0, preco - lucro);
+        receitaBruta += preco; taxasTotal += tx;
+
+        let dataString = Array.isArray(v.dataHoraVenda) ? `${v.dataHoraVenda[0]}-${String(v.dataHoraVenda[1]).padStart(2,'0')}-${String(v.dataHoraVenda[2]).padStart(2,'0')}T${String(v.dataHoraVenda[3]).padStart(2,'0')}:${String(v.dataHoraVenda[4]).padStart(2,'0')}` : v.dataHoraVenda;
+        extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: v, lucroLivre: lucro, taxa: tx });
       });
 
-      todasD.filter(d => d.dataHora && d.dataHora.startsWith(mesEscolhido)).forEach(d => {
-        despesasTotal += Number(d.valor); extratoMisto.push({ data: d.dataHora, tipo: 'DESPESA', obj: d });
+      todasD.filter(d => ehDoMesmoMes(d.dataHora, mesEscolhido)).forEach(d => {
+        despesasTotal += Number(d.valor || 0);
+        let dataString = Array.isArray(d.dataHora) ? `${d.dataHora[0]}-${String(d.dataHora[1]).padStart(2,'0')}-${String(d.dataHora[2]).padStart(2,'0')}T${String(d.dataHora[3]).padStart(2,'0')}:${String(d.dataHora[4]).padStart(2,'0')}` : d.dataHora;
+        extratoMisto.push({ data: dataString, tipo: 'DESPESA', obj: d });
       });
 
       extratoMisto.sort((a, b) => new Date(b.data) - new Date(a.data));
       const corpoTb = document.getElementById('tabela-extrato'); corpoTb.innerHTML = '';
 
-      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">Nenhum movimento financeiro neste mês.</td></tr>';
+      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro neste mês.</td></tr>';
       else {
         extratoMisto.forEach(item => {
           if (item.tipo === 'CORTE') corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}`, item.obj.formaPagamento, item.lucroLivre);
@@ -362,9 +405,9 @@
             const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             corpoTb.innerHTML += `
               <tr style="background-color: rgba(239, 68, 68, 0.05);">
-                  <td class="text-muted">${dFmt}</td><td><strong class="text-white">Caixa (Barbearia)</strong></td>
+                  <td class="text-light">${dFmt}</td><td><strong class="text-white">Caixa (Barbearia)</strong></td>
                   <td><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small></td>
-                  <td class="fw-bold text-muted">-</td><td class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td class="fw-bold text-light">-</td><td class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                   <td class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})"><i class="bi bi-trash3"></i></button></td>
               </tr>`;
           }
@@ -372,22 +415,26 @@
       }
 
       let lucroNoBolso = (receitaBruta - taxasTotal) - despesasTotal;
-      let dataAnt = new Date(mesEscolhido + '-01T00:00:00'); dataAnt.setMonth(dataAnt.getMonth() - 1);
-      const mesAnt = `${dataAnt.getFullYear()}-${String(dataAnt.getMonth() + 1).padStart(2, '0')}`;
+
+      let [anoAnt, mesAntNum] = mesEscolhido.split('-');
+      let mAnt = parseInt(mesAntNum) - 1;
+      if(mAnt === 0) { mAnt = 12; anoAnt = parseInt(anoAnt) - 1; }
+      const mesAnterior = `${anoAnt}-${String(mAnt).padStart(2, '0')}`;
+
       let [antEnt, antTx, antDes] = [0, 0, 0];
-      todosAg.filter(a => a.status === 'CONCLUIDO' && a.dataHoraInicio.startsWith(mesAnt)).forEach(a => { let l = Number(a.faturamentoBarbeiro), p = a.valorFinal ? Number(a.valorFinal) : l; antEnt += p; antTx += (p - l); });
-      todasV.filter(v => v.dataHoraVenda.startsWith(mesAnt)).forEach(v => { let l = Number(v.valorTotal), p = Number(v.quantidade) * Number(v.produto.preco); antEnt += p; antTx += (p - l); });
-      todasD.filter(d => d.dataHora && d.dataHora.startsWith(mesAnt)).forEach(d => antDes += Number(d.valor));
+      todosAg.filter(a => a.status === 'CONCLUIDO' && ehDoMesmoMes(a.dataHoraInicio, mesAnterior)).forEach(a => { let l = Number(a.faturamentoBarbeiro), p = a.valorFinal ? Number(a.valorFinal) : l; antEnt += p; antTx += (p - l); });
+      todasV.filter(v => ehDoMesmoMes(v.dataHoraVenda, mesAnterior)).forEach(v => { let l = Number(v.valorTotal), p = Number(v.quantidade) * Number(v.produto.preco); antEnt += p; antTx += (p - l); });
+      todasD.filter(d => ehDoMesmoMes(d.dataHora, mesAnterior)).forEach(d => antDes += Number(d.valor));
       let lucroAnt = (antEnt - antTx) - antDes;
 
-      let txtCresce = `<span class="text-muted"><i class="bi bi-dash"></i> Sem mês ant.</span>`;
+      let txtCresce = `<span class="text-light"><i class="bi bi-dash"></i> Sem mês ant.</span>`;
       if (lucroAnt !== 0) {
         let pct = ((lucroNoBolso - lucroAnt) / Math.abs(lucroAnt)) * 100;
         txtCresce = pct >= 0 ? `<span class="text-success-custom"><i class="bi bi-graph-up-arrow"></i> +${pct.toFixed(1)}%</span>` : `<span class="text-danger-custom"><i class="bi bi-graph-down-arrow"></i> ${pct.toFixed(1)}%</span>`;
       }
 
       let hist = {}, totalCts = 0, fatGlobal = 0;
-      todosAg.filter(ag => ag.status === 'CONCLUIDO').forEach(ag => { fatGlobal += Number(ag.faturamentoBarbeiro || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
+      todosAg.filter(ag => ag.status === 'CONCLUIDO').forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
 
       document.getElementById('valor-lucro-liquido').innerText = lucroNoBolso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -408,11 +455,11 @@
   function criarLinhaTabela(data, cl, desc, pgto, val) {
     const dFmt = new Date(data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     let p = pgto || '', pNorm = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    let cor = 'text-muted', nPgto = p;
+    let cor = 'text-light', nPgto = p;
     if (pNorm.includes('CREDITO')) { cor = 'text-primary'; nPgto = '<i class="bi bi-credit-card"></i> Crédito'; }
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
-    return `<tr><td class="text-muted">${dFmt}</td><td><strong class="text-main">${cl}</strong></td><td><small class="text-muted">${desc}</small></td><td class="fw-bold ${cor}">${nPgto}</td><td class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td class="coluna-acao text-muted">-</td></tr>`;
+    return `<tr><td class="text-light">${dFmt}</td><td><strong class="text-main">${cl}</strong></td><td><small class="text-light">${desc}</small></td><td class="fw-bold ${cor}">${nPgto}</td><td class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td class="coluna-acao text-light"><span class="text-light">-</span></td></tr>`;
   }
 </script>
 </body>

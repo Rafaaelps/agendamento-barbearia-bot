@@ -11,8 +11,8 @@
     <style>
         :root {
             --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-            --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
-            --accent-hover: #4F46E5; --border-color: #334155;
+            --text-main: #F8FAFC; --text-muted: #CBD5E1;
+            --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
@@ -28,7 +28,7 @@
         .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh;}
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
-        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
+        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
         .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
@@ -70,7 +70,7 @@
             .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
             .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
             .table-modern tbody td:last-child { border-bottom: none; }
-            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
         }
     </style>
 </head>
@@ -112,7 +112,7 @@
             <div class="page-header gap-3">
                 <h1 class="page-title">Gestão de Clientes (CRM)</h1>
                 <div class="d-flex align-items-center custom-card p-3 flex-grow-1 flex-md-grow-0">
-                    <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-white mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
+                    <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
                     <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="renderizarTabela()">
                         <option value="GASTO" style="color: black;">Quem mais gastou</option>
                         <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
@@ -124,13 +124,13 @@
             <div class="row mb-4 g-3">
                 <div class="col-12 col-md-6">
                     <div class="custom-card border-start border-primary border-4 h-100 p-4">
-                        <h6 class="text-white text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
+                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
                         <h2 class="fw-bold mb-0" style="color: var(--accent-primary);" id="total-clientes">0</h2>
                     </div>
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="custom-card border-start border-success border-4 h-100 p-4">
-                        <h6 class="text-white text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
+                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
                         <h2 class="fw-bold mb-0" style="color: var(--success-color);" id="ticket-medio">R$ 0,00</h2>
                     </div>
                 </div>
@@ -207,7 +207,7 @@
 
         const corpoTabela = document.getElementById('tabela-clientes');
         corpoTabela.innerHTML = '';
-        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4">Ainda não há clientes.</td></tr>';
+        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes.</td></tr>';
 
         clientesGlobal.forEach(c => {
             const dFmt = c.ultimaVisita.toLocaleDateString('pt-BR');
@@ -225,12 +225,12 @@
 
             corpoTabela.innerHTML += `
             <tr>
-                <td><strong class="text-white">${c.nome}</strong></td>
-                <td class="text-muted fw-bold">${c.telefone}</td>
-                <td><span class="badge-modern">${c.totalVisitas}x</span></td>
-                <td style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                <td><span class="text-muted">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
-                <td>${btnWhats}</td>
+                <td data-label="Nome"><strong class="text-white">${c.nome}</strong></td>
+                <td data-label="Contato" class="text-light fw-bold">${c.telefone}</td>
+                <td data-label="Visitas Totais"><span class="badge-modern">${c.totalVisitas}x</span></td>
+                <td data-label="Total Gasto (LTV)" style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                <td data-label="Última Visita"><span class="text-light">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
+                <td data-label="Ação">${btnWhats}</td>
             </tr>`;
         });
     }

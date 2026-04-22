@@ -11,16 +11,12 @@
     <style>
         :root {
             --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-            --text-main: #F8FAFC; --text-muted: #94A3B8; /* ✨ Cinza Gelo super legível */
+            --text-main: #F8FAFC; --text-muted: #CBD5E1;
             --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
 
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
-
-        /* ✨ BLINDAGEM CONTRA O BOOTSTRAP (Força as cores legíveis) */
-        .text-muted { color: var(--text-muted) !important; }
-        .text-secondary { color: var(--text-muted) !important; }
 
         .app-container { display: flex; height: 100vh; flex-direction: column; }
 
@@ -30,7 +26,7 @@
         .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; }
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
-        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
+        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
         .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
@@ -42,17 +38,12 @@
 
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-        .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
-
-        /* ✨ BARRA DE AÇÕES (Corrigida para Desktop) */
-        .action-bar { display: flex; flex-direction: row; gap: 12px; align-items: center; }
 
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
         .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
         .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
 
-        .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
+        .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
         .btn-primary-modern { background-color: var(--accent-primary); color: white; }
         .btn-primary-modern:hover { background-color: var(--accent-hover); color: white; }
         .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
@@ -84,16 +75,12 @@
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
-            .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
-
-            /* ✨ BARRA DE AÇÕES (Corrigida para Mobile) */
-            .action-bar { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
 
             .table-modern thead { display: none; }
             .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
             .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
             .table-modern tbody td:last-child { border-bottom: none; }
-            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
         }
     </style>
 </head>
@@ -132,33 +119,33 @@
         </aside>
 
         <main class="main-content">
-            <div class="page-header">
-                <h1 class="page-title">Agenda de Clientes</h1>
+            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 gap-3">
+                <h1 class="page-title mb-0">Agenda de Clientes</h1>
 
-                <div class="action-bar">
-                    <button class="btn-modern btn-success-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalEncaixe" onclick="carregarServicosEncaixe()">
+                <div class="d-flex flex-wrap gap-2 w-100 w-xl-auto justify-content-xl-end">
+                    <button class="btn-modern btn-success-modern flex-grow-1 flex-xl-grow-0" data-bs-toggle="modal" data-bs-target="#modalEncaixe" onclick="carregarServicosEncaixe()">
                         <i class="bi bi-plus-lg"></i> Encaixe
                     </button>
-                    <button class="btn-modern btn-outline-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalConfigBot" onclick="carregarConfigsBot()">
+                    <button class="btn-modern btn-outline-modern flex-grow-1 flex-xl-grow-0" data-bs-toggle="modal" data-bs-target="#modalConfigBot" onclick="carregarConfigsBot()">
                         <i class="bi bi-robot"></i> Robô
                     </button>
-                    <button class="btn-modern btn-outline-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
+                    <button class="btn-modern btn-outline-modern flex-grow-1 flex-xl-grow-0" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
                         <i class="bi bi-clock"></i> Horários
                     </button>
-                    <button class="btn-modern btn-warning-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
+                    <button class="btn-modern btn-warning-modern flex-grow-1 flex-xl-grow-0" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
                         <i class="bi bi-lock"></i> Bloquear
                     </button>
                 </div>
             </div>
 
-            <div class="custom-card p-3 mb-4">
-                <div class="row g-3 align-items-center">
-                    <div class="col-12 col-md-4">
-                        <label class="form-label text-white small fw-bold mb-1">DATA DO AGENDAMENTO</label>
+            <div class="custom-card p-4 mb-4">
+                <div class="row g-3 align-items-center m-0">
+                    <div class="col-12 col-md-4 ps-0">
+                        <label class="form-label text-light small fw-bold mb-1">DATA DO AGENDAMENTO</label>
                         <input type="date" id="filtro-data" class="form-control custom-input" onchange="carregarAgendamentos()">
                     </div>
                     <div class="col-12 col-md-4">
-                        <label class="form-label text-white small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
+                        <label class="form-label text-light small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
                         <select id="filtro-status" class="form-select custom-select" onchange="carregarAgendamentos()">
                             <option value="PADRAO">Pendentes / Bloqueios</option>
                             <option value="CONCLUIDO">Concluídos</option>
@@ -200,24 +187,24 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-white small">NOME DO CLIENTE</label>
+                    <label class="form-label fw-bold text-light small">NOME DO CLIENTE</label>
                     <input type="text" id="nome-encaixe" class="form-control custom-input" placeholder="Digite o nome...">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-white small">TELEFONE (OPCIONAL)</label>
+                    <label class="form-label fw-bold text-light small">TELEFONE (OPCIONAL)</label>
                     <input type="text" id="tel-encaixe" class="form-control custom-input" placeholder="(00) 00000-0000">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-white small">SERVIÇO</label>
+                    <label class="form-label fw-bold text-light small">SERVIÇO</label>
                     <select id="servico-encaixe" class="form-select custom-select"></select>
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-white small">DATA</label>
+                        <label class="form-label fw-bold text-light small">DATA</label>
                         <input type="date" id="data-encaixe" class="form-control custom-input">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-white small">HORÁRIO</label>
+                        <label class="form-label fw-bold text-light small">HORÁRIO</label>
                         <input type="time" id="hora-encaixe" class="form-control custom-input">
                     </div>
                 </div>
@@ -239,15 +226,15 @@
             <div class="modal-body">
                 <div class="form-check form-switch mb-4">
                     <input class="form-check-input" type="checkbox" role="switch" id="switch-bot-ativo" style="width: 2.5em; height: 1.25em;">
-                    <label class="form-check-label fw-bold ms-2" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label>
+                    <label class="form-check-label fw-bold ms-2 text-light" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label>
                 </div>
                 <div id="campos-bot-config">
-                    <label class="form-label fw-bold text-white small">AVISAR QUANTO TEMPO ANTES?</label>
+                    <label class="form-label fw-bold text-light small">AVISAR QUANTO TEMPO ANTES?</label>
                     <div class="input-group">
                         <input type="number" id="minutos-bot" class="form-control custom-input text-center" min="25" step="5">
-                        <span class="input-group-text bg-body border-color text-muted">min</span>
+                        <span class="input-group-text bg-body border-color text-light">min</span>
                     </div>
-                    <p class="text-muted mt-3" style="font-size: 0.75rem;">
+                    <p class="text-light mt-3" style="font-size: 0.75rem;">
                         O bot aguardará 20 min pela resposta. Sem resposta, cancela.
                     </p>
                 </div>
@@ -268,21 +255,21 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-white small">DATA</label>
+                    <label class="form-label fw-bold text-light small">DATA</label>
                     <input type="date" id="data-bloqueio" class="form-control custom-input">
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-white small">INÍCIO</label>
+                        <label class="form-label fw-bold text-light small">INÍCIO</label>
                         <input type="time" id="hora-inicio-bloqueio" class="form-control custom-input">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-white small">FIM</label>
+                        <label class="form-label fw-bold text-light small">FIM</label>
                         <input type="time" id="hora-fim-bloqueio" class="form-control custom-input">
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-white small">MOTIVO</label>
+                    <label class="form-label fw-bold text-light small">MOTIVO</label>
                     <input type="text" id="motivo-bloqueio" class="form-control custom-input" placeholder="Ex: Horário de Almoço">
                 </div>
             </div>
@@ -316,7 +303,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <p class="mb-3 text-muted">Como o cliente pagou?</p>
+                <p class="mb-3 text-light">Como o cliente pagou?</p>
                 <input type="hidden" id="id-agendamento-pagamento">
                 <div class="d-grid gap-2">
                     <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button>
@@ -331,7 +318,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        // ✨ LÓGICA DO MENU MOBILE
         const btnMenu = document.getElementById('mobile-menu-btn');
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -401,11 +387,11 @@
                     </div>
                     <div class="row g-2">
                         <div class="col-6">
-                            <label class="form-label text-white small fw-bold">Abertura</label>
+                            <label class="form-label text-light small fw-bold">Abertura</label>
                             <input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})">
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-white small fw-bold">Fechamento</label>
+                            <label class="form-label text-light small fw-bold">Fechamento</label>
                             <input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})">
                         </div>
                     </div>
@@ -438,7 +424,8 @@
 
             const corpoTabela = document.getElementById('tabela-agendamentos'); corpoTabela.innerHTML = '';
 
-            if (listaMista.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4">Nenhum registro encontrado para este filtro e data.</td></tr>';
+            // ✨ CORREÇÃO 3: Mensagem de "Nenhum registro" em branco para não sumir
+            if (listaMista.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Nenhum registro encontrado para este filtro e data.</td></tr>';
 
             listaMista.forEach(item => {
                 if (item.tipo === 'AGENDAMENTO') {
@@ -448,31 +435,32 @@
 
                     let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
 
+                    // ✨ CORREÇÃO 4: Status do agendamento concluído com text-light
                     let botoes = (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO') ?
                         `<button class="btn btn-sm btn-success-modern me-2" onclick="abrirModalPagamento(${ag.id})"><i class="bi bi-check-lg"></i> Receber</button>
                          <button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` :
-                        `<span class="text-muted small">${ag.status}</span>`;
+                        `<span class="text-light fw-bold">${ag.status}</span>`;
 
                     corpoTabela.innerHTML += `
                         <tr>
-                            <td><strong class="text-white">${ag.nomeCliente}</strong></td>
-                            <td class="text-muted fw-bold">${ag.telefoneCliente}</td>
-                            <td><span class="text-muted">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td>
-                            <td class="text-primary fw-bold">${hi} - ${hf}</td>
-                            <td><span class="badge-modern ${bClass}">${ag.status}</span></td>
-                            <td>${botoes}</td>
+                            <td data-label="Cliente"><strong class="text-white">${ag.nomeCliente}</strong></td>
+                            <td data-label="Telefone" class="text-light fw-bold">${ag.telefoneCliente}</td>
+                            <td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td>
+                            <td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td>
+                            <td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td>
+                            <td data-label="Ações">${botoes}</td>
                         </tr>`;
                 } else {
                     const bq = item.dado;
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     corpoTabela.innerHTML += `
-                        <tr>
-                            <td><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span></td>
-                            <td class="text-muted">-</td><td class="text-muted">-</td>
-                            <td class="text-warning fw-bold">${hi} - ${hf}</td>
-                            <td><span class="badge-modern badge-warning">BLOQUEADO</span></td>
-                            <td class="text-muted">-</td>
+                        <tr style="background-color: rgba(245, 158, 11, 0.05);">
+                            <td data-label="Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span></td>
+                            <td data-label="Telefone" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td>
+                            <td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td>
+                            <td data-label="Status"><span class="badge-modern badge-warning">BLOQUEADO</span></td>
+                            <td data-label="Ações" class="text-light">-</td>
                         </tr>`;
                 }
             });
