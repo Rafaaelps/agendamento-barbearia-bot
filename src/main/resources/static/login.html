@@ -12,10 +12,10 @@
             --bg-body: #0B0E14;
             --bg-card: #1A1F2B;
             --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
+            --text-muted: #CBD5E1; /* ✨ Mais claro para leitura */
             --accent-primary: #6366F1;
             --accent-hover: #4F46E5;
-            --border-color: #222B38;
+            --border-color: #334155; /* ✨ Bordas mais visíveis */
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -35,6 +35,7 @@
             border: 1px solid var(--border-color);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             overflow: hidden;
+            margin: 20px;
         }
         .login-header {
             background-color: rgba(0,0,0,0.2);
@@ -76,24 +77,22 @@
 
         <form action="/fazer-login" method="POST">
             <div class="mb-3">
-                <label class="form-label fw-bold text-muted small">USUÁRIO</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-body border-color text-muted border-end-0"><i class="bi bi-person"></i></span>
-                    <input type="text" name="username" class="form-control form-control-lg custom-input border-start-0" placeholder="Ex: barbearia" required autofocus>
-                </div>
+                <label class="form-label fw-bold text-light small">USUÁRIO</label> <div class="input-group">
+                <span class="input-group-text bg-body border-color text-muted border-end-0"><i class="bi bi-person"></i></span>
+                <input type="text" name="username" class="form-control form-control-lg custom-input border-start-0" placeholder="Ex: barbearia" required autofocus>
+            </div>
             </div>
 
             <div class="mb-4">
-                <label class="form-label fw-bold text-muted small">SENHA</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-body border-color text-muted border-end-0"><i class="bi bi-lock"></i></span>
-                    <input type="password" name="password" class="form-control form-control-lg custom-input border-start-0" placeholder="••••••••" required>
-                </div>
+                <label class="form-label fw-bold text-light small">SENHA</label> <div class="input-group">
+                <span class="input-group-text bg-body border-color text-muted border-end-0"><i class="bi bi-lock"></i></span>
+                <input type="password" name="password" class="form-control form-control-lg custom-input border-start-0" placeholder="••••••••" required>
+            </div>
             </div>
 
             <div class="mb-4 form-check d-flex align-items-center">
                 <input type="checkbox" name="lembrar_de_mim" class="form-check-input me-2" id="lembrar" style="width: 1.2em; height: 1.2em; background-color: var(--bg-body); border-color: var(--border-color);">
-                <label class="form-check-label text-muted fw-bold" for="lembrar">Manter conectado</label>
+                <label class="form-check-label text-light fw-bold" for="lembrar">Manter conectado</label>
             </div>
 
             <button type="submit" class="btn btn-modern btn-lg w-100"><i class="bi bi-box-arrow-in-right me-2"></i>Entrar no Painel</button>

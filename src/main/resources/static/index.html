@@ -9,247 +9,84 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* ✨ PALETA DE CORES PREMIUM (Inspirada na imagem) */
         :root {
-            --bg-body: #0B0E14;       /* Fundo super escuro */
-            --bg-sidebar: #11151C;    /* Fundo do menu lateral */
-            --bg-card: #1A1F2B;       /* Fundo dos retângulos/cards */
-            --text-main: #F8FAFC;     /* Texto principal (Branco/Gelo) */
-            --text-muted: #94A3B8;    /* Texto secundário (Cinza) */
-            --accent-primary: #6366F1;/* Roxo/Indigo moderno */
-            --accent-hover: #4F46E5;
-            --border-color: #222B38;
-            --success-color: #10B981;
-            --danger-color: #EF4444;
-            --warning-color: #F59E0B;
+            --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
+            --text-main: #F8FAFC; --text-muted: #CBD5E1; /* ✨ Mais legível */
+            --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
+            --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            overflow-x: hidden;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+        .app-container { display: flex; height: 100vh; flex-direction: column; }
 
-        /* ✨ LAYOUT PRINCIPAL */
-        .app-container {
-            display: flex;
-            height: 100vh;
-        }
+        /* ✨ TOPBAR MOBILE (NOVO) */
+        .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-        /* ✨ MENU LATERAL (SIDEBAR) */
-        .sidebar {
-            width: 260px;
-            background-color: var(--bg-sidebar);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s;
-        }
+        /* SIDEBAR */
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; }
+        .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
+        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
+        .nav-item { margin-bottom: 4px; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
+        .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
+        .nav-link.active { color: #fff; background-color: var(--accent-primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .sidebar-footer { padding: 24px; border-top: 1px solid var(--border-color); }
+        .btn-logout { width: 100%; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: 0.2s; }
+        .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
 
-        .sidebar-header {
-            padding: 24px;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
+        .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
+        .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
 
-        .sidebar-header i {
-            color: var(--accent-primary);
-            font-size: 1.5rem;
-        }
+        .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
+        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
 
-        .nav-section-title {
-            padding: 24px 24px 8px 24px;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .sidebar-nav {
-            list-style: none;
-            padding: 0 12px;
-            margin: 0;
-            flex-grow: 1;
-        }
-
-        .nav-item {
-            margin-bottom: 4px;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .nav-link:hover {
-            color: var(--text-main);
-            background-color: rgba(99, 102, 241, 0.1);
-        }
-
-        .nav-link.active {
-            color: #fff;
-            background-color: var(--accent-primary);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-
-        .nav-link i {
-            font-size: 1.2rem;
-        }
-
-        .sidebar-footer {
-            padding: 24px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .btn-logout {
-            width: 100%;
-            background-color: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-weight: 500;
-            transition: 0.2s;
-        }
-
-        .btn-logout:hover {
-            color: var(--danger-color);
-            border-color: var(--danger-color);
-            background-color: rgba(239, 68, 68, 0.1);
-        }
-
-        /* ✨ CONTEÚDO PRINCIPAL (MAIN) */
-        .main-content {
-            flex-grow: 1;
-            padding: 32px;
-            overflow-y: auto;
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        /* ✨ CARDS E RETÂNGULOS */
-        .custom-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            padding: 24px;
-        }
-
-        /* ✨ CONTROLES (Inputs e Selects) */
-        .custom-input, .custom-select {
-            background-color: var(--bg-body);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-
-        .custom-input:focus, .custom-select:focus {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
-        }
-
-        /* ✨ BOTÕES MODERNOS */
-        .btn-modern {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            border: none;
-            transition: 0.2s;
-        }
-
+        .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
         .btn-primary-modern { background-color: var(--accent-primary); color: white; }
         .btn-primary-modern:hover { background-color: var(--accent-hover); color: white; }
-
         .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
         .btn-outline-modern:hover { border-color: var(--text-muted); color: white; }
-
         .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); }
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
-
         .btn-warning-modern { background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color); border: 1px solid rgba(245, 158, 11, 0.2); }
         .btn-warning-modern:hover { background-color: var(--warning-color); color: white; }
 
-        /* ✨ TABELAS MODERNAS */
-        .table-modern {
-            color: var(--text-main);
-            margin: 0;
-        }
-        .table-modern th {
-            background-color: var(--bg-body);
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px;
-        }
-        .table-modern td {
-            background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px;
-            vertical-align: middle;
-            color: var(--text-main);
-        }
-        .table-modern tbody tr:hover td {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
+        /* ✨ TABELAS MAIS NÍTIDAS */
+        .table-modern { color: var(--text-main); margin: 0; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
+        .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
-        /* Badges */
-        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 0.75rem; }
+        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; }
         .badge-success { background-color: rgba(16, 185, 129, 0.15); color: var(--success-color); }
         .badge-warning { background-color: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
         .badge-primary { background-color: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
         .badge-danger { background-color: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
 
-        /* Ajustes para Modais no Tema Escuro */
         .modal-content { background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); }
         .modal-header { border-bottom: 1px solid var(--border-color); }
         .modal-footer { border-top: 1px solid var(--border-color); }
         .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
 
         @media (max-width: 991.98px) {
-            .sidebar { display: none; /* Em mobile podemos implementar um menu offcanvas depois */ }
+            .mobile-topbar { display: flex; }
+            .sidebar { position: fixed; left: -280px; z-index: 1050; }
+            .sidebar.open { left: 0; }
+            .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
-            .action-bar { flex-direction: column; width: 100%; }
+            .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
+            .action-bar { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+            .table-modern thead { display: none; }
+            .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
+            .table-modern tbody td:last-child { border-bottom: none; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
         }
     </style>
 </head>
@@ -257,112 +94,94 @@
 
 <div class="app-container">
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <i class="bi bi-scissors"></i>
-            <span>Barbearia Bot</span>
-        </div>
+    <div class="mobile-topbar">
+        <div class="fw-bold text-main fs-5"><i class="bi bi-scissors text-primary me-2"></i>Barbearia Bot</div>
+        <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1"></i></button>
+    </div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-        <div class="nav-section-title">Geral</div>
-        <ul class="sidebar-nav">
-            <li class="nav-item">
-                <a href="index.html" class="nav-link active">
-                    <i class="bi bi-calendar-event"></i> Agenda do Dia
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="financeiro.html" class="nav-link">
-                    <i class="bi bi-pie-chart"></i> Visão Financeira
-                </a>
-            </li>
-        </ul>
-
-        <div class="nav-section-title">Administração</div>
-        <ul class="sidebar-nav">
-            <li class="nav-item">
-                <a href="servicos.html" class="nav-link">
-                    <i class="bi bi-list-check"></i> Serviços
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="estoque.html" class="nav-link">
-                    <i class="bi bi-box-seam"></i> Estoque
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="clientes.html" class="nav-link">
-                    <i class="bi bi-people"></i> Clientes
-                </a>
-            </li>
-        </ul>
-
-        <div class="sidebar-footer">
-            <form action="/sair" method="POST" class="m-0">
-                <button type="submit" class="btn-logout">
-                    <i class="bi bi-box-arrow-left"></i> Sair do Sistema
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <main class="main-content">
-
-        <div class="page-header flex-column flex-md-row gap-3">
-            <h1 class="page-title">Agenda de Clientes</h1>
-
-            <div class="d-flex flex-wrap gap-2 action-bar">
-                <button class="btn-modern btn-success-modern" data-bs-toggle="modal" data-bs-target="#modalEncaixe" onclick="carregarServicosEncaixe()">
-                    <i class="bi bi-plus-lg"></i> Encaixe
-                </button>
-                <button class="btn-modern btn-outline-modern" data-bs-toggle="modal" data-bs-target="#modalConfigBot" onclick="carregarConfigsBot()">
-                    <i class="bi bi-robot"></i> Robô
-                </button>
-                <button class="btn-modern btn-outline-modern" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
-                    <i class="bi bi-clock"></i> Horários
-                </button>
-                <button class="btn-modern btn-warning-modern" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
-                    <i class="bi bi-lock"></i> Bloquear
-                </button>
+    <div class="main-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="bi bi-scissors"></i>
+                <span>Barbearia Bot</span>
             </div>
-        </div>
+            <div class="nav-section-title">Geral</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item"><a href="index.html" class="nav-link active"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
+                <li class="nav-item"><a href="financeiro.html" class="nav-link"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
+            </ul>
+            <div class="nav-section-title">Administração</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item"><a href="servicos.html" class="nav-link"><i class="bi bi-list-check"></i> Serviços</a></li>
+                <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="bi bi-box-seam"></i> Estoque</a></li>
+                <li class="nav-item"><a href="clientes.html" class="nav-link"><i class="bi bi-people"></i> Clientes</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <form action="/sair" method="POST" class="m-0">
+                    <button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button>
+                </form>
+            </div>
+        </aside>
 
-        <div class="custom-card mb-4">
-            <div class="row g-3 align-items-center">
-                <div class="col-12 col-md-4">
-                    <label class="form-label text-muted small fw-bold mb-1">DATA DO AGENDAMENTO</label>
-                    <input type="date" id="filtro-data" class="form-control custom-input" onchange="carregarAgendamentos()">
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label text-muted small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
-                    <select id="filtro-status" class="form-select custom-select" onchange="carregarAgendamentos()">
-                        <option value="PADRAO">Pendentes / Bloqueios</option>
-                        <option value="CONCLUIDO">Concluídos</option>
-                        <option value="CANCELADO">Cancelados</option>
-                        <option value="TODOS">Todos da Data</option>
-                    </select>
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Agenda de Clientes</h1>
+
+                <div class="action-bar">
+                    <button class="btn-modern btn-success-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalEncaixe" onclick="carregarServicosEncaixe()">
+                        <i class="bi bi-plus-lg"></i> Encaixe
+                    </button>
+                    <button class="btn-modern btn-outline-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalConfigBot" onclick="carregarConfigsBot()">
+                        <i class="bi bi-robot"></i> Robô
+                    </button>
+                    <button class="btn-modern btn-outline-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalHorarios" onclick="carregarGradeHorarios()">
+                        <i class="bi bi-clock"></i> Horários
+                    </button>
+                    <button class="btn-modern btn-warning-modern justify-content-center" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
+                        <i class="bi bi-lock"></i> Bloquear
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <div class="custom-card p-0 overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-modern text-center">
-                    <thead>
-                    <tr>
-                        <th>Cliente / Detalhe</th>
-                        <th>Contato</th>
-                        <th>Serviço</th>
-                        <th>Período</th>
-                        <th>Status / Pgto</th>
-                        <th>Ações</th>
-                    </tr>
-                    </thead>
-                    <tbody id="tabela-agendamentos">
-                    </tbody>
-                </table>
+            <div class="custom-card mb-4">
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-light small fw-bold mb-1">DATA DO AGENDAMENTO</label>
+                        <input type="date" id="filtro-data" class="form-control custom-input" onchange="carregarAgendamentos()">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-light small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
+                        <select id="filtro-status" class="form-select custom-select" onchange="carregarAgendamentos()">
+                            <option value="PADRAO">Pendentes / Bloqueios</option>
+                            <option value="CONCLUIDO">Concluídos</option>
+                            <option value="CANCELADO">Cancelados</option>
+                            <option value="TODOS">Todos da Data</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-        </div>
-    </main>
+
+            <div class="custom-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-modern text-center">
+                        <thead>
+                        <tr>
+                            <th>Cliente / Detalhe</th>
+                            <th>Contato</th>
+                            <th>Serviço</th>
+                            <th>Período</th>
+                            <th>Status / Pgto</th>
+                            <th>Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabela-agendamentos">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
 </div>
 
 <div class="modal fade" id="modalEncaixe" tabindex="-1">
@@ -374,24 +193,24 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-muted small">NOME DO CLIENTE</label>
+                    <label class="form-label fw-bold text-light small">NOME DO CLIENTE</label>
                     <input type="text" id="nome-encaixe" class="form-control custom-input" placeholder="Digite o nome...">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-muted small">TELEFONE (OPCIONAL)</label>
+                    <label class="form-label fw-bold text-light small">TELEFONE (OPCIONAL)</label>
                     <input type="text" id="tel-encaixe" class="form-control custom-input" placeholder="(00) 00000-0000">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-muted small">SERVIÇO</label>
+                    <label class="form-label fw-bold text-light small">SERVIÇO</label>
                     <select id="servico-encaixe" class="form-select custom-select"></select>
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-muted small">DATA</label>
+                        <label class="form-label fw-bold text-light small">DATA</label>
                         <input type="date" id="data-encaixe" class="form-control custom-input">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-muted small">HORÁRIO</label>
+                        <label class="form-label fw-bold text-light small">HORÁRIO</label>
                         <input type="time" id="hora-encaixe" class="form-control custom-input">
                     </div>
                 </div>
@@ -416,13 +235,13 @@
                     <label class="form-check-label fw-bold ms-2" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label>
                 </div>
                 <div id="campos-bot-config">
-                    <label class="form-label fw-bold text-muted small">AVISAR QUANTO TEMPO ANTES?</label>
+                    <label class="form-label fw-bold text-light small">AVISAR QUANTO TEMPO ANTES?</label>
                     <div class="input-group">
                         <input type="number" id="minutos-bot" class="form-control custom-input text-center" min="25" step="5">
-                        <span class="input-group-text bg-body border-color text-muted">min</span>
+                        <span class="input-group-text bg-body border-color text-light">min</span>
                     </div>
                     <p class="text-muted mt-3" style="font-size: 0.75rem;">
-                        O bot aguardará 20 minutos pela resposta. Sem resposta, o horário é cancelado.
+                        O bot aguardará 20 min pela resposta. Sem resposta, cancela.
                     </p>
                 </div>
             </div>
@@ -442,21 +261,21 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-muted small">DATA</label>
+                    <label class="form-label fw-bold text-light small">DATA</label>
                     <input type="date" id="data-bloqueio" class="form-control custom-input">
                 </div>
                 <div class="row mb-3 g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-muted small">INÍCIO</label>
+                        <label class="form-label fw-bold text-light small">INÍCIO</label>
                         <input type="time" id="hora-inicio-bloqueio" class="form-control custom-input">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-muted small">FIM</label>
+                        <label class="form-label fw-bold text-light small">FIM</label>
                         <input type="time" id="hora-fim-bloqueio" class="form-control custom-input">
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-muted small">MOTIVO (Visível no painel)</label>
+                    <label class="form-label fw-bold text-light small">MOTIVO</label>
                     <input type="text" id="motivo-bloqueio" class="form-control custom-input" placeholder="Ex: Horário de Almoço">
                 </div>
             </div>
@@ -474,8 +293,7 @@
                 <h5 class="modal-title fw-bold"><i class="bi bi-clock text-primary me-2"></i> Expediente</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="corpo-modal-horarios">
-            </div>
+            <div class="modal-body" id="corpo-modal-horarios"></div>
             <div class="modal-footer border-0">
                 <button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarGradeHorarios()">Salvar Expediente</button>
             </div>
@@ -491,12 +309,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <p class="mb-3 text-muted">Como o cliente pagou?</p>
+                <p class="mb-3 text-light">Como o cliente pagou?</p>
                 <input type="hidden" id="id-agendamento-pagamento">
                 <div class="d-grid gap-2">
-                    <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')">💳 Crédito</button>
-                    <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('DEBITO')">💳 Débito</button>
-                    <button class="btn-modern btn-success-modern justify-content-center" onclick="processarPagamento('PIX_DINHEIRO')"><i class="bi bi-cash-stack"></i> Dinheiro / PIX</button>
+                    <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button>
+                    <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button>
+                    <button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarPagamento('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button>
                 </div>
             </div>
         </div>
@@ -504,9 +322,17 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", () => {
+        // ✨ LÓGICA DO MENU MOBILE
+        const btnMenu = document.getElementById('mobile-menu-btn');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if(btnMenu && sidebar && overlay) {
+            btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
+            overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
+        }
+
         const agora = new Date();
         const hoje = agora.toISOString().split('T')[0];
         const horaAtual = agora.toTimeString().split(' ')[0].substring(0,5);
@@ -523,40 +349,27 @@
         }, 10000);
     });
 
-    // ... [As funções carregarServicosEncaixe, salvarEncaixe, configBot, gradeHorarios permanecem iguais]
+    // ✨ LÓGICA DE AGENDAMENTOS MANTIDA INTACTA!
     async function carregarServicosEncaixe() {
-        const res = await fetch('/api/servicos');
-        const servicos = await res.json();
-        const select = document.getElementById('servico-encaixe');
-        select.innerHTML = '';
+        const res = await fetch('/api/servicos'); const servicos = await res.json();
+        const select = document.getElementById('servico-encaixe'); select.innerHTML = '';
         servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`);
     }
 
     async function salvarEncaixe() {
-        const dados = {
-            nomeCliente: document.getElementById('nome-encaixe').value,
-            telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000",
-            servicoEscolhido: { id: document.getElementById('servico-encaixe').value },
-            dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00`
-        };
+        const dados = { nomeCliente: document.getElementById('nome-encaixe').value, telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000", servicoEscolhido: { id: document.getElementById('servico-encaixe').value }, dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00` };
         if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!");
-
         await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
-        bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide();
-        carregarAgendamentos();
+        bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide(); carregarAgendamentos();
     }
 
     async function carregarConfigsBot() {
-        const res = await fetch('/api/configuracoes/geral');
-        const data = await res.json();
-        document.getElementById('switch-bot-ativo').checked = data.botAtivo;
-        document.getElementById('minutos-bot').value = data.minutosConfirmacao;
+        const res = await fetch('/api/configuracoes/geral'); const data = await res.json();
+        document.getElementById('switch-bot-ativo').checked = data.botAtivo; document.getElementById('minutos-bot').value = data.minutosConfirmacao;
         atualizarLabelBot(data.botAtivo);
     }
-    document.getElementById('switch-bot-ativo').onchange = function() { atualizarLabelBot(this.checked); };
     function atualizarLabelBot(ativo) {
-        const lbl = document.getElementById('label-bot-status');
-        const cmp = document.getElementById('campos-bot-config');
+        const lbl = document.getElementById('label-bot-status'); const cmp = document.getElementById('campos-bot-config');
         if(ativo) { lbl.innerText="Robô Ligado"; lbl.classList.add('text-success'); cmp.style.opacity="1"; cmp.style.pointerEvents="auto"; }
         else { lbl.innerText="Robô Desligado"; lbl.classList.remove('text-success'); cmp.style.opacity="0.5"; cmp.style.pointerEvents="none"; }
     }
@@ -567,17 +380,13 @@
 
     let gradeHorariosGlobal = [];
     async function carregarGradeHorarios() {
-        const res = await fetch('/api/horarios');
-        gradeHorariosGlobal = await res.json();
-        gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana);
-        renderizarGradeHorarios();
+        const res = await fetch('/api/horarios'); gradeHorariosGlobal = await res.json();
+        gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana); renderizarGradeHorarios();
     }
     function renderizarGradeHorarios() {
-        const corpo = document.getElementById('corpo-modal-horarios');
-        corpo.innerHTML = '';
+        const corpo = document.getElementById('corpo-modal-horarios'); corpo.innerHTML = '';
         gradeHorariosGlobal.forEach((dia, index) => {
-            const chk = dia.fechado ? '' : 'checked';
-            const dis = dia.fechado ? 'disabled' : '';
+            const chk = dia.fechado ? '' : 'checked', dis = dia.fechado ? 'disabled' : '';
             corpo.innerHTML += `
                 <div class="custom-card mb-3 p-3">
                     <div class="d-flex justify-content-between mb-3">
@@ -585,8 +394,14 @@
                         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" ${chk} onchange="toggleDia(${index})"></div>
                     </div>
                     <div class="row g-2">
-                        <div class="col-6"><input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})"></div>
-                        <div class="col-6"><input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})"></div>
+                        <div class="col-6">
+                            <label class="form-label text-light small fw-bold">Abertura</label>
+                            <input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-light small fw-bold">Fechamento</label>
+                            <input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})">
+                        </div>
                     </div>
                 </div>`;
         });
@@ -602,26 +417,20 @@
     async function carregarAgendamentos() {
         try {
             const [resAg, resBq] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/agendamentos/bloqueios')]);
-            const todosAgendamentos = await resAg.json();
-            const todosBloqueios = await resBq.json();
-            const dataEscolhida = document.getElementById('filtro-data').value;
-            const filtroStatus = document.getElementById('filtro-status').value;
+            const todosAgendamentos = await resAg.json(); const todosBloqueios = await resBq.json();
+            const dataEscolhida = document.getElementById('filtro-data').value; const filtroStatus = document.getElementById('filtro-status').value;
 
             let listaMista = [];
             todosAgendamentos.filter(ag => ag.dataHoraInicio.startsWith(dataEscolhida)).forEach(ag => {
-                let exibir = (filtroStatus === 'TODOS') ||
-                             (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) ||
-                             (filtroStatus === ag.status);
+                let exibir = (filtroStatus === 'TODOS') || (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) || (filtroStatus === ag.status);
                 if(exibir) listaMista.push({ tipo: 'AGENDAMENTO', dado: ag });
             });
             todosBloqueios.filter(bq => bq.dataHoraInicio && bq.dataHoraInicio.startsWith(dataEscolhida)).forEach(bq => {
                 if (filtroStatus === 'PADRAO' || filtroStatus === 'TODOS') listaMista.push({ tipo: 'BLOQUEIO', dado: bq });
             });
-
             listaMista.sort((a, b) => new Date(a.dado.dataHoraInicio) - new Date(b.dado.dataHoraInicio));
-            const corpoTabela = document.getElementById('tabela-agendamentos');
-            corpoTabela.innerHTML = '';
 
+            const corpoTabela = document.getElementById('tabela-agendamentos'); corpoTabela.innerHTML = '';
             if (listaMista.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-muted py-4">Nenhum registro encontrado.</td></tr>';
 
             listaMista.forEach(item => {
@@ -630,21 +439,19 @@
                     const hi = new Date(ag.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(ag.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-                    let bClass = 'badge-success';
-                    if(ag.status === 'AGENDADO') bClass = 'badge-warning';
-                    if(ag.status === 'CONFIRMADO') bClass = 'badge-primary';
-                    if(ag.status === 'CANCELADO') bClass = 'badge-danger';
+                    let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
 
                     let botoes = (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO') ?
                         `<button class="btn btn-sm btn-success-modern me-2" onclick="abrirModalPagamento(${ag.id})"><i class="bi bi-check-lg"></i> Receber</button>
                          <button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` :
                         `<span class="text-muted small">${ag.status}</span>`;
 
+                    // ✨ TELEFONE E SERVIÇOS MAIS CLAROS
                     corpoTabela.innerHTML += `
                         <tr>
                             <td><strong class="text-white">${ag.nomeCliente}</strong></td>
-                            <td class="text-muted">${ag.telefoneCliente}</td>
-                            <td>${ag.servicoEscolhido.nome}<br><small class="text-muted">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td>
+                            <td class="text-light fw-bold">${ag.telefoneCliente}</td>
+                            <td><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td>
                             <td class="text-primary fw-bold">${hi} - ${hf}</td>
                             <td><span class="badge-modern ${bClass}">${ag.status}</span></td>
                             <td>${botoes}</td>
@@ -677,8 +484,7 @@
     async function salvarBloqueio() {
         const dados = { dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`, dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`, motivo: document.getElementById('motivo-bloqueio').value };
         await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
-        bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide();
-        carregarAgendamentos();
+        bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide(); carregarAgendamentos();
     }
     async function cancelar(id) { if(confirm("Cancelar agendamento?")) { await fetch(`/api/agendamentos/${id}/cancelar`, { method: 'PUT' }); carregarAgendamentos(); } }
 </script>

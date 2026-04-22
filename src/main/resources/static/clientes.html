@@ -11,15 +11,17 @@
     <style>
         :root {
             --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-            --text-main: #F8FAFC; --text-muted: #94A3B8; --accent-primary: #6366F1;
-            --accent-hover: #4F46E5; --border-color: #222B38;
+            --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1;
+            --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
-        .app-container { display: flex; height: 100vh; }
+        .app-container { display: flex; height: 100vh; flex-direction: column; }
 
-        /* Sidebar */
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: all 0.3s; }
+        .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
+
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh;}
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
         .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
@@ -32,7 +34,7 @@
         .btn-logout { width: 100%; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: 0.2s; }
         .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
 
-        /* Main Content */
+        .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
@@ -40,99 +42,131 @@
         .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
         .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
 
+        .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
+        .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
         .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 16px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
 
-        /* Tables */
         .table-modern { color: var(--text-main); margin: 0; }
-        .table-modern th { background-color: var(--bg-body); color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
-        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
-        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
+        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
 
-        @media (max-width: 991.98px) { .sidebar { display: none; } .main-content { padding: 16px; } .page-header{ flex-direction: column; align-items: start;} }
+        @media (max-width: 991.98px) {
+            .mobile-topbar { display: flex; }
+            .sidebar { position: fixed; left: -280px; z-index: 1050; }
+            .sidebar.open { left: 0; }
+            .sidebar-overlay.show { display: block; }
+            .main-content { padding: 16px; }
+            .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
+
+            .table-modern thead { display: none; }
+            .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
+            .table-modern tbody td:last-child { border-bottom: none; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+        }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <i class="bi bi-scissors"></i>
-            <span>Barbearia Bot</span>
-        </div>
-        <div class="nav-section-title">Geral</div>
-        <ul class="sidebar-nav">
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
-            <li class="nav-item"><a href="financeiro.html" class="nav-link"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
-        </ul>
-        <div class="nav-section-title">Administração</div>
-        <ul class="sidebar-nav">
-            <li class="nav-item"><a href="servicos.html" class="nav-link"><i class="bi bi-list-check"></i> Serviços</a></li>
-            <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="bi bi-box-seam"></i> Estoque</a></li>
-            <li class="nav-item"><a href="clientes.html" class="nav-link active"><i class="bi bi-people"></i> Clientes</a></li>
-        </ul>
-        <div class="sidebar-footer">
-            <form action="/sair" method="POST" class="m-0">
-                <button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button>
-            </form>
-        </div>
-    </aside>
 
-    <main class="main-content">
-        <div class="page-header gap-3">
-            <h1 class="page-title">Gestão de Clientes (CRM)</h1>
-            <div class="d-flex align-items-center custom-card p-1 flex-grow-1 flex-md-grow-0" style="padding: 4px !important;">
-                <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-muted mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
-                <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary); box-shadow: none;" onchange="renderizarTabela()">
-                    <option value="GASTO" style="color: black;">Quem mais gastou</option>
-                    <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
-                    <option value="FREQUENTES" style="color: black;">Mais visitas</option>
-                </select>
+    <div class="mobile-topbar">
+        <div class="fw-bold text-main fs-5"><i class="bi bi-scissors text-primary me-2"></i>Barbearia Bot</div>
+        <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1"></i></button>
+    </div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="bi bi-scissors"></i>
+                <span>Barbearia Bot</span>
             </div>
-        </div>
+            <div class="nav-section-title">Geral</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
+                <li class="nav-item"><a href="financeiro.html" class="nav-link"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
+            </ul>
+            <div class="nav-section-title">Administração</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item"><a href="servicos.html" class="nav-link"><i class="bi bi-list-check"></i> Serviços</a></li>
+                <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="bi bi-box-seam"></i> Estoque</a></li>
+                <li class="nav-item"><a href="clientes.html" class="nav-link active"><i class="bi bi-people"></i> Clientes</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <form action="/sair" method="POST" class="m-0">
+                    <button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button>
+                </form>
+            </div>
+        </aside>
 
-        <div class="row mb-4 g-3">
-            <div class="col-12 col-md-6">
-                <div class="custom-card border-start border-primary border-4 h-100 p-4">
-                    <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
-                    <h2 class="fw-bold mb-0" style="color: var(--accent-primary);" id="total-clientes">0</h2>
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Gestão de Clientes (CRM)</h1>
+                <div class="d-flex align-items-center custom-card p-1 flex-grow-1 flex-md-grow-0" style="padding: 4px !important;">
+                    <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
+                    <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary); box-shadow: none;" onchange="renderizarTabela()">
+                        <option value="GASTO" style="color: black;">Quem mais gastou</option>
+                        <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
+                        <option value="FREQUENTES" style="color: black;">Mais visitas</option>
+                    </select>
                 </div>
             </div>
-            <div class="col-12 col-md-6">
-                <div class="custom-card border-start border-success border-4 h-100 p-4">
-                    <h6 class="text-muted text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
-                    <h2 class="fw-bold mb-0" style="color: var(--success-color);" id="ticket-medio">R$ 0,00</h2>
+
+            <div class="row mb-4 g-3">
+                <div class="col-12 col-md-6">
+                    <div class="custom-card border-start border-primary border-4 h-100 p-4">
+                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
+                        <h2 class="fw-bold mb-0" style="color: var(--accent-primary);" id="total-clientes">0</h2>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="custom-card border-start border-success border-4 h-100 p-4">
+                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
+                        <h2 class="fw-bold mb-0" style="color: var(--success-color);" id="ticket-medio">R$ 0,00</h2>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="custom-card p-0 overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-modern text-center align-middle">
-                    <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Contato</th>
-                        <th>Visitas Totais</th>
-                        <th>Total Gasto (LTV)</th>
-                        <th>Última Visita</th>
-                        <th>Ação</th>
-                    </tr>
-                    </thead>
-                    <tbody id="tabela-clientes">
-                    </tbody>
-                </table>
+            <div class="custom-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-modern text-center align-middle">
+                        <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Contato</th>
+                            <th>Visitas Totais</th>
+                            <th>Total Gasto (LTV)</th>
+                            <th>Última Visita</th>
+                            <th>Ação</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabela-clientes">
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let clientesGlobal = [];
-    document.addEventListener("DOMContentLoaded", carregarCRM);
+    document.addEventListener("DOMContentLoaded", () => {
+        const btnMenu = document.getElementById('mobile-menu-btn');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if(btnMenu && sidebar && overlay) {
+            btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
+            overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
+        }
+        carregarCRM();
+    });
 
     async function carregarCRM() {
         try {
@@ -188,10 +222,10 @@
             corpoTabela.innerHTML += `
             <tr>
                 <td><strong class="text-white">${c.nome}</strong></td>
-                <td class="text-muted">${c.telefone}</td>
+                <td class="text-light fw-bold">${c.telefone}</td>
                 <td><span class="badge-modern">${c.totalVisitas}x</span></td>
                 <td style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                <td>${dFmt} <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
+                <td><span class="text-light">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
                 <td>${btnWhats}</td>
             </tr>`;
         });
