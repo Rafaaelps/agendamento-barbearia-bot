@@ -9,28 +9,28 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-@RestController // 1. Avisa ao Spring que este é um NOVO Garçom
-@RequestMapping("/api/agendamentos") // 2. O endereço específico dele!
+@RestController
+@RequestMapping("/api/agendamentos")
 public class AgendamentoController {
 
     private final AgendaService agendaService;
 
-    // Injeta a regra de negócios
     public AgendamentoController(AgendaService agendaService) {
         this.agendaService = agendaService;
     }
 
-    // 3. O @PostMapping espera receber os dados JSON
     @PostMapping
     public String receberNovoAgendamento(@RequestBody Agendamento novoAgendamento) {
-
         boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
+        if (sucesso) return "✅ Sucesso! Agendamento confirmado para " + novoAgendamento.getNomeCliente();
+        else return "❌ Este horário já está ocupado. Por favor, escolha outro.";
+    }
 
-        if (sucesso) {
-            return "✅ Sucesso! Agendamento confirmado para " + novoAgendamento.getNomeCliente();
-        } else {
-            return "❌ Este horário já está ocupado. Por favor, escolha outro.";
-        }
+    // ✨ NOVO: Endpoint para Encaixe Manual
+    @PostMapping("/encaixe")
+    public String realizarEncaixe(@RequestBody Agendamento novoEncaixe) {
+        agendaService.forcarAgendamento(novoEncaixe);
+        return "✅ Encaixe realizado com sucesso!";
     }
 
     @PostMapping("/bloqueios")
@@ -39,29 +39,21 @@ public class AgendamentoController {
         return "✅ Horário bloqueado com sucesso! Motivo: " + bloqueio.getMotivo();
     }
 
-    // Usamos @GetMapping porque o Postman vai apenas PEDIR uma informação, não salvar nada novo.
-    // A URL final será: /api/agendamentos/livres
     @GetMapping("/livres")
-    public List<LocalTime> consultarHorariosLivres(
-            @RequestParam LocalDate data,
-            @RequestParam Long servicoId) {
-
+    public List<LocalTime> consultarHorariosLivres(@RequestParam LocalDate data, @RequestParam Long servicoId) {
         return agendaService.buscarHorariosLivres(data, servicoId);
     }
 
-    // O dono da barbearia vai acessar essa URL para carregar a tela
     @GetMapping
     public List<Agendamento> listarAgendamentos() {
         return agendaService.listarTodosOsAgendamentos();
     }
 
     @GetMapping("/bloqueios")
-    public java.util.List<BloqueioAgenda> listarBloqueios() {
+    public List<BloqueioAgenda> listarBloqueios() {
         return agendaService.listarBloqueios();
     }
 
-    // Usamos @PutMapping porque estamos ATUALIZANDO um dado existente, não criando um novo.
-    // A URL vai ficar tipo: /api/agendamentos/1/cancelar
     @PutMapping("/{id}/cancelar")
     public String cancelar(@PathVariable Long id) {
         agendaService.cancelarAgendamento(id);
@@ -74,7 +66,6 @@ public class AgendamentoController {
         return "💰 Agendamento marcado como concluído!";
     }
 
-    // A URL vai ficar tipo: /api/agendamentos/1/valor?novoValor=60.00
     @PutMapping("/{id}/valor")
     public String alterarValor(@PathVariable Long id, @RequestParam java.math.BigDecimal novoValor) {
         agendaService.atualizarValor(id, novoValor);

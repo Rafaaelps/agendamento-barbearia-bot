@@ -8,7 +8,6 @@ import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
 import com.barber.agendamento_bot.api.repository.BloqueioAgendaRepository;
 import com.barber.agendamento_bot.api.repository.HorarioRepository;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
-
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -42,8 +41,6 @@ public class AgendaService {
 
         novo.setValorFinal(servicoCompleto.getPreco());
         novo.setDataHoraFim(fim);
-
-        // ✨ MUDANÇA 1: O Agendamento agora nasce como "AGENDADO"
         novo.setStatus("AGENDADO");
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
@@ -73,12 +70,28 @@ public class AgendaService {
         return true;
     }
 
-    // ✨ MUDANÇA 2: Quando confirma, ele muda o STATUS!
+    // ✨ NOVO: Função de Encaixe (Ignora conflitos)
+    public void forcarAgendamento(Agendamento novo) {
+        Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
+        novo.setServicoEscolhido(servicoCompleto);
+
+        LocalDateTime inicio = novo.getDataHoraInicio();
+        LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos());
+
+        novo.setValorFinal(servicoCompleto.getPreco());
+        novo.setDataHoraFim(fim);
+        novo.setStatus("AGENDADO");
+        novo.setFaturamentoBarbeiro(java.math.BigDecimal.ZERO);
+        novo.setFormaPagamento("PENDENTE");
+
+        agendamentoRepository.save(novo);
+        System.out.println("⚠️ Encaixe realizado manualmente pelo barbeiro: " + novo.getNomeCliente());
+    }
+
     public void confirmarPresenca(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
         agendamento.setStatus("CONFIRMADO");
         agendamentoRepository.save(agendamento);
-        System.out.println("✅ Presença do cliente confirmada para o agendamento: " + id);
     }
 
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId) {
@@ -149,7 +162,6 @@ public class AgendaService {
         agendamentoRepository.save(agendamento);
     }
 
-    // ✨ MUDANÇA 3: Aceita clientes com "AGENDADO" ou "CONFIRMADO"
     public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
         List<Agendamento> lista = agendamentoRepository.findByTelefoneClienteAndStatusNot(telefone, "CANCELADO");
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
@@ -180,5 +192,5 @@ public class AgendaService {
         agendamentoRepository.save(agendamento);
     }
 
-    public java.util.List<BloqueioAgenda> listarBloqueios() { return bloqueioAgendaRepository.findAll(); }
+    public List<BloqueioAgenda> listarBloqueios() { return bloqueioAgendaRepository.findAll(); }
 }
