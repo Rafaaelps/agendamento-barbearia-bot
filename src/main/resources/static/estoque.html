@@ -17,6 +17,9 @@
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
 
+        .text-muted { color: var(--text-muted) !important; }
+        .text-secondary { color: var(--text-muted) !important; }
+
         .app-container { display: flex; height: 100vh; flex-direction: column; }
 
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
@@ -212,23 +215,24 @@
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
             let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
-            // ✨ CORREÇÃO NO CARD: d-flex flex-column justify-content-between para não vazar os botões!
+            // ✨ CORREÇÃO AQUI: d-flex align-items-stretch no container pai e flex-grow-1 no conteúdo!
             grid.innerHTML += `
-                <div class="col-12 col-md-4 col-lg-3 mb-4">
-                    <div class="custom-card h-100 position-relative p-4 text-center d-flex flex-column justify-content-between">
+                <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
+                    <div class="custom-card w-100 position-relative p-4 text-center d-flex flex-column">
                         ${btnExcluir}
-                        <div>
+
+                        <div class="flex-grow-1">
                             <small class="text-light fw-bold d-block mb-1">ID: #${p.id}</small>
                             <h5 class="fw-bold text-white mt-2">${p.nome}</h5>
                             <h3 class="fw-bold my-3" style="color: var(--accent-primary);">R$ ${p.preco.toFixed(2)}</h3>
                             <p class="mb-2 fw-bold small" style="color: var(--${corEstoque.split('-')[1]}-color);"><i class="bi bi-box-seam me-1"></i> Estoque: ${p.quantidadeEstoque} un</p>
                         </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button class="btn-modern btn-outline-modern justify-content-center py-1" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
+                        <div class="d-grid gap-2 mt-4 pt-2">
+                            <button class="btn-modern btn-outline-modern justify-content-center py-2" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
                             <div class="d-flex gap-2">
-                                <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-1" onclick="abrirModalRepor(${p.id}, '${p.nome}')"><i class="bi bi-arrow-down-circle"></i> Repor</button>
-                                <button class="btn-modern btn-success-modern flex-grow-1 justify-content-center py-1 border-0" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}><i class="bi bi-cart-check"></i> Vender</button>
+                                <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalRepor(${p.id}, '${p.nome}')"><i class="bi bi-arrow-down-circle"></i> Repor</button>
+                                <button class="btn-modern btn-success-modern flex-grow-1 justify-content-center py-2 px-1 border-0" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}><i class="bi bi-cart-check"></i> Vender</button>
                             </div>
                         </div>
                     </div>
