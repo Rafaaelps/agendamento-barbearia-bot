@@ -13,7 +13,7 @@
   <style>
     :root {
         --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
-        --text-main: #F8FAFC; --text-muted: #CBD5E1; /* ✨ Mais claro */
+        --text-main: #F8FAFC; --text-muted: #CBD5E1;
         --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
         --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B; --info-color: #0EA5E9;
     }
@@ -71,12 +71,25 @@
     .text-danger-custom { color: var(--danger-color) !important; }
     .text-warning-custom { color: var(--warning-color) !important; }
 
+    /* ✨ BARRA DE AÇÕES (Responsiva) */
+    @media (min-width: 992px) {
+        .action-bar-financeiro { display: flex; flex-direction: row; gap: 12px; align-items: center; justify-content: flex-end; }
+        .action-bar-financeiro .buttons-grid { display: flex; gap: 12px; }
+    }
+
     @media (max-width: 991.98px) {
         .mobile-topbar { display: flex; }
         .sidebar { position: fixed; left: -280px; z-index: 1050; }
         .sidebar.open { left: 0; }
         .sidebar-overlay.show { display: block; }
         .main-content { padding: 16px; }
+        .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
+
+        /* Grade do Topo Mobile: Mês inteiro, 3 botões iguais embaixo */
+        .action-bar-financeiro { display: flex; flex-direction: column; width: 100%; gap: 10px; }
+        .action-bar-financeiro .month-container { width: 100%; }
+        .action-bar-financeiro .buttons-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; }
+        .btn-modern { justify-content: center; padding-left: 5px; padding-right: 5px; }
 
         .table-modern thead { display: none; }
         .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
@@ -121,46 +134,51 @@
     </aside>
 
     <main class="main-content" id="area-relatorio">
-      <div class="page-header flex-column flex-xl-row gap-3">
+      <div class="page-header">
         <h1 class="page-title" id="titulo-pagina">Visão Financeira (BI)</h1>
         <h2 class="mb-0 d-none text-center w-100 fw-bold border-bottom border-secondary pb-2" id="titulo-pdf">💈 Relatório Financeiro</h2>
 
-        <div id="botoes-acao" class="d-flex flex-wrap gap-2 w-100 w-md-auto">
-          <div class="d-flex align-items-center custom-card p-1 flex-grow-1" style="padding: 4px !important;">
-            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-light mb-0 small">MÊS:</label>
+        <div class="action-bar-financeiro" id="botoes-acao">
+          <div class="d-flex align-items-center custom-card p-1 month-container">
+            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-white mb-0 small">MÊS:</label>
             <input type="month" id="filtro-mes" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none;" onchange="carregarFinanceiro()">
           </div>
-          <button class="btn-modern btn-outline-modern" onclick="exportarPDF()"><i class="bi bi-printer"></i> PDF</button>
-          <button class="btn-modern btn-danger-modern" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Despesa</button>
-          <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
+          <div class="buttons-grid">
+            <button class="btn-modern btn-outline-modern" onclick="exportarPDF()"><i class="bi bi-printer"></i> PDF</button>
+            <button class="btn-modern btn-danger-modern" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
+            <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
+          </div>
         </div>
       </div>
 
       <div class="row mb-4 g-3">
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-success h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
             <h3 class="text-success-custom fw-bold mb-1" id="valor-lucro-liquido">R$ 0,00</h3>
             <small class="fw-bold" id="indicador-crescimento" style="font-size: 0.75rem;">-</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-primary h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
             <h3 class="fw-bold mb-1" style="color: var(--accent-primary);" id="valor-entradas">R$ 0,00</h3>
-            <small class="text-light fw-bold" style="font-size: 0.75rem;">Cortes e Produtos</small> </div>
+            <small class="text-light fw-bold" style="font-size: 0.75rem;">Cortes e Produtos</small>
+          </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-warning h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
             <h3 class="text-warning-custom fw-bold mb-1" id="valor-saidas">R$ 0,00</h3>
-            <small class="text-light fw-bold" id="detalhe-saidas" style="font-size: 0.75rem;">Despesas: R$ 0 | Taxas: R$ 0</small> </div>
+            <small class="text-light fw-bold" id="detalhe-saidas" style="font-size: 0.75rem;">Despesas: R$ 0 | Taxas: R$ 0</small>
+          </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-info h-100">
-            <h6 class="text-light text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
+            <h6 class="text-white text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
             <h3 class="fw-bold mb-1" style="color: var(--info-color);" id="valor-previsao">R$ 0,00</h3>
-            <small class="text-light fw-bold" style="font-size: 0.75rem;">Receita recorrente</small> </div>
+            <small class="text-light fw-bold" style="font-size: 0.75rem;">Receita recorrente</small>
+          </div>
         </div>
       </div>
 
@@ -168,7 +186,7 @@
         <div class="col-12 col-lg-4" id="coluna-grafico">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card">
-              <h6 class="mb-0 fw-bold text-light text-uppercase small">A Divisão do Dinheiro</h6>
+              <h6 class="mb-0 fw-bold text-white text-uppercase small">A Divisão do Dinheiro</h6>
             </div>
             <div class="card-body d-flex justify-content-center align-items-center flex-grow-1 p-4">
               <canvas id="graficoFinanceiro" style="max-height: 250px;"></canvas>
@@ -179,7 +197,7 @@
         <div class="col-12 col-lg-8" id="coluna-tabela">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card d-none d-md-block">
-              <h6 class="mb-0 fw-bold text-light text-uppercase small">Extrato Detalhado da Conta</h6>
+              <h6 class="mb-0 fw-bold text-white text-uppercase small">Extrato Detalhado da Conta</h6>
             </div>
             <div id="container-tabela-extrato" class="table-responsive flex-grow-1" style="max-height: 400px;">
               <table class="table table-modern text-center align-middle mb-0">
@@ -252,7 +270,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   let meuGrafico = null;
-  // Variáveis para a Proteção Matemática
   let taxaCredGlobal = 0.05;
   let taxaDebGlobal = 0.02;
 
@@ -270,7 +287,6 @@
     const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
     document.getElementById('filtro-mes').value = `${ano}-${mes}`;
 
-    // Busca as taxas reais antes de carregar o financeiro
     try {
         const res = await fetch('/api/configuracoes/taxas');
         const taxas = await res.json();
@@ -308,7 +324,7 @@
 
     document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333');
     document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333');
-    document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); // Contraste no PDF
+    document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666');
 
     await html2pdf().set({
       margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-mes').value}.pdf`,
@@ -335,7 +351,6 @@
   async function salvarDespesa() { const d = document.getElementById('desc-despesa').value, v = parseFloat(document.getElementById('valor-despesa').value.replace(',','.')); if(!d||!v) return; await fetch('/api/despesas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao: d, valor: v }) }); bootstrap.Modal.getInstance(document.getElementById('modalDespesa')).hide(); carregarFinanceiro(); }
   async function deletarDespesa(id) { if(confirm("Apagar despesa?")) { await fetch(`/api/despesas/${id}`, { method: 'DELETE' }); carregarFinanceiro(); } }
 
-  // Função robusta de data para não falhar nunca
   const ehDoMesmoMes = (dataStringOuArray, mesFiltro) => {
       if (!dataStringOuArray) return false;
       if (typeof dataStringOuArray === 'string') return dataStringOuArray.substring(0, 7) === mesFiltro;
@@ -350,29 +365,24 @@
     try {
       const [resAg, resV, resD] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/estoque/vendas'), fetch('/api/despesas')]);
       const [todosAg, todasV, todasD] = [await resAg.json(), await resV.json(), await resD.json()];
-      const mesEscolhido = document.getElementById('filtro-mes').value; // Ex: "2026-04"
+      const mesEscolhido = document.getElementById('filtro-mes').value;
       let [receitaBruta, taxasTotal, despesasTotal, extratoMisto] = [0, 0, 0, []];
 
       todosAg.filter(ag => ag.status === 'CONCLUIDO' && ehDoMesmoMes(ag.dataHoraInicio, mesEscolhido)).forEach(ag => {
-        // ✨ CORREÇÃO MATEMÁTICA: O escudo contra os Encaixes que zeravam as contas!
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let lucroLivre = Number(ag.faturamentoBarbeiro || 0);
-
         let pNorm = (ag.formaPagamento || '').toUpperCase();
         let taxaDaVenda = 0;
 
-        // Se for um Encaixe (lucro zero no banco), o JS calcula a taxa sozinho para não engolir o dinheiro!
         if (lucroLivre === 0 && pNorm !== 'PENDENTE') {
             if (pNorm.includes('CREDITO')) taxaDaVenda = precoCheio * taxaCredGlobal;
             else if (pNorm.includes('DEBITO')) taxaDaVenda = precoCheio * taxaDebGlobal;
-            lucroLivre = precoCheio - taxaDaVenda; // O que sobrou é o lucro verdadeiro
+            lucroLivre = precoCheio - taxaDaVenda;
         } else {
             taxaDaVenda = Math.max(0, precoCheio - lucroLivre);
         }
 
         receitaBruta += precoCheio; taxasTotal += taxaDaVenda;
-
-        // Para organizar a lista, pega a data de forma segura
         let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
         extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: ag, lucroLivre: lucroLivre, taxa: taxaDaVenda });
       });
@@ -405,10 +415,10 @@
             const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             corpoTb.innerHTML += `
               <tr style="background-color: rgba(239, 68, 68, 0.05);">
-                  <td class="text-light">${dFmt}</td><td><strong class="text-white">Caixa (Barbearia)</strong></td>
-                  <td><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small></td>
-                  <td class="fw-bold text-light">-</td><td class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})"><i class="bi bi-trash3"></i></button></td>
+                  <td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-white">Caixa (Barbearia)</strong></td>
+                  <td data-label="Descrição"><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small></td>
+                  <td data-label="Pagamento" class="fw-bold text-light">-</td><td data-label="Valor Líquido" class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})"><i class="bi bi-trash3"></i></button></td>
               </tr>`;
           }
         });
@@ -459,7 +469,7 @@
     if (pNorm.includes('CREDITO')) { cor = 'text-primary'; nPgto = '<i class="bi bi-credit-card"></i> Crédito'; }
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
-    return `<tr><td class="text-light">${dFmt}</td><td><strong class="text-main">${cl}</strong></td><td><small class="text-light">${desc}</small></td><td class="fw-bold ${cor}">${nPgto}</td><td class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td class="coluna-acao text-light"><span class="text-light">-</span></td></tr>`;
+    return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small></td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light"><span class="text-light">-</span></td></tr>`;
   }
 </script>
 </body>
