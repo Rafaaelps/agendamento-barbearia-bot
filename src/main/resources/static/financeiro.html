@@ -19,6 +19,9 @@
     }
     body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
 
+    .text-muted { color: var(--text-muted) !important; }
+    .text-secondary { color: var(--text-muted) !important; }
+
     .app-container { display: flex; height: 100vh; flex-direction: column;}
 
     .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
@@ -71,7 +74,6 @@
     .text-danger-custom { color: var(--danger-color) !important; }
     .text-warning-custom { color: var(--warning-color) !important; }
 
-    /* ✨ BARRA DE AÇÕES (Responsiva) */
     @media (min-width: 992px) {
         .action-bar-financeiro { display: flex; flex-direction: row; gap: 12px; align-items: center; justify-content: flex-end; }
         .action-bar-financeiro .buttons-grid { display: flex; gap: 12px; }
@@ -85,17 +87,21 @@
         .main-content { padding: 16px; }
         .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
 
-        /* Grade do Topo Mobile: Mês inteiro, 3 botões iguais embaixo */
         .action-bar-financeiro { display: flex; flex-direction: column; width: 100%; gap: 10px; }
         .action-bar-financeiro .month-container { width: 100%; }
         .action-bar-financeiro .buttons-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; }
-        .btn-modern { justify-content: center; padding-left: 5px; padding-right: 5px; }
+        .btn-modern { justify-content: center; padding-left: 5px; padding-right: 5px; font-size: 0.8rem;}
 
         .table-modern thead { display: none; }
         .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
         .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
         .table-modern tbody td:last-child { border-bottom: none; }
         .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+
+        /* ✨ CORREÇÃO DA MENSAGEM VAZIA NO MOBILE */
+        .empty-state-row { border: none !important; margin: 0 !important;}
+        .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; }
+        .empty-state-row td::before { display: none !important; }
     }
   </style>
 </head>
@@ -134,7 +140,7 @@
     </aside>
 
     <main class="main-content" id="area-relatorio">
-      <div class="page-header">
+      <div class="page-header flex-column flex-xl-row gap-3">
         <h1 class="page-title" id="titulo-pagina">Visão Financeira (BI)</h1>
         <h2 class="mb-0 d-none text-center w-100 fw-bold border-bottom border-secondary pb-2" id="titulo-pdf">💈 Relatório Financeiro</h2>
 
@@ -154,28 +160,28 @@
       <div class="row mb-4 g-3">
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-success h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Lucro no Bolso</h6>
             <h3 class="text-success-custom fw-bold mb-1" id="valor-lucro-liquido">R$ 0,00</h3>
             <small class="fw-bold" id="indicador-crescimento" style="font-size: 0.75rem;">-</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-primary h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Entradas Brutas</h6>
             <h3 class="fw-bold mb-1" style="color: var(--accent-primary);" id="valor-entradas">R$ 0,00</h3>
             <small class="text-light fw-bold" style="font-size: 0.75rem;">Cortes e Produtos</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-warning h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Saídas</h6>
             <h3 class="text-warning-custom fw-bold mb-1" id="valor-saidas">R$ 0,00</h3>
             <small class="text-light fw-bold" id="detalhe-saidas" style="font-size: 0.75rem;">Despesas: R$ 0 | Taxas: R$ 0</small>
           </div>
         </div>
         <div class="col-12 col-lg-3 col-md-6">
           <div class="custom-card metric-card metric-info h-100">
-            <h6 class="text-white text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
+            <h6 class="text-light text-uppercase mb-1 small fw-bold">Previsão (Clientes Fiéis)</h6>
             <h3 class="fw-bold mb-1" style="color: var(--info-color);" id="valor-previsao">R$ 0,00</h3>
             <small class="text-light fw-bold" style="font-size: 0.75rem;">Receita recorrente</small>
           </div>
@@ -186,7 +192,7 @@
         <div class="col-12 col-lg-4" id="coluna-grafico">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card">
-              <h6 class="mb-0 fw-bold text-white text-uppercase small">A Divisão do Dinheiro</h6>
+              <h6 class="mb-0 fw-bold text-light text-uppercase small">A Divisão do Dinheiro</h6>
             </div>
             <div class="card-body d-flex justify-content-center align-items-center flex-grow-1 p-4">
               <canvas id="graficoFinanceiro" style="max-height: 250px;"></canvas>
@@ -197,7 +203,7 @@
         <div class="col-12 col-lg-8" id="coluna-tabela">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card d-none d-md-block">
-              <h6 class="mb-0 fw-bold text-white text-uppercase small">Extrato Detalhado da Conta</h6>
+              <h6 class="mb-0 fw-bold text-light text-uppercase small">Extrato Detalhado da Conta</h6>
             </div>
             <div id="container-tabela-extrato" class="table-responsive flex-grow-1" style="max-height: 400px;">
               <table class="table table-modern text-center align-middle mb-0">
@@ -219,6 +225,34 @@
         </div>
       </div>
     </main>
+  </div>
+</div>
+
+<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-fin-id">
+        <div class="mb-3">
+          <label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label>
+          <input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01">
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label>
+          <select id="edit-fin-pgto" class="form-select custom-select fw-bold">
+            <option value="CREDITO">Cartão de Crédito</option>
+            <option value="DEBITO">Cartão de Débito</option>
+            <option value="PIX_DINHEIRO">Dinheiro / PIX</option>
+            <option value="PENDENTE">Pendente</option>
+          </select>
+        </div>
+        <button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -345,6 +379,39 @@
     document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = '');
   }
 
+  // ✨ FUNÇÕES DE EDIÇÃO FINANCEIRA
+  function abrirModalEditarFinanceiro(id, valorFinal, pgto) {
+      document.getElementById('edit-fin-id').value = id;
+      document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2);
+
+      let pNorm = (pgto || '').toUpperCase();
+      let selectPgto = document.getElementById('edit-fin-pgto');
+      if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO';
+      else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO';
+      else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) selectPgto.value = 'PIX_DINHEIRO';
+      else selectPgto.value = 'PENDENTE';
+
+      new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show();
+  }
+
+  async function salvarEdicaoFinanceira() {
+      const id = document.getElementById('edit-fin-id').value;
+      const novoValor = document.getElementById('edit-fin-valor').value;
+      const novoPgto = document.getElementById('edit-fin-pgto').value;
+
+      try {
+          // Atualiza o valor no banco
+          await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' });
+          // Atualiza o pagamento (passando pela regra das taxas)
+          await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' });
+
+          bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide();
+          carregarFinanceiro();
+      } catch (e) {
+          alert("Erro ao editar o lançamento financeiro.");
+      }
+  }
+
   async function abrirModalTaxas() { const res = await fetch('/api/configuracoes/taxas'); const taxas = await res.json(); document.getElementById('taxa-credito').value = taxas.credito; document.getElementById('taxa-debito').value = taxas.debito; new bootstrap.Modal(document.getElementById('modalTaxas')).show(); }
   async function salvarTaxas() { await fetch('/api/configuracoes/taxas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credito: parseFloat(document.getElementById('taxa-credito').value.replace(',','.')) || 0, debito: parseFloat(document.getElementById('taxa-debito').value.replace(',','.')) || 0 }) }); bootstrap.Modal.getInstance(document.getElementById('modalTaxas')).hide(); }
   function abrirModalDespesa() { document.getElementById('desc-despesa').value = ''; document.getElementById('valor-despesa').value = ''; new bootstrap.Modal(document.getElementById('modalDespesa')).show(); }
@@ -384,7 +451,9 @@
 
         receitaBruta += precoCheio; taxasTotal += taxaDaVenda;
         let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
-        extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: ag, lucroLivre: lucroLivre, taxa: taxaDaVenda });
+
+        // Passando também o precoCheio para a tabela poder editar
+        extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: ag, lucroLivre: lucroLivre, taxa: taxaDaVenda, precoCheio: precoCheio });
       });
 
       todasV.filter(v => ehDoMesmoMes(v.dataHoraVenda, mesEscolhido)).forEach(v => {
@@ -406,11 +475,17 @@
       extratoMisto.sort((a, b) => new Date(b.data) - new Date(a.data));
       const corpoTb = document.getElementById('tabela-extrato'); corpoTb.innerHTML = '';
 
-      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro neste mês.</td></tr>';
+      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro neste mês.</td></tr>';
       else {
         extratoMisto.forEach(item => {
-          if (item.tipo === 'CORTE') corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}`, item.obj.formaPagamento, item.lucroLivre);
-          else if (item.tipo === 'VENDA') corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", `<i class="bi bi-box-seam"></i> ${item.obj.quantidade}x ${item.obj.produto.nome}`, item.obj.formaPagamento, item.lucroLivre);
+          if (item.tipo === 'CORTE') {
+              // ✨ BOTÃO DE EDITAR ADICIONADO AQUI
+              let btnEdit = `<button class="btn btn-sm btn-outline-primary border-0" onclick="abrirModalEditarFinanceiro(${item.obj.id}, ${item.precoCheio}, '${item.obj.formaPagamento}')" title="Editar Lançamento"><i class="bi bi-pencil-square fs-6"></i></button>`;
+              corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}`, item.obj.formaPagamento, item.lucroLivre, btnEdit);
+          }
+          else if (item.tipo === 'VENDA') {
+              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", `<i class="bi bi-box-seam"></i> ${item.obj.quantidade}x ${item.obj.produto.nome}`, item.obj.formaPagamento, item.lucroLivre);
+          }
           else if (item.tipo === 'DESPESA') {
             const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             corpoTb.innerHTML += `
@@ -418,7 +493,7 @@
                   <td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-white">Caixa (Barbearia)</strong></td>
                   <td data-label="Descrição"><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small></td>
                   <td data-label="Pagamento" class="fw-bold text-light">-</td><td data-label="Valor Líquido" class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})"><i class="bi bi-trash3"></i></button></td>
+                  <td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})" title="Apagar"><i class="bi bi-trash3 fs-6"></i></button></td>
               </tr>`;
           }
         });
@@ -462,14 +537,16 @@
     } catch (e) { console.error(e); }
   }
 
-  function criarLinhaTabela(data, cl, desc, pgto, val) {
+  // ✨ Parâmetro acaoExtra adicionado
+  function criarLinhaTabela(data, cl, desc, pgto, val, acaoExtra = '<span class="text-light">-</span>') {
     const dFmt = new Date(data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     let p = pgto || '', pNorm = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     let cor = 'text-light', nPgto = p;
     if (pNorm.includes('CREDITO')) { cor = 'text-primary'; nPgto = '<i class="bi bi-credit-card"></i> Crédito'; }
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
-    return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small></td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light"><span class="text-light">-</span></td></tr>`;
+
+    return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small></td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 </script>
 </body>
