@@ -24,7 +24,6 @@ public class AdminController {
         this.logRepository = logRepository;
     }
 
-    // Apenas usuários ATIVOS aparecem nos relatórios/menus
     @GetMapping("/funcionarios")
     public ResponseEntity<List<Usuario>> listarFuncionarios() {
         if (!isAdmin()) return ResponseEntity.status(403).build();
@@ -41,13 +40,14 @@ public class AdminController {
         return ResponseEntity.ok(logs);
     }
 
-    // ✨ GERENCIAMENTO DE USUÁRIOS
     @PostMapping("/usuarios")
     public ResponseEntity<Usuario> criarUsuario(@RequestBody Usuario novoUsuario) {
         if (!isAdmin()) return ResponseEntity.status(403).build();
         novoUsuario.setAtivo(true);
         if(novoUsuario.getTaxaCredito() == null) novoUsuario.setTaxaCredito(5.0);
         if(novoUsuario.getTaxaDebito() == null) novoUsuario.setTaxaDebito(2.0);
+        // Garante que se vier vazio, seja 0%
+        if(novoUsuario.getTaxaComissaoProduto() == null) novoUsuario.setTaxaComissaoProduto(0.0);
         return ResponseEntity.ok(usuarioRepository.save(novoUsuario));
     }
 
@@ -62,7 +62,11 @@ public class AdminController {
             }
             usuario.setPerfil(dadosAtualizados.getPerfil());
             usuario.setInstanciaWhatsapp(dadosAtualizados.getInstanciaWhatsapp());
+
+            // ✨ Salvando as duas taxas
             usuario.setTaxaComissao(dadosAtualizados.getTaxaComissao());
+            usuario.setTaxaComissaoProduto(dadosAtualizados.getTaxaComissaoProduto());
+
             return ResponseEntity.ok(usuarioRepository.save(usuario));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -71,7 +75,7 @@ public class AdminController {
     public ResponseEntity<?> excluirUsuario(@PathVariable Long id) {
         if (!isAdmin()) return ResponseEntity.status(403).build();
         return usuarioRepository.findById(id).map(usuario -> {
-            usuario.setAtivo(false); // Lixeira Inteligente (Soft Delete)
+            usuario.setAtivo(false);
             usuarioRepository.save(usuario);
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());

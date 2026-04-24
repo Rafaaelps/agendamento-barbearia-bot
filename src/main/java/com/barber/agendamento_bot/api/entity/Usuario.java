@@ -9,7 +9,6 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String nome;
 
     @Column(unique = true)
@@ -18,14 +17,16 @@ public class Usuario {
     private String senha;
     private String perfil;
     private String instanciaWhatsapp;
-    private Double taxaComissao;
+    private Boolean ativo = true;
 
-    // ✨ NOVAS VARIÁVEIS PARA O NOVO RECURSO
-    private Boolean ativo = true; // Soft Delete (Lixeira Inteligente)
-    private Double taxaCredito = 5.0; // Taxa padrão inicial
+    private Double taxaCredito = 5.0;
     private Double taxaDebito = 2.0;
     private Boolean botAtivo = false;
     private Integer minutosConfirmacao = 30;
+
+    // ✨ AS DUAS COMISSÕES SEPARADAS!
+    private Double taxaComissao; // Para Serviços
+    private Double taxaComissaoProduto; // Para Estoque
 
     // --- GETTERS E SETTERS ---
     public Long getId() { return id; }
@@ -40,10 +41,6 @@ public class Usuario {
     public void setPerfil(String perfil) { this.perfil = perfil; }
     public String getInstanciaWhatsapp() { return instanciaWhatsapp; }
     public void setInstanciaWhatsapp(String instanciaWhatsapp) { this.instanciaWhatsapp = instanciaWhatsapp; }
-    public Double getTaxaComissao() { return taxaComissao; }
-    public void setTaxaComissao(Double taxaComissao) { this.taxaComissao = taxaComissao; }
-
-    // ✨ NOVOS GETTERS E SETTERS
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
     public Double getTaxaCredito() { return taxaCredito; }
@@ -54,4 +51,11 @@ public class Usuario {
     public void setBotAtivo(Boolean botAtivo) { this.botAtivo = botAtivo; }
     public Integer getMinutosConfirmacao() { return minutosConfirmacao; }
     public void setMinutosConfirmacao(Integer minutosConfirmacao) { this.minutosConfirmacao = minutosConfirmacao; }
+
+    public Double getTaxaComissao() { return taxaComissao; }
+    public void setTaxaComissao(Double taxaComissao) { this.taxaComissao = taxaComissao; }
+
+    // ✨ Novo Getter e Setter
+    public Double getTaxaComissaoProduto() { return taxaComissaoProduto; }
+    public void setTaxaComissaoProduto(Double taxaComissaoProduto) { this.taxaComissaoProduto = taxaComissaoProduto; }
 }

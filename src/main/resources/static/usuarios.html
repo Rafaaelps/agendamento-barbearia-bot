@@ -127,10 +127,9 @@
             <thead>
             <tr>
               <th>Nome</th>
-              <th>Perfil</th>
-              <th>Login</th>
-              <th>Comissão do Salão</th>
+              <th>Perfil / Login</th>
               <th>Instância WPP</th>
+              <th>Comissão do Salão</th>
               <th>Ações</th>
             </tr>
             </thead>
@@ -167,18 +166,23 @@
             <small class="text-muted" style="font-size:0.65rem">Vazio para não alterar</small>
           </div>
         </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold text-light small">PERFIL</label>
+          <select id="perfil-usuario" class="form-select custom-select">
+            <option value="BARBEIRO">Barbeiro / Funcionário</option>
+            <option value="ADMIN">Administrador (Sócio)</option>
+          </select>
+        </div>
+
         <div class="row mb-3 g-2">
           <div class="col-6">
-            <label class="form-label fw-bold text-light small">PERFIL</label>
-            <select id="perfil-usuario" class="form-select custom-select">
-              <option value="BARBEIRO">Barbeiro / Funcionário</option>
-              <option value="ADMIN">Administrador (Sócio)</option>
-            </select>
+            <label class="form-label fw-bold text-light small">TAXA SERVIÇOS (%)</label>
+            <input type="number" id="taxa-comissao" class="form-control custom-input" step="0.1" placeholder="Ex: 40">
           </div>
           <div class="col-6">
-            <label class="form-label fw-bold text-light small">TAXA DO SALÃO (%)</label>
-            <input type="number" id="taxa-comissao" class="form-control custom-input" step="0.1" placeholder="Ex: 40">
-            <small class="text-muted" style="font-size:0.65rem">Ex: 40% fica pra barbearia</small>
+            <label class="form-label fw-bold text-info small">TAXA PRODUTOS (%)</label>
+            <input type="number" id="taxa-comissao-produto" class="form-control custom-input border-info" step="0.1" placeholder="Ex: 10">
           </div>
         </div>
         <div class="mb-3">
@@ -219,7 +223,7 @@
                   document.getElementById('menu-usuarios').classList.remove('d-none');
                   return true;
               } else {
-                  window.location.href = "index.html"; // Bloqueia funcionário curioso
+                  window.location.href = "index.html";
               }
           }
       } catch(e) {}
@@ -235,18 +239,23 @@
           usuarios.forEach(u => {
               let badgePerfil = u.perfil === 'ADMIN' ? '<span class="badge-modern badge-primary">ADMIN</span>' : '<span class="badge-modern badge-success">BARBEIRO</span>';
               let wpp = u.instanciaWhatsapp || '<small class="text-muted">Sem Instância</small>';
-              let comissao = u.taxaComissao != null ? `${u.taxaComissao}%` : '0%';
+
+              // Exibe as duas comissões de forma limpa
+              let comissaoServ = u.taxaComissao != null ? `${u.taxaComissao}%` : '0%';
+              let comissaoProd = u.taxaComissaoProduto != null ? `${u.taxaComissaoProduto}%` : '0%';
 
               corpo.innerHTML += `
                   <tr>
                       <td data-label="Nome"><strong class="text-white">${u.nome}</strong></td>
-                      <td data-label="Perfil">${badgePerfil}</td>
-                      <td data-label="Login" class="text-light fw-bold">${u.login}</td>
-                      <td data-label="Comissão" class="text-warning fw-bold">${comissao}</td>
+                      <td data-label="Perfil / Login">${badgePerfil} <br> <small class="text-light">${u.login}</small></td>
                       <td data-label="WPP Instância" class="text-light"><i class="bi bi-whatsapp text-success me-1"></i> ${wpp}</td>
+                      <td data-label="Comissão do Salão" class="text-warning fw-bold text-start ps-md-4">
+                          ✂️ Serv: ${comissaoServ} <br>
+                          <span class="text-info">📦 Prod: ${comissaoProd}</span>
+                      </td>
                       <td data-label="Ações">
                           <div class="d-flex justify-content-end gap-2">
-                              <button class="btn btn-sm btn-outline-modern border-0" onclick="abrirModalUsuario(${u.id}, '${u.nome}', '${u.login}', '${u.perfil}', '${u.instanciaWhatsapp || ''}', ${u.taxaComissao || 0})"><i class="bi bi-pencil-square fs-6"></i></button>
+                              <button class="btn btn-sm btn-outline-modern border-0" onclick="abrirModalUsuario(${u.id}, '${u.nome}', '${u.login}', '${u.perfil}', '${u.instanciaWhatsapp || ''}', ${u.taxaComissao || 0}, ${u.taxaComissaoProduto || 0})"><i class="bi bi-pencil-square fs-6"></i></button>
                               <button class="btn btn-sm btn-outline-danger border-0" onclick="excluirUsuario(${u.id})"><i class="bi bi-trash3 fs-6"></i></button>
                           </div>
                       </td>
@@ -255,7 +264,8 @@
       } catch (erro) { console.error("Erro usuarios:", erro); }
   }
 
-  function abrirModalUsuario(id='', nome='', login='', perfil='BARBEIRO', wpp='', comissao='') {
+  // ✨ Atualizado para puxar a comissaoProduto
+  function abrirModalUsuario(id='', nome='', login='', perfil='BARBEIRO', wpp='', comissao='', comissaoProduto='') {
       document.getElementById('id-usuario').value = id;
       document.getElementById('nome-usuario').value = nome;
       document.getElementById('login-usuario').value = login;
@@ -263,6 +273,7 @@
       document.getElementById('perfil-usuario').value = perfil;
       document.getElementById('wpp-usuario').value = wpp;
       document.getElementById('taxa-comissao').value = comissao;
+      document.getElementById('taxa-comissao-produto').value = comissaoProduto;
       document.getElementById('tituloModal').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Usuário' : '<i class="bi bi-person-plus text-primary me-2"></i> Novo Usuário';
       new bootstrap.Modal(document.getElementById('modalUsuario')).show();
   }
@@ -275,6 +286,7 @@
           senha: document.getElementById('senha-usuario').value,
           perfil: document.getElementById('perfil-usuario').value,
           taxaComissao: document.getElementById('taxa-comissao').value,
+          taxaComissaoProduto: document.getElementById('taxa-comissao-produto').value, // Envia para o Java!
           instanciaWhatsapp: document.getElementById('wpp-usuario').value
       };
       if (!d.nome || !d.login) return alert("Nome e Login são obrigatórios!");

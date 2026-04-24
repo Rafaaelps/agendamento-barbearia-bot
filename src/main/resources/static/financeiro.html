@@ -275,8 +275,6 @@
 
               if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
                   document.getElementById('menu-usuarios').classList.remove('d-none');
-
-                  // ✨ Apenas o Admin vê o botão de Custos
                   document.getElementById('btn-custo').classList.remove('d-none');
 
                   const resFunc = await fetch('/api/admin/funcionarios');
@@ -353,7 +351,7 @@
                     <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
                         <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
                         <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${taxaDaVenda.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
+                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                     </div>`;
             }
         }
@@ -387,19 +385,55 @@
         let valorPosCartao = Number(v.valorTotal || 0);
         let taxaDaVenda = Math.max(0, precoCheio - valorPosCartao);
 
+        // ✨ A MÁGICA DOS PRODUTOS ACONTECE AQUI!
+        let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
+        let comissaoSalao = valorPosCartao * txSalaoProd;
+        let fatBarbeiro = valorPosCartao - comissaoSalao;
+
         let valorLiquidoExibicao = 0;
         let idDonoDestaVenda = donoVenda ? donoVenda.id : idLogado;
+        let detalheComissaoHtml = '';
 
-        if (isAdmin && fBarbeiro === 'TODOS' && idDonoDestaVenda != idLogado) {
-            return; // Oculta a venda da pomada de terceiros
+        if (isAdmin && fBarbeiro === 'TODOS') {
+            if (idDonoDestaVenda == idLogado) {
+                receitaBruta += precoCheio;
+                taxasTotal += taxaDaVenda;
+                valorLiquidoExibicao = precoCheio - taxaDaVenda;
+            } else {
+                // Se não tem comissão de produto, o admin nem vê esse lucro.
+                if (comissaoSalao > 0) {
+                    receitaBruta += comissaoSalao;
+                    valorLiquidoExibicao = comissaoSalao;
+                    detalheComissaoHtml = `
+                    <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
+                        <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
+                        <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${taxaDaVenda.toFixed(2)}</span></div>
+                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
+                    </div>`;
+                } else {
+                    return; // Aborta e esconde da tela se o admin ganha R$ 0 na venda
+                }
+            }
+        }
+        else {
+            receitaBruta += precoCheio;
+            taxasTotal += taxaDaVenda;
+            valorLiquidoExibicao = fatBarbeiro;
+            comissoesRetidasPeloSalao += comissaoSalao;
+
+            if (isAdmin && idDonoDestaVenda != idLogado && comissaoSalao > 0) {
+                detalheComissaoHtml = `
+                <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
+                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${taxaDaVenda.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
+                </div>`;
+            }
         }
 
-        receitaBruta += precoCheio;
-        taxasTotal += taxaDaVenda;
-        valorLiquidoExibicao = valorPosCartao;
-
         let dataString = Array.isArray(v.dataHoraVenda) ? `${v.dataHoraVenda[0]}-${String(v.dataHoraVenda[1]).padStart(2,'0')}-${String(v.dataHoraVenda[2]).padStart(2,'0')}T${String(v.dataHoraVenda[3]).padStart(2,'0')}:${String(v.dataHoraVenda[4]).padStart(2,'0')}` : v.dataHoraVenda;
-        extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: v, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda });
+        let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
+        extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda });
       });
 
       // --- DESPESAS ---
@@ -423,7 +457,8 @@
           }
           else if (item.tipo === 'VENDA') {
               let donoVenda = item.obj.produto ? item.obj.produto.donoDoRegistro : null;
-              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", `<i class="bi bi-box-seam"></i> ${item.obj.quantidade}x ${item.obj.produto.nome}`, item.obj.formaPagamento, item.lucroLivre, donoVenda, '<span class="text-light">-</span>', isAdmin);
+              let descricaoFinal = `<i class="bi bi-box-seam"></i> ${item.obj.quantidade}x ${item.obj.produto.nome}${item.obj.detalheHtml || ''}`;
+              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", descricaoFinal, item.obj.formaPagamento, item.lucroLivre, donoVenda, '<span class="text-light">-</span>', isAdmin);
           }
           else if (item.tipo === 'DESPESA') {
             const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -484,7 +519,9 @@
     const selectFiltro = document.getElementById('filtro-barbeiro');
     const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
-    let nomeDono = (barbeiroObj && ehAdmin && fBarbeiro === 'TODOS') ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
+    // ✨ A TAG DO BARBEIRO APARECE SE NÃO TIVER O RECIBO
+    let hideSelo = desc.includes("Valor Cobrado");
+    let nomeDono = (barbeiroObj && ehAdmin && fBarbeiro === 'TODOS' && !hideSelo) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
 
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
