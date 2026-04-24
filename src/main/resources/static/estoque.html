@@ -198,14 +198,12 @@
 
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
-            let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
             let seloDono = (p.donoDoRegistro && isAdmin) ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
 
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
                     <div class="custom-card w-100 position-relative p-4 text-center d-flex flex-column">
-                        ${btnExcluir}
                         <div class="flex-grow-1">
                             <small class="text-light fw-bold d-block mb-1">ID: #${p.id}</small>
                             <h5 class="fw-bold text-white mt-2">${p.nome}</h5>

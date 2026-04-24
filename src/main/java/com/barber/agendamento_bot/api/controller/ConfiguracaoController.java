@@ -1,66 +1,127 @@
 package com.barber.agendamento_bot.api.controller;
 
-import com.barber.agendamento_bot.api.entity.Configuracao;
-import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
+import com.barber.agendamento_bot.api.entity.HorarioFuncionamento;
+import com.barber.agendamento_bot.api.entity.Usuario;
+import com.barber.agendamento_bot.api.repository.HorarioRepository;
+import com.barber.agendamento_bot.api.repository.UsuarioRepository;
+import com.barber.agendamento_bot.api.service.AgendaService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/configuracoes")
+@RequestMapping("/api")
 public class ConfiguracaoController {
 
-    private final ConfiguracaoRepository repository;
+    private final UsuarioRepository usuarioRepository;
+    private final HorarioRepository horarioRepository;
+    private final AgendaService agendaService;
 
-    public ConfiguracaoController(ConfiguracaoRepository repository) {
-        this.repository = repository;
+    public ConfiguracaoController(UsuarioRepository usuarioRepository, HorarioRepository horarioRepository, AgendaService agendaService) {
+        this.usuarioRepository = usuarioRepository;
+        this.horarioRepository = horarioRepository;
+        this.agendaService = agendaService;
     }
 
-    @GetMapping("/geral")
-    public Map<String, Object> getConfigs() {
-        String credito = repository.findById("TAXA_CREDITO").map(Configuracao::getValor).orElse("5.0");
-        String debito = repository.findById("TAXA_DEBITO").map(Configuracao::getValor).orElse("2.0");
+    private Usuario getLogado() {
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepository.findByLogin(login).orElse(null);
+    }
 
-        String botAtivo = repository.findById("BOT_CONFIRMACAO_ATIVO").map(Configuracao::getValor).orElse("false");
-        String minutos = repository.findById("BOT_MINUTOS_CONFIRMACAO").map(Configuracao::getValor).orElse("35");
+    // =========================================================
+    // 1. CONFIGURAÇÕES DO ROBÔ E TAXAS (AGORA SÃO INDIVIDUAIS)
+    // =========================================================
+    @GetMapping("/configuracoes/geral")
+    public ResponseEntity<Map<String, Object>> getConfigs() {
+        Usuario u = getLogado();
+        if (u == null) return ResponseEntity.status(401).build();
 
         Map<String, Object> configs = new HashMap<>();
-        configs.put("taxaCredito", Double.parseDouble(credito));
-        configs.put("taxaDebito", Double.parseDouble(debito));
-        configs.put("botAtivo", Boolean.parseBoolean(botAtivo));
-        configs.put("minutosConfirmacao", Integer.parseInt(minutos));
+        configs.put("botAtivo", u.getBotAtivo() != null ? u.getBotAtivo() : false);
+        configs.put("minutosConfirmacao", u.getMinutosConfirmacao() != null ? u.getMinutosConfirmacao() : 30);
+        configs.put("taxaCredito", u.getTaxaCredito() != null ? u.getTaxaCredito() : 5.0);
+        configs.put("taxaDebito", u.getTaxaDebito() != null ? u.getTaxaDebito() : 2.0);
 
-        return configs;
+        // Retrocompatibilidade para o JS do financeiro não quebrar
+        configs.put("credito", u.getTaxaCredito() != null ? u.getTaxaCredito() : 5.0);
+        configs.put("debito", u.getTaxaDebito() != null ? u.getTaxaDebito() : 2.0);
+
+        return ResponseEntity.ok(configs);
     }
 
-    @PostMapping("/geral")
-    public void setConfigs(@RequestBody Map<String, Object> configs) {
-        if (configs.containsKey("taxaCredito"))
-            repository.save(new Configuracao("TAXA_CREDITO", String.valueOf(configs.get("taxaCredito"))));
-        if (configs.containsKey("taxaDebito"))
-            repository.save(new Configuracao("TAXA_DEBITO", String.valueOf(configs.get("taxaDebito"))));
-        if (configs.containsKey("botAtivo"))
-            repository.save(new Configuracao("BOT_CONFIRMACAO_ATIVO", String.valueOf(configs.get("botAtivo"))));
-        if (configs.containsKey("minutosConfirmacao"))
-            repository.save(new Configuracao("BOT_MINUTOS_CONFIRMACAO", String.valueOf(configs.get("minutosConfirmacao"))));
+    @PostMapping("/configuracoes/geral")
+    public ResponseEntity<?> setConfigs(@RequestBody Map<String, Object> payload) {
+        Usuario u = getLogado();
+        if (u == null) return ResponseEntity.status(401).build();
+
+        if (payload.containsKey("botAtivo")) u.setBotAtivo((Boolean) payload.get("botAtivo"));
+        if (payload.containsKey("minutosConfirmacao")) u.setMinutosConfirmacao(Integer.parseInt(payload.get("minutosConfirmacao").toString()));
+
+        if (payload.containsKey("taxaCredito")) u.setTaxaCredito(Double.parseDouble(payload.get("taxaCredito").toString()));
+        else if (payload.containsKey("credito")) u.setTaxaCredito(Double.parseDouble(payload.get("credito").toString()));
+
+        if (payload.containsKey("taxaDebito")) u.setTaxaDebito(Double.parseDouble(payload.get("taxaDebito").toString()));
+        else if (payload.containsKey("debito")) u.setTaxaDebito(Double.parseDouble(payload.get("debito").toString()));
+
+        usuarioRepository.save(u);
+        return ResponseEntity.ok().build();
     }
 
-    // Mantém a rota antiga "/taxas" funcionando para o financeiro.html não quebrar
-    @GetMapping("/taxas")
-    public Map<String, Double> getTaxas() {
-        Map<String, Object> geral = getConfigs();
-        Map<String, Double> taxas = new HashMap<>();
-        taxas.put("credito", (Double) geral.get("taxaCredito"));
-        taxas.put("debito", (Double) geral.get("taxaDebito"));
-        return taxas;
+    // =========================================================
+    // 2. HORÁRIOS DE FUNCIONAMENTO (INDIVIDUAIS POR BARBEIRO)
+    // =========================================================
+    @GetMapping("/horarios")
+    public ResponseEntity<List<HorarioFuncionamento>> getHorarios() {
+        Usuario u = getLogado();
+        if (u == null) return ResponseEntity.status(401).build();
+
+        List<HorarioFuncionamento> horarios = horarioRepository.findAllByDonoDoRegistroOrderByDiaDaSemanaAsc(u);
+
+        // Se o barbeiro for novo e não tiver horários, cria a semana automaticamente para ele!
+        if (horarios.isEmpty()) {
+            String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
+            for (int i = 1; i <= 7; i++) {
+                HorarioFuncionamento h = new HorarioFuncionamento();
+                h.setDiaDaSemana(i);
+                h.setNomeDia(dias[i]);
+                h.setHoraAbertura("09:00");
+                h.setHoraFechamento("19:00");
+                h.setFechado(i == 7); // Domingo fechado por padrão
+                h.setDonoDoRegistro(u);
+                horarioRepository.save(h);
+                horarios.add(h);
+            }
+        }
+        return ResponseEntity.ok(horarios);
     }
 
-    @PostMapping("/taxas")
-    public void setTaxas(@RequestBody Map<String, Double> taxas) {
-        Map<String, Object> formatado = new HashMap<>();
-        if (taxas.containsKey("credito")) formatado.put("taxaCredito", taxas.get("credito"));
-        if (taxas.containsKey("debito")) formatado.put("taxaDebito", taxas.get("debito"));
-        setConfigs(formatado);
+    @PutMapping("/horarios")
+    public ResponseEntity<?> salvarHorarios(@RequestBody List<HorarioFuncionamento> alterados) {
+        Usuario u = getLogado();
+        for (HorarioFuncionamento h : alterados) {
+            HorarioFuncionamento db = horarioRepository.findById(h.getId()).orElse(null);
+
+            // Segurança: Só altera se o horário pertencer ao usuário logado!
+            if (db != null && db.getDonoDoRegistro() != null && db.getDonoDoRegistro().getId().equals(u.getId())) {
+                db.setHoraAbertura(h.getHoraAbertura());
+                db.setHoraFechamento(h.getHoraFechamento());
+                db.setFechado(h.isFechado());
+                horarioRepository.save(db);
+            }
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    // =========================================================
+    // 3. EXCLUSÃO DE BLOQUEIOS DA AGENDA
+    // =========================================================
+    @DeleteMapping("/agendamentos/bloqueios/{id}")
+    public ResponseEntity<?> removerBloqueio(@PathVariable Long id) {
+        agendaService.removerBloqueio(id);
+        return ResponseEntity.ok().build();
     }
 }

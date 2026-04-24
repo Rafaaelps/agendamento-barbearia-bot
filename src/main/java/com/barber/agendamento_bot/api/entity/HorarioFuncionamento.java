@@ -1,31 +1,28 @@
 package com.barber.agendamento_bot.api.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "horarios_funcionamento")
+@Table(name = "horarios")
 public class HorarioFuncionamento {
 
+    // ✨ MUDANÇA CRÍTICA: Agora tem um ID próprio e o dono do registro
     @Id
-    private Integer diaDaSemana; // 1 = Segunda, 2 = Terça ... 7 = Domingo
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
+    private Integer diaDaSemana; // 1 = Segunda, 7 = Domingo
     private String nomeDia;
     private String horaAbertura;
     private String horaFechamento;
-    private boolean fechado; // true se for dia de folga
+    private boolean fechado;
 
-    public HorarioFuncionamento() {}
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario donoDoRegistro;
 
-    public HorarioFuncionamento(Integer diaDaSemana, String nomeDia, String horaAbertura, String horaFechamento, boolean fechado) {
-        this.diaDaSemana = diaDaSemana;
-        this.nomeDia = nomeDia;
-        this.horaAbertura = horaAbertura;
-        this.horaFechamento = horaFechamento;
-        this.fechado = fechado;
-    }
-
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public Integer getDiaDaSemana() { return diaDaSemana; }
     public void setDiaDaSemana(Integer diaDaSemana) { this.diaDaSemana = diaDaSemana; }
     public String getNomeDia() { return nomeDia; }
@@ -36,4 +33,6 @@ public class HorarioFuncionamento {
     public void setHoraFechamento(String horaFechamento) { this.horaFechamento = horaFechamento; }
     public boolean isFechado() { return fechado; }
     public void setFechado(boolean fechado) { this.fechado = fechado; }
+    public Usuario getDonoDoRegistro() { return donoDoRegistro; }
+    public void setDonoDoRegistro(Usuario donoDoRegistro) { this.donoDoRegistro = donoDoRegistro; }
 }

@@ -19,8 +19,6 @@ public class AgendaService {
     private final ServicoRepository servicoRepository;
     private final BloqueioAgendaRepository bloqueioAgendaRepository;
     private final HorarioRepository horarioRepository;
-
-    // ✨ NOVAS INJEÇÕES
     private final UsuarioRepository usuarioRepository;
     private final LogService logService;
 
@@ -33,7 +31,6 @@ public class AgendaService {
         this.logService = logService;
     }
 
-    // ✨ FUNÇÃO AUXILIAR PARA DESCOBRIR QUEM ESTÁ LOGADO NO PAINEL
     private Usuario getUsuarioLogado() {
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepository.findByLogin(login).orElse(null);
@@ -42,6 +39,9 @@ public class AgendaService {
     public boolean tentarAgendar(Agendamento novo) {
         Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
         novo.setServicoEscolhido(servicoCompleto);
+
+        Usuario barbeiro = novo.getDonoDoRegistro(); // O dono vem atrelado do robô ou da tela
+        if (barbeiro == null) return false;
 
         LocalDateTime inicio = novo.getDataHoraInicio();
         LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos());
@@ -54,7 +54,8 @@ public class AgendaService {
         if (inicio.isBefore(LocalDateTime.now(fusoBR))) return false;
 
         int diaSemanaId = inicio.getDayOfWeek().getValue();
-        HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
+        // ✨ Usa o horário individual do barbeiro
+        HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
         if (regrasDoDia == null || regrasDoDia.isFechado()) return false;
 
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
@@ -62,15 +63,15 @@ public class AgendaService {
 
         if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) return false;
 
-        List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAll();
+        // ✨ Usa os bloqueios e agendamentos SÓ do barbeiro
+        List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
         for (BloqueioAgenda bloqueio : bloqueios) {
             if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
             if (inicio.isBefore(bloqueio.getDataHoraFim()) && fim.isAfter(bloqueio.getDataHoraInicio())) return false;
         }
 
-        List<Agendamento> noBanco = agendamentoRepository.findByStatusNot("CANCELADO");
+        List<Agendamento> noBanco = agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", barbeiro);
         for (Agendamento existente : noBanco) {
-            // O robô agenda direto no WhatsApp, então a checagem é global pro salão inteiro (ou adapte para o dono)
             if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) return false;
         }
 
@@ -81,39 +82,24 @@ public class AgendaService {
     public void forcarAgendamento(Agendamento novo) {
         Usuario logado = getUsuarioLogado();
         if(logado == null) return;
-
         Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
         novo.setServicoEscolhido(servicoCompleto);
-
-        // ✨ ATRELA O ENCAIXE AO BARBEIRO LOGADO
         novo.setDonoDoRegistro(logado);
-
         LocalDateTime inicio = novo.getDataHoraInicio();
         LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos());
-
-        novo.setValorFinal(servicoCompleto.getPreco());
-        novo.setDataHoraFim(fim);
-        novo.setStatus("AGENDADO");
-        novo.setFaturamentoBarbeiro(java.math.BigDecimal.ZERO);
-        novo.setFormaPagamento("PENDENTE");
-
+        novo.setValorFinal(servicoCompleto.getPreco()); novo.setDataHoraFim(fim); novo.setStatus("AGENDADO");
+        novo.setFaturamentoBarbeiro(java.math.BigDecimal.ZERO); novo.setFormaPagamento("PENDENTE");
         agendamentoRepository.save(novo);
-        System.out.println("⚠️ Encaixe realizado manualmente pelo barbeiro: " + novo.getNomeCliente());
-
-        // ✨ AUDITORIA
-        logService.registrarAcao("AGENDA", "ENCAIXE", "Realizou encaixe manual de " + servicoCompleto.getNome() + " para: " + novo.getNomeCliente());
+        logService.registrarAcao("AGENDA", "ENCAIXE", "Realizou encaixe manual para: " + novo.getNomeCliente());
     }
 
-    public void confirmarPresenca(Long id) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
-        agendamento.setStatus("CONFIRMADO");
-        agendamentoRepository.save(agendamento);
-    }
-
-    public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId) {
+    // ✨ NOVO: O método de buscar horários precisa saber de quem é a agenda que ele está lendo!
+    public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId, Usuario barbeiro) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
+        if (barbeiro == null) return horariosDisponiveis;
+
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
-        HorarioFuncionamento regrasDoDia = horarioRepository.findById(diaSemanaId).orElse(null);
+        HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
         if (regrasDoDia == null || regrasDoDia.isFechado()) return horariosDisponiveis;
 
@@ -123,8 +109,8 @@ public class AgendaService {
         Servico servicoEscolhido = servicoRepository.findById(servicoId).orElseThrow();
         int duracao = servicoEscolhido.getDuracaoMinutos();
 
-        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNot("CANCELADO");
-        List<BloqueioAgenda> todosBloqueios = bloqueioAgendaRepository.findAll();
+        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", barbeiro);
+        List<BloqueioAgenda> todosBloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDate dataDeHoje = LocalDate.now(fusoBR);
@@ -134,8 +120,7 @@ public class AgendaService {
 
         while (horarioTeste.plusMinutes(duracao).compareTo(fechamentoDoDia) <= 0) {
             if (dataBuscada.equals(dataDeHoje) && horarioTeste.isBefore(horaAtual.plusMinutes(15))) {
-                horarioTeste = horarioTeste.plusMinutes(30);
-                continue;
+                horarioTeste = horarioTeste.plusMinutes(30); continue;
             }
 
             LocalDateTime inicioTentativa = LocalDateTime.of(dataBuscada, horarioTeste);
@@ -145,8 +130,7 @@ public class AgendaService {
             for (Agendamento existente : todosNoBanco) {
                 if (existente.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
                     if (inicioTentativa.isBefore(existente.getDataHoraFim()) && fimTentativa.isAfter(existente.getDataHoraInicio())) {
-                        temConflito = true;
-                        break;
+                        temConflito = true; break;
                     }
                 }
             }
@@ -156,55 +140,36 @@ public class AgendaService {
                     if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
                     if (bloqueio.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
                         if (inicioTentativa.isBefore(bloqueio.getDataHoraFim()) && fimTentativa.isAfter(bloqueio.getDataHoraInicio())) {
-                            temConflito = true;
-                            break;
+                            temConflito = true; break;
                         }
                     }
                 }
             }
-
             if (!temConflito) horariosDisponiveis.add(horarioTeste);
             horarioTeste = horarioTeste.plusMinutes(30);
         }
-
         return horariosDisponiveis;
     }
 
-    // ✨ LISTAGEM ISOLADA POR BARBEIRO
-    public List<Agendamento> listarTodosOsAgendamentos() {
-        Usuario logado = getUsuarioLogado();
-        if (logado == null) return new ArrayList<>();
-
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
-            return agendamentoRepository.findByStatusNot("CANCELADO");
-        }
-
-        return agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", logado);
-    }
-
-    public void cancelarAgendamento(Long id) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
-        agendamento.setStatus("CANCELADO");
-        agendamentoRepository.save(agendamento);
-        logService.registrarAcao("AGENDA", "CANCELAMENTO", "Cancelou o agendamento de: " + agendamento.getNomeCliente());
-    }
+    public void confirmarPresenca(Long id) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setStatus("CONFIRMADO"); agendamentoRepository.save(ag); }
+    public void concluirAgendamento(Long id) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setStatus("CONCLUIDO"); agendamentoRepository.save(ag); }
+    public void cancelarAgendamento(Long id) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setStatus("CANCELADO"); agendamentoRepository.save(ag); logService.registrarAcao("AGENDA", "CANCELAMENTO", "Cancelou o agendamento de: " + ag.getNomeCliente()); }
+    public void atualizarValor(Long id, java.math.BigDecimal novoValor) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setValorFinal(novoValor); agendamentoRepository.save(ag); }
 
     public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
         List<Agendamento> lista = agendamentoRepository.findByTelefoneClienteAndStatusNot(telefone, "CANCELADO");
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
         Agendamento proximoAgendamento = null;
-
         for (Agendamento ag : lista) {
             if (ag.getDataHoraInicio().isAfter(agora) && ("CONFIRMADO".equals(ag.getStatus()) || "AGENDADO".equals(ag.getStatus()))) {
-                if (proximoAgendamento == null || ag.getDataHoraInicio().isBefore(proximoAgendamento.getDataHoraInicio())) {
-                    proximoAgendamento = ag;
-                }
+                if (proximoAgendamento == null || ag.getDataHoraInicio().isBefore(proximoAgendamento.getDataHoraInicio())) proximoAgendamento = ag;
             }
         }
         return proximoAgendamento;
     }
 
+    // ✨ REGRAS DOS BLOQUEIOS ISOLADOS
     public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
         Usuario logado = getUsuarioLogado();
         if(logado != null) novoBloqueio.setDonoDoRegistro(logado);
@@ -212,17 +177,7 @@ public class AgendaService {
         return bloqueioAgendaRepository.save(novoBloqueio);
     }
 
-    public void concluirAgendamento(Long id) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
-        agendamento.setStatus("CONCLUIDO");
-        agendamentoRepository.save(agendamento);
+    public void removerBloqueio(Long id) {
+        bloqueioAgendaRepository.deleteById(id);
     }
-
-    public void atualizarValor(Long id, java.math.BigDecimal novoValor) {
-        Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
-        agendamento.setValorFinal(novoValor);
-        agendamentoRepository.save(agendamento);
-    }
-
-    public List<BloqueioAgenda> listarBloqueios() { return bloqueioAgendaRepository.findAll(); }
 }

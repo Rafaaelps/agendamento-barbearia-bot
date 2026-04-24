@@ -24,6 +24,8 @@ public class Usuario {
     private Boolean ativo = true; // Soft Delete (Lixeira Inteligente)
     private Double taxaCredito = 5.0; // Taxa padrão inicial
     private Double taxaDebito = 2.0;
+    private Boolean botAtivo = false;
+    private Integer minutosConfirmacao = 30;
 
     // --- GETTERS E SETTERS ---
     public Long getId() { return id; }
@@ -48,4 +50,8 @@ public class Usuario {
     public void setTaxaCredito(Double taxaCredito) { this.taxaCredito = taxaCredito; }
     public Double getTaxaDebito() { return taxaDebito; }
     public void setTaxaDebito(Double taxaDebito) { this.taxaDebito = taxaDebito; }
+    public Boolean getBotAtivo() { return botAtivo; }
+    public void setBotAtivo(Boolean botAtivo) { this.botAtivo = botAtivo; }
+    public Integer getMinutosConfirmacao() { return minutosConfirmacao; }
+    public void setMinutosConfirmacao(Integer minutosConfirmacao) { this.minutosConfirmacao = minutosConfirmacao; }
 }
