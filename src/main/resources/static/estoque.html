@@ -157,6 +157,9 @@
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+                    // ✨ CORREÇÃO: Mostra o menu de usuários no sidebar para o Admin
+                    document.getElementById('menu-usuarios').classList.remove('d-none');
+
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
@@ -220,6 +223,7 @@
         });
     }
 
+    // Funções mantidas
     function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
     async function salvarProduto() { const id = document.getElementById('id-produto').value, d = { nome: document.getElementById('nome-produto').value, preco: document.getElementById('preco-produto').value, quantidadeEstoque: document.getElementById('qtd-produto').value }; if(!d.nome || !d.preco || !d.quantidadeEstoque) return alert("Preencha tudo!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }

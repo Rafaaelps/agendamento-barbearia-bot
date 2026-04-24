@@ -276,6 +276,9 @@
               if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
               if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+                  // ✨ CORREÇÃO: Mostra o menu de usuários no sidebar para o Admin
+                  document.getElementById('menu-usuarios').classList.remove('d-none');
+
                   const resFunc = await fetch('/api/admin/funcionarios');
                   if (resFunc.ok) {
                       const funcs = await resFunc.json();
@@ -353,7 +356,6 @@
           else if (item.tipo === 'DESPESA') {
             const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-            // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
             let seloDonoDespesa = (item.obj.donoDoRegistro && isAdmin) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${item.obj.donoDoRegistro.nome}</span>` : '';
 
             corpoTb.innerHTML += `<tr style="background-color: rgba(239, 68, 68, 0.05);"><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-white">Caixa (Barbearia)</strong></td><td data-label="Descrição"><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small>${seloDonoDespesa}</td><td data-label="Pagamento" class="fw-bold text-light">-</td><td data-label="Valor Líquido" class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})" title="Apagar"><i class="bi bi-trash3 fs-6"></i></button></td></tr>`;
@@ -392,7 +394,6 @@
     } catch (e) { console.error(e); }
   }
 
-  // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
   function criarLinhaTabela(data, cl, desc, pgto, val, barbeiroObj = null, acaoExtra = '<span class="text-light">-</span>', ehAdmin = false) {
     const dFmt = new Date(data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     let p = pgto || '', pNorm = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();

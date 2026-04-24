@@ -184,6 +184,9 @@
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+                    // ✨ CORREÇÃO: Mostra o menu de usuários no sidebar para o Admin
+                    document.getElementById('menu-usuarios').classList.remove('d-none');
+
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
