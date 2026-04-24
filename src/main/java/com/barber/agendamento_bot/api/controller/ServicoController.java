@@ -1,37 +1,52 @@
 package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Servico;
+import com.barber.agendamento_bot.api.entity.Usuario;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
+import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController // 1. Avisa ao Spring: "Esta classe é um Garçom (API REST)!"
-@RequestMapping("/api/servicos") // 2. Define o endereço (URL) para chamar este garçom
+@RestController
+@RequestMapping("/api/servicos")
 public class ServicoController {
 
     private final ServicoRepository servicoRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    // Construtor para injetar a conexão com o banco
-    public ServicoController(ServicoRepository servicoRepository) {
+    public ServicoController(ServicoRepository servicoRepository, UsuarioRepository usuarioRepository) {
         this.servicoRepository = servicoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    // 3. Quando alguém acessar essa URL pelo navegador, este método é acionado!
+    // ✨ AJUDA A DESCOBRIR QUEM ESTÁ LOGADO
+    private Usuario getUsuarioLogado() {
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepository.findByLogin(login).orElse(null);
+    }
+
     @GetMapping
     public List<Servico> listarTodosOsServicos() {
-        // Vai no banco de dados, pega todos os serviços e devolve para a internet
-        return servicoRepository.findAll();
+        Usuario logado = getUsuarioLogado();
+        if (logado == null) return List.of();
+
+        // ADMIN vê tudo, Barbeiro vê os dele
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return servicoRepository.findAll();
+        }
+        return servicoRepository.findAllByDonoDoRegistro(logado);
     }
 
-    // ✨ NOVO: Garçom que recebe o pedido da tela para CRIAR um novo serviço
     @PostMapping
     public Servico criar(@RequestBody Servico servico) {
+        Usuario logado = getUsuarioLogado();
+        if (logado != null) servico.setDonoDoRegistro(logado); // ✨ Salva no nome dele
         return servicoRepository.save(servico);
     }
 
-    // ✨ NOVO: Garçom que recebe o pedido da tela para ATUALIZAR um serviço (Preço, Nome, Duração)
     @PutMapping("/{id}")
     public ResponseEntity<Servico> atualizar(@PathVariable Long id, @RequestBody Servico dadosAtualizados) {
         return servicoRepository.findById(id).map(servico -> {

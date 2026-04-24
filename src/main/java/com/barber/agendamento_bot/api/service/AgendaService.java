@@ -1,13 +1,8 @@
 package com.barber.agendamento_bot.api.service;
 
-import com.barber.agendamento_bot.api.entity.Agendamento;
-import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
-import com.barber.agendamento_bot.api.entity.HorarioFuncionamento;
-import com.barber.agendamento_bot.api.entity.Servico;
-import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
-import com.barber.agendamento_bot.api.repository.BloqueioAgendaRepository;
-import com.barber.agendamento_bot.api.repository.HorarioRepository;
-import com.barber.agendamento_bot.api.repository.ServicoRepository;
+import com.barber.agendamento_bot.api.entity.*;
+import com.barber.agendamento_bot.api.repository.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,11 +20,23 @@ public class AgendaService {
     private final BloqueioAgendaRepository bloqueioAgendaRepository;
     private final HorarioRepository horarioRepository;
 
-    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository, HorarioRepository horarioRepository) {
+    // ✨ NOVAS INJEÇÕES
+    private final UsuarioRepository usuarioRepository;
+    private final LogService logService;
+
+    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository, HorarioRepository horarioRepository, UsuarioRepository usuarioRepository, LogService logService) {
         this.agendamentoRepository = agendamentoRepository;
         this.servicoRepository = servicoRepository;
         this.bloqueioAgendaRepository = bloqueioAgendaRepository;
         this.horarioRepository = horarioRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.logService = logService;
+    }
+
+    // ✨ FUNÇÃO AUXILIAR PARA DESCOBRIR QUEM ESTÁ LOGADO NO PAINEL
+    private Usuario getUsuarioLogado() {
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepository.findByLogin(login).orElse(null);
     }
 
     public boolean tentarAgendar(Agendamento novo) {
@@ -63,6 +70,7 @@ public class AgendaService {
 
         List<Agendamento> noBanco = agendamentoRepository.findByStatusNot("CANCELADO");
         for (Agendamento existente : noBanco) {
+            // O robô agenda direto no WhatsApp, então a checagem é global pro salão inteiro (ou adapte para o dono)
             if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) return false;
         }
 
@@ -70,10 +78,15 @@ public class AgendaService {
         return true;
     }
 
-    // ✨ NOVO: Função de Encaixe (Ignora conflitos)
     public void forcarAgendamento(Agendamento novo) {
+        Usuario logado = getUsuarioLogado();
+        if(logado == null) return;
+
         Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
         novo.setServicoEscolhido(servicoCompleto);
+
+        // ✨ ATRELA O ENCAIXE AO BARBEIRO LOGADO
+        novo.setDonoDoRegistro(logado);
 
         LocalDateTime inicio = novo.getDataHoraInicio();
         LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos());
@@ -86,6 +99,9 @@ public class AgendaService {
 
         agendamentoRepository.save(novo);
         System.out.println("⚠️ Encaixe realizado manualmente pelo barbeiro: " + novo.getNomeCliente());
+
+        // ✨ AUDITORIA
+        logService.registrarAcao("AGENDA", "ENCAIXE", "Realizou encaixe manual de " + servicoCompleto.getNome() + " para: " + novo.getNomeCliente());
     }
 
     public void confirmarPresenca(Long id) {
@@ -154,12 +170,23 @@ public class AgendaService {
         return horariosDisponiveis;
     }
 
-    public List<Agendamento> listarTodosOsAgendamentos() { return agendamentoRepository.findAll(); }
+    // ✨ LISTAGEM ISOLADA POR BARBEIRO
+    public List<Agendamento> listarTodosOsAgendamentos() {
+        Usuario logado = getUsuarioLogado();
+        if (logado == null) return new ArrayList<>();
+
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return agendamentoRepository.findByStatusNot("CANCELADO");
+        }
+
+        return agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", logado);
+    }
 
     public void cancelarAgendamento(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
         agendamento.setStatus("CANCELADO");
         agendamentoRepository.save(agendamento);
+        logService.registrarAcao("AGENDA", "CANCELAMENTO", "Cancelou o agendamento de: " + agendamento.getNomeCliente());
     }
 
     public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
@@ -178,7 +205,12 @@ public class AgendaService {
         return proximoAgendamento;
     }
 
-    public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) { return bloqueioAgendaRepository.save(novoBloqueio); }
+    public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
+        Usuario logado = getUsuarioLogado();
+        if(logado != null) novoBloqueio.setDonoDoRegistro(logado);
+        logService.registrarAcao("AGENDA", "BLOQUEIO", "Bloqueou agenda. Motivo: " + novoBloqueio.getMotivo());
+        return bloqueioAgendaRepository.save(novoBloqueio);
+    }
 
     public void concluirAgendamento(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id).orElseThrow();
