@@ -115,7 +115,11 @@
 
     <div class="main-wrapper">
         <aside class="sidebar">
-            <div class="sidebar-header"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
+            <div class="sidebar-header" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                <div style="display: flex; align-items: center; gap: 12px;"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
+                <small class="text-muted fw-bold" style="font-size: 0.75rem; padding-left: 2px;" id="sidebar-user-name">Usuário: Carregando...</small>
+            </div>
+
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
                 <li class="nav-item"><a href="index.html" class="nav-link active"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
@@ -195,6 +199,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // ✨ VARIÁVEIS GLOBAIS DE SEGURANÇA
+    let perfilLogado = '';
+    let nomeLogado = '';
+
     document.addEventListener("DOMContentLoaded", async () => {
         const btnMenu = document.getElementById('mobile-menu-btn');
         const sidebar = document.querySelector('.sidebar');
@@ -217,6 +225,13 @@
             const resMe = await fetch('/api/usuario/me');
             if (resMe.ok) {
                 const me = await resMe.json();
+                perfilLogado = me.perfil;
+                nomeLogado = me.nome;
+
+                // ✨ INJETA O NOME NA BARRA LATERAL
+                const sideUser = document.getElementById('sidebar-user-name');
+                if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
+
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
@@ -240,9 +255,10 @@
             const dataEscolhida = document.getElementById('filtro-data').value;
             const filtroStatus = document.getElementById('filtro-status').value;
 
-            // ✨ CORREÇÃO: Força o 'TODOS' caso o select esteja vazio (como é o caso do funcionário)
             const selectFiltro = document.getElementById('filtro-barbeiro');
-            const filtroBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
+            // Se o funcionário estiver logado, a caixinha estará vazia de opções, então forçamos 'TODOS'
+            const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
+            let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
 
             let listaMista = [];
             todosAg.filter(ag => ag.dataHoraInicio.startsWith(dataEscolhida)).forEach(ag => {
@@ -269,7 +285,8 @@
                     let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
                     let botoes = (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO') ? `<button class="btn btn-sm btn-success-modern me-2" onclick="abrirModalPagamento(${ag.id})"><i class="bi bi-check-lg"></i> Receber</button><button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` : `<span class="text-light fw-bold">${ag.status}</span>`;
 
-                    let seloBarbeiro = (ag.donoDoRegistro && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${ag.donoDoRegistro.nome}</span>` : '';
+                    // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
+                    let seloBarbeiro = (ag.donoDoRegistro && isAdmin) ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${ag.donoDoRegistro.nome}</span>` : '';
 
                     corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong>${seloBarbeiro}</td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
                 } else {
@@ -277,7 +294,8 @@
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-                    let seloBarbeiroBq = (bq.donoDoRegistro && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${bq.donoDoRegistro.nome}</span>` : '';
+                    // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
+                    let seloBarbeiroBq = (bq.donoDoRegistro && isAdmin) ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${bq.donoDoRegistro.nome}</span>` : '';
 
                     corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span>${seloBarbeiroBq}</td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações" class="text-light">-</td></tr>`;
                 }
@@ -285,6 +303,7 @@
         } catch (e) { console.error(e); }
     }
 
+    // Funções mantidas
     async function carregarServicosEncaixe() { const res = await fetch('/api/servicos'); const servicos = await res.json(); const select = document.getElementById('servico-encaixe'); select.innerHTML = ''; servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`); }
     async function salvarEncaixe() { const dados = { nomeCliente: document.getElementById('nome-encaixe').value, telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000", servicoEscolhido: { id: document.getElementById('servico-encaixe').value }, dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00` }; if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!"); await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide(); carregarAgendamentos(); }
     async function carregarConfigsBot() { const res = await fetch('/api/configuracoes/geral'); const data = await res.json(); document.getElementById('switch-bot-ativo').checked = data.botAtivo; document.getElementById('minutos-bot').value = data.minutosConfirmacao; atualizarLabelBot(data.botAtivo); }

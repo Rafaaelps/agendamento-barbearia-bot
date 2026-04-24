@@ -84,7 +84,11 @@
 
     <div class="main-wrapper">
         <aside class="sidebar">
-            <div class="sidebar-header"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
+            <div class="sidebar-header" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                <div style="display: flex; align-items: center; gap: 12px;"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
+                <small class="text-muted fw-bold" style="font-size: 0.75rem; padding-left: 2px;" id="sidebar-user-name">Usuário: Carregando...</small>
+            </div>
+
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
                 <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
@@ -124,6 +128,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // ✨ VARIÁVEIS GLOBAIS
+    let perfilLogado = '';
+    let nomeLogado = '';
+
     document.addEventListener("DOMContentLoaded", async () => {
         const btnMenu = document.getElementById('mobile-menu-btn');
         const sidebar = document.querySelector('.sidebar');
@@ -142,6 +150,12 @@
             const resMe = await fetch('/api/usuario/me');
             if (resMe.ok) {
                 const me = await resMe.json();
+                perfilLogado = me.perfil;
+                nomeLogado = me.nome;
+
+                const sideUser = document.getElementById('sidebar-user-name');
+                if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
+
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
@@ -162,9 +176,9 @@
         const res = await fetch('/api/estoque/produtos');
         let produtos = await res.json();
 
-        // ✨ CORREÇÃO: Força o 'TODOS' caso o select esteja vazio (funcionário)
         const selectFiltro = document.getElementById('filtro-barbeiro');
-        const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
+        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
+        let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
 
         if (fBarbeiro !== 'TODOS') {
             produtos = produtos.filter(p => p.donoDoRegistro && p.donoDoRegistro.id == fBarbeiro);
@@ -181,7 +195,8 @@
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
             let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
-            let seloDono = (p.donoDoRegistro && fBarbeiro === 'TODOS') ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
+            // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
+            let seloDono = (p.donoDoRegistro && isAdmin) ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
 
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
