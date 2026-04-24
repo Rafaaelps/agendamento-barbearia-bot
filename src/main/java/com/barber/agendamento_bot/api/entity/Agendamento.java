@@ -27,8 +27,13 @@ public class Agendamento {
     private String status;
     private java.math.BigDecimal valorFinal;
 
-    // 1. O Construtor vazio é TUDO que o Spring e o Postman precisam!
-    // Apague o outro construtor que fazia o cálculo.
+    // ✨ NOVAS VARIÁVEIS DO SISTEMA SAAS
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario donoDoRegistro;
+
+    private java.math.BigDecimal comissaoDoAdmin;
+
     public Agendamento() {}
 
     // --- GETTERS E SETTERS ---
@@ -70,4 +75,11 @@ public class Agendamento {
 
     public Boolean getConfirmadoPeloCliente() { return confirmadoPeloCliente; }
     public void setConfirmadoPeloCliente(Boolean confirmadoPeloCliente) { this.confirmadoPeloCliente = confirmadoPeloCliente; }
+
+    // ✨ GETTERS E SETTERS NOVOS
+    public Usuario getDonoDoRegistro() { return donoDoRegistro; }
+    public void setDonoDoRegistro(Usuario donoDoRegistro) { this.donoDoRegistro = donoDoRegistro; }
+
+    public java.math.BigDecimal getComissaoDoAdmin() { return comissaoDoAdmin; }
+    public void setComissaoDoAdmin(java.math.BigDecimal comissaoDoAdmin) { this.comissaoDoAdmin = comissaoDoAdmin; }
 }

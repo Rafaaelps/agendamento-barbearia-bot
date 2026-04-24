@@ -10,13 +10,15 @@ public class BloqueioAgenda {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Agora o bloqueio tem um Início e um Fim!
     private LocalDateTime dataHoraInicio;
     private LocalDateTime dataHoraFim;
-
     private String motivo;
 
-    // --- GETTERS E SETTERS ---
+    // ✨ NOVA VARIÁVEL DO SISTEMA SAAS
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario donoDoRegistro;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -28,4 +30,8 @@ public class BloqueioAgenda {
 
     public String getMotivo() { return motivo; }
     public void setMotivo(String motivo) { this.motivo = motivo; }
+
+    // ✨ GETTERS E SETTERS NOVOS
+    public Usuario getDonoDoRegistro() { return donoDoRegistro; }
+    public void setDonoDoRegistro(Usuario donoDoRegistro) { this.donoDoRegistro = donoDoRegistro; }
 }

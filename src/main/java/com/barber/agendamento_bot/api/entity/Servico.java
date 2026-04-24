@@ -16,7 +16,11 @@ public class Servico {
     @Column(name = "duracao_minutos")
     private Integer duracaoMinutos;
 
-    // Construtor vazio obrigatório para o Spring/Hibernate funcionar
+    // ✨ NOVA VARIÁVEL DO SISTEMA SAAS
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario donoDoRegistro;
+
     public Servico() {}
 
     public Servico(String nome, BigDecimal preco, Integer duracaoMinutos) {
@@ -25,7 +29,6 @@ public class Servico {
         this.duracaoMinutos = duracaoMinutos;
     }
 
-    // Getters e Setters aqui (id, nome, preco, duracaoMinutos)
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -37,4 +40,8 @@ public class Servico {
 
     public BigDecimal getPreco() { return preco; }
     public void setPreco(BigDecimal preco) { this.preco = preco; }
+
+    // ✨ GETTERS E SETTERS NOVOS
+    public Usuario getDonoDoRegistro() { return donoDoRegistro; }
+    public void setDonoDoRegistro(Usuario donoDoRegistro) { this.donoDoRegistro = donoDoRegistro; }
 }
