@@ -16,15 +16,14 @@ public class Usuario {
     private String login;
 
     private String senha;
-
-    // "ADMIN" (Dono) ou "BARBEIRO" (Funcionário)
     private String perfil;
-
-    // A instância exata da Evolution API deste barbeiro (Ex: "barbeiro_joao")
     private String instanciaWhatsapp;
-
-    // Quanto o dono tira desse barbeiro. (Ex: 40.0 significa que o ADMIN ganha 40%)
     private Double taxaComissao;
+
+    // ✨ NOVAS VARIÁVEIS PARA O NOVO RECURSO
+    private Boolean ativo = true; // Soft Delete (Lixeira Inteligente)
+    private Double taxaCredito = 5.0; // Taxa padrão inicial
+    private Double taxaDebito = 2.0;
 
     // --- GETTERS E SETTERS ---
     public Long getId() { return id; }
@@ -41,4 +40,12 @@ public class Usuario {
     public void setInstanciaWhatsapp(String instanciaWhatsapp) { this.instanciaWhatsapp = instanciaWhatsapp; }
     public Double getTaxaComissao() { return taxaComissao; }
     public void setTaxaComissao(Double taxaComissao) { this.taxaComissao = taxaComissao; }
+
+    // ✨ NOVOS GETTERS E SETTERS
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public Double getTaxaCredito() { return taxaCredito; }
+    public void setTaxaCredito(Double taxaCredito) { this.taxaCredito = taxaCredito; }
+    public Double getTaxaDebito() { return taxaDebito; }
+    public void setTaxaDebito(Double taxaDebito) { this.taxaDebito = taxaDebito; }
 }

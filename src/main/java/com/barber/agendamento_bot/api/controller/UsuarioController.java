@@ -5,10 +5,9 @@ import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -24,14 +23,40 @@ public class UsuarioController {
     @GetMapping("/me")
     public ResponseEntity<Usuario> getUsuarioLogado() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        // Verifica se existe alguém logado e se não é um usuário anônimo (visitante da página de login)
         if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            String login = auth.getName();
-            Optional<Usuario> usuario = usuarioRepository.findByLogin(login);
+            Optional<Usuario> usuario = usuarioRepository.findByLogin(auth.getName());
+            if(usuario.isPresent()) return ResponseEntity.ok(usuario.get());
+        }
+        return ResponseEntity.status(401).build();
+    }
 
-            if(usuario.isPresent()) {
-                return ResponseEntity.ok(usuario.get());
+    // ✨ ROTA PARA PEGAR AS TAXAS PESSOAIS
+    @GetMapping("/taxas")
+    public ResponseEntity<Map<String, Double>> getMinhasTaxas() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+            Usuario usuario = usuarioRepository.findByLogin(auth.getName()).orElse(null);
+            if (usuario != null) {
+                return ResponseEntity.ok(Map.of(
+                        "credito", usuario.getTaxaCredito() != null ? usuario.getTaxaCredito() : 5.0,
+                        "debito", usuario.getTaxaDebito() != null ? usuario.getTaxaDebito() : 2.0
+                ));
+            }
+        }
+        return ResponseEntity.status(401).build();
+    }
+
+    // ✨ ROTA PARA SALVAR AS TAXAS PESSOAIS
+    @PostMapping("/taxas")
+    public ResponseEntity<?> salvarMinhasTaxas(@RequestBody Map<String, Double> payload) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+            Usuario usuario = usuarioRepository.findByLogin(auth.getName()).orElse(null);
+            if (usuario != null) {
+                usuario.setTaxaCredito(payload.getOrDefault("credito", 5.0));
+                usuario.setTaxaDebito(payload.getOrDefault("debito", 2.0));
+                usuarioRepository.save(usuario);
+                return ResponseEntity.ok().build();
             }
         }
         return ResponseEntity.status(401).build();

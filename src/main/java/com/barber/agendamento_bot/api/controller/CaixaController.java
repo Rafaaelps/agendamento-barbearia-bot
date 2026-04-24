@@ -1,6 +1,7 @@
 package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
+import com.barber.agendamento_bot.api.entity.Usuario;
 import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
 import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +28,9 @@ public class CaixaController {
         agendamento.setFormaPagamento(metodo.toUpperCase());
 
         // ✨ PUXA AS TAXAS DINÂMICAS DO BANCO DE DADOS
-        double taxaCredito = configuracaoRepository.findById("TAXA_CREDITO").map(c -> Double.parseDouble(c.getValor())).orElse(5.0);
-        double taxaDebito = configuracaoRepository.findById("TAXA_DEBITO").map(c -> Double.parseDouble(c.getValor())).orElse(2.0);
+        Usuario dono = agendamento.getDonoDoRegistro();
+        double taxaCredito = (dono != null && dono.getTaxaCredito() != null) ? dono.getTaxaCredito() : 5.0;
+        double taxaDebito = (dono != null && dono.getTaxaDebito() != null) ? dono.getTaxaDebito() : 2.0;
 
         BigDecimal precoCheio = agendamento.getServicoEscolhido().getPreco();
         BigDecimal valorLiquido = precoCheio;
