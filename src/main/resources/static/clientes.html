@@ -42,16 +42,17 @@
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
+
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
         .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
         .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
 
         .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
         .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-        .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 16px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 16px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; width: 100%; white-space: nowrap;}
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
 
-        .table-modern { color: var(--text-main); margin: 0; }
+        .table-modern { color: var(--text-main); margin: 0; width: 100%; }
         .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
@@ -67,10 +68,14 @@
             .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
 
             .table-modern thead { display: none; }
-            .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
-            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
+            .table-modern tbody tr { display: block; margin-bottom: 24px !important; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
             .table-modern tbody td:last-child { border-bottom: none; }
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+
+            .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
+            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; }
+            .empty-state-row td::before { display: none !important; }
         }
     </style>
 </head>
@@ -138,7 +143,7 @@
 
             <div class="custom-card p-0 overflow-hidden">
                 <div class="table-responsive">
-                    <table class="table table-modern text-center align-middle">
+                    <table class="table table-modern text-center align-middle w-100">
                         <thead>
                         <tr>
                             <th>Nome</th>
@@ -207,7 +212,7 @@
 
         const corpoTabela = document.getElementById('tabela-clientes');
         corpoTabela.innerHTML = '';
-        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes.</td></tr>';
+        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes concluídos.</td></tr>';
 
         clientesGlobal.forEach(c => {
             const dFmt = c.ultimaVisita.toLocaleDateString('pt-BR');
@@ -221,14 +226,14 @@
             let numLimpo = c.telefone.replace(/\D/g, '');
             if (!numLimpo.startsWith('55')) numLimpo = '55' + numLimpo;
 
-            const btnWhats = `<button onclick="dispararMensagem('${numLimpo}', '${c.nome}', ${diasSumido})" class="btn-success-modern w-100 justify-content-center border-0"><i class="bi bi-whatsapp"></i> Lembrete</button>`;
+            const btnWhats = `<button onclick="dispararMensagem('${numLimpo}', '${c.nome}', ${diasSumido})" class="btn-success-modern border-0"><i class="bi bi-whatsapp"></i> Lembrete</button>`;
 
             corpoTabela.innerHTML += `
             <tr>
                 <td data-label="Nome"><strong class="text-white">${c.nome}</strong></td>
                 <td data-label="Contato" class="text-light fw-bold">${c.telefone}</td>
                 <td data-label="Visitas Totais"><span class="badge-modern">${c.totalVisitas}x</span></td>
-                <td data-label="Total Gasto (LTV)" style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                <td data-label="Total Gasto" style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                 <td data-label="Última Visita"><span class="text-light">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
                 <td data-label="Ação">${btnWhats}</td>
             </tr>`;

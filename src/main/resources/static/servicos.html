@@ -17,6 +17,9 @@
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
 
+        .text-muted { color: var(--text-muted) !important; }
+        .text-secondary { color: var(--text-muted) !important; }
+
         .app-container { display: flex; height: 100vh; flex-direction: column;}
 
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
@@ -50,7 +53,7 @@
         .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
         .btn-outline-modern:hover { border-color: var(--text-muted); color: white; }
 
-        .table-modern { color: var(--text-main); margin: 0; }
+        .table-modern { color: var(--text-main); margin: 0; width: 100%; }
         .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
@@ -70,10 +73,14 @@
             .btn-modern { justify-content: center; }
 
             .table-modern thead { display: none; }
-            .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
-            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
+            .table-modern tbody tr { display: block; margin-bottom: 24px !important; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
             .table-modern tbody td:last-child { border-bottom: none; }
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+
+            .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
+            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; }
+            .empty-state-row td::before { display: none !important; }
         }
     </style>
 </head>
@@ -119,7 +126,7 @@
 
             <div class="custom-card p-0 overflow-hidden">
                 <div class="table-responsive">
-                    <table class="table table-modern text-center align-middle">
+                    <table class="table table-modern text-center align-middle w-100">
                         <thead>
                         <tr>
                             <th>ID</th>
@@ -186,8 +193,12 @@
         try {
             const res = await fetch('/api/servicos'); const servicos = await res.json();
             const corpo = document.getElementById('tabela-servicos'); corpo.innerHTML = '';
+
+            if (servicos.length === 0) {
+                return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="5" class="text-light py-4 text-center">Nenhum serviço cadastrado.</td></tr>';
+            }
+
             servicos.forEach(s => {
-                // ✨ ID em text-light
                 corpo.innerHTML += `
                     <tr>
                         <td data-label="ID" class="text-light fw-bold">#${s.id}</td>

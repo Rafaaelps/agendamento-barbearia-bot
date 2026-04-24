@@ -40,7 +40,6 @@
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
 
-        /* ✨ HEADER E BOTÕES CORRIGIDOS PARA NÃO VAZAR/EMPILHAR ERRADO */
         .page-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
         .action-bar-custom { display: flex; gap: 12px; align-items: center; }
@@ -59,7 +58,7 @@
         .btn-warning-modern { background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color); border: 1px solid rgba(245, 158, 11, 0.2); }
         .btn-warning-modern:hover { background-color: var(--warning-color); color: white; }
 
-        .table-modern { color: var(--text-main); margin: 0; }
+        .table-modern { color: var(--text-main); margin: 0; width: 100%; }
         .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
@@ -81,19 +80,33 @@
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
 
-            /* ✨ GRADE 2x2 NO MOBILE / LINHA NO DESKTOP */
             .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
             .action-bar-custom { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
 
             .table-modern thead { display: none; }
-            .table-modern tbody tr { display: block; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px; }
-            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 12px; }
+            /* ✨ CORREÇÃO: Transformando as linhas em Cards espaçados */
+            .table-modern tbody tr {
+                display: block;
+                margin-bottom: 24px !important;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                background-color: var(--bg-card);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .table-modern tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: right;
+                border-bottom: 1px solid var(--border-color);
+                padding: 14px 16px;
+            }
             .table-modern tbody td:last-child { border-bottom: none; }
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
 
-            /* ✨ CORREÇÃO DA MENSAGEM VAZIA NO MOBILE */
-            .empty-state-row { border: none !important; margin: 0 !important;}
-            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; }
+            .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
+            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; }
             .empty-state-row td::before { display: none !important; }
         }
     </style>
@@ -163,7 +176,7 @@
 
             <div class="custom-card p-0 overflow-hidden">
                 <div class="table-responsive">
-                    <table class="table table-modern text-center">
+                    <table class="table table-modern text-center w-100">
                         <thead>
                         <tr>
                             <th>Cliente / Detalhe</th>
@@ -358,10 +371,8 @@
                 if (filtroStatus === 'PADRAO' || filtroStatus === 'TODOS') listaMista.push({ tipo: 'BLOQUEIO', dado: bq });
             });
             listaMista.sort((a, b) => new Date(a.dado.dataHoraInicio) - new Date(b.dado.dataHoraInicio));
-
             const corpo = document.getElementById('tabela-agendamentos'); corpo.innerHTML = '';
 
-            // ✨ CORREÇÃO MENSAGEM VAZIA (Classe empty-state-row para mobile perfeito)
             if (listaMista.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum registro encontrado para este filtro e data.</td></tr>';
 
             listaMista.forEach(item => {
@@ -370,15 +381,13 @@
                     const hi = new Date(ag.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(ag.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
-
                     let botoes = (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO') ? `<button class="btn btn-sm btn-success-modern me-2" onclick="abrirModalPagamento(${ag.id})"><i class="bi bi-check-lg"></i> Receber</button><button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` : `<span class="text-light fw-bold">${ag.status}</span>`;
-
-                    corpo.innerHTML += `<tr><td data-label="Cliente"><strong class="text-white">${ag.nomeCliente}</strong></td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
+                    corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong></td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
                 } else {
                     const bq = item.dado;
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span></td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações" class="text-light">-</td></tr>`;
+                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span></td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações" class="text-light">-</td></tr>`;
                 }
             });
         } catch (e) { console.error(e); }
