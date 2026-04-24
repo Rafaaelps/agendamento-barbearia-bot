@@ -24,11 +24,14 @@
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; }
+        /* ✨ CORREÇÃO MOBILE: height 100dvh e z-index 1050 garantem ancoragem perfeita no celular */
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100dvh; z-index: 1050; }
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
         .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
-        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
+        /* ✨ CORREÇÃO MOBILE: overflow-y permite que o menu role sem empurrar o botão de sair */
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; overflow-y: auto; }
+
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
         .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
@@ -57,6 +60,8 @@
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
         .btn-warning-modern { background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color); border: 1px solid rgba(245, 158, 11, 0.2); }
         .btn-warning-modern:hover { background-color: var(--warning-color); color: white; }
+        .btn-outline-danger { border-color: rgba(239, 68, 68, 0.5); color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1);}
+        .btn-outline-danger:hover { background-color: var(--danger-color); color: white; border-color: var(--danger-color); }
 
         .table-modern { color: var(--text-main); margin: 0; width: 100%; }
         .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
@@ -75,7 +80,7 @@
 
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
-            .sidebar { position: fixed; left: -280px; z-index: 1050; }
+            .sidebar { position: fixed; left: -280px; }
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
@@ -106,7 +111,6 @@
 <body>
 
 <div class="app-container">
-
     <div class="mobile-topbar">
         <div class="fw-bold text-main fs-5"><i class="bi bi-scissors text-primary me-2"></i>Barbearia Bot</div>
         <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1"></i></button>
@@ -232,9 +236,7 @@
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
-                    // ✨ CORREÇÃO: Mostra o menu de usuários no sidebar para o Admin
                     document.getElementById('menu-usuarios').classList.remove('d-none');
-
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
@@ -242,6 +244,8 @@
                         if (select) {
                             select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+                            // ✨ MÁGICA DO FILTRO: Auto-seleciona o logado
+                            select.value = me.id;
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }

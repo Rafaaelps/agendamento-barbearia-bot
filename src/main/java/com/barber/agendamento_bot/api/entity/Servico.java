@@ -20,7 +20,7 @@ public class Servico {
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario donoDoRegistro;
-
+    private Boolean ativo = true;
     public Servico() {}
 
     public Servico(String nome, BigDecimal preco, Integer duracaoMinutos) {
@@ -41,7 +41,9 @@ public class Servico {
     public BigDecimal getPreco() { return preco; }
     public void setPreco(BigDecimal preco) { this.preco = preco; }
 
-    // ✨ GETTERS E SETTERS NOVOS
     public Usuario getDonoDoRegistro() { return donoDoRegistro; }
     public void setDonoDoRegistro(Usuario donoDoRegistro) { this.donoDoRegistro = donoDoRegistro; }
+
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 }

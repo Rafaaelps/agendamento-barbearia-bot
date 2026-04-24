@@ -25,11 +25,12 @@
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; }
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100dvh; z-index: 1050; }
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
         .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
-        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; overflow-y: auto; }
+
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
         .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
@@ -52,6 +53,8 @@
         .btn-primary-modern:hover { background-color: var(--accent-hover); color: white; }
         .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
         .btn-outline-modern:hover { border-color: var(--text-muted); color: white; }
+        .btn-outline-danger { border-color: rgba(239, 68, 68, 0.5); color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1);}
+        .btn-outline-danger:hover { background-color: var(--danger-color); color: white; border-color: var(--danger-color); }
         .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); }
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
 
@@ -62,7 +65,7 @@
 
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
-            .sidebar { position: fixed; left: -280px; z-index: 1050; }
+            .sidebar { position: fixed; left: -280px; }
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
@@ -157,7 +160,6 @@
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
-                    // ✨ CORREÇÃO: Mostra o menu de usuários no sidebar para o Admin
                     document.getElementById('menu-usuarios').classList.remove('d-none');
 
                     const resFunc = await fetch('/api/admin/funcionarios');
@@ -167,6 +169,7 @@
                         if (select) {
                             select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+                            select.value = me.id;
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
@@ -196,14 +199,13 @@
 
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
-            let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
             let seloDono = (p.donoDoRegistro && isAdmin) ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
 
+            // ✨ AQUI: O botão de Excluir foi movido para o Grid de ações para ficar sempre visível
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
                     <div class="custom-card w-100 position-relative p-4 text-center d-flex flex-column">
-                        ${btnExcluir}
                         <div class="flex-grow-1">
                             <small class="text-light fw-bold d-block mb-1">ID: #${p.id}</small>
                             <h5 class="fw-bold text-white mt-2">${p.nome}</h5>
@@ -211,24 +213,24 @@
                             <h3 class="fw-bold my-2" style="color: var(--accent-primary);">R$ ${p.preco.toFixed(2)}</h3>
                             <p class="mb-2 fw-bold small" style="color: var(--${corEstoque.split('-')[1]}-color);"><i class="bi bi-box-seam me-1"></i> Estoque: ${p.quantidadeEstoque} un</p>
                         </div>
-                        <div class="d-grid gap-2 mt-4 pt-2">
-                            <button class="btn-modern btn-outline-modern justify-content-center py-2" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
-                            <div class="d-flex gap-2">
-                                <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalRepor(${p.id}, '${p.nome}')"><i class="bi bi-arrow-down-circle"></i> Repor</button>
-                                <button class="btn-modern btn-success-modern flex-grow-1 justify-content-center py-2 px-1 border-0" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}><i class="bi bi-cart-check"></i> Vender</button>
-                            </div>
+                        <div class="d-flex gap-2 mt-4 pt-2">
+                            <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
+                            <button class="btn-modern btn-outline-danger justify-content-center py-2 px-3" onclick="excluirProduto(${p.id})" title="Excluir"><i class="bi bi-trash3"></i></button>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalRepor(${p.id}, '${p.nome}')"><i class="bi bi-arrow-down-circle"></i> Repor</button>
+                            <button class="btn-modern btn-success-modern flex-grow-1 justify-content-center py-2 px-1 border-0" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}><i class="bi bi-cart-check"></i> Vender</button>
                         </div>
                     </div>
                 </div>`;
         });
     }
 
-    // Funções mantidas
     function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
     async function salvarProduto() { const id = document.getElementById('id-produto').value, d = { nome: document.getElementById('nome-produto').value, preco: document.getElementById('preco-produto').value, quantidadeEstoque: document.getElementById('qtd-produto').value }; if(!d.nome || !d.preco || !d.quantidadeEstoque) return alert("Preencha tudo!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }
     async function processarReposicao() { await fetch(`/api/estoque/produtos/${document.getElementById('id-produto-repor').value}/repor?quantidade=${document.getElementById('qtd-repor').value}`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalRepor')).hide(); carregarProdutos(); }
-    async function excluirProduto(id) { if(confirm("Apagar produto?")) { await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' }); carregarProdutos(); } }
+    async function excluirProduto(id) { if(confirm("Tem certeza que deseja excluir permanentemente este produto?")) { await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' }); carregarProdutos(); } }
     function abrirModalVenda(id, nome) { document.getElementById('id-produto-venda').value = id; document.getElementById('texto-venda-produto').innerText = nome; document.getElementById('qtd-venda').value = 1; new bootstrap.Modal(document.getElementById('modalVendaProduto')).show(); }
     async function processarVenda(forma) { const id = document.getElementById('id-produto-venda').value, qtd = document.getElementById('qtd-venda').value; if(qtd < 1) return; const res = await fetch(`/api/estoque/vender?produtoId=${id}&quantidade=${qtd}&pagamento=${forma}`, { method: 'POST' }); if(!res.ok) return alert("Erro: " + await res.text()); bootstrap.Modal.getInstance(document.getElementById('modalVendaProduto')).hide(); carregarProdutos(); }
 </script>

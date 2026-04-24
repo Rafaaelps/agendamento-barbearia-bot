@@ -25,11 +25,12 @@
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh;}
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100dvh; z-index: 1050;}
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
         .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
-        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; overflow-y: auto;}
+
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
         .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
@@ -60,7 +61,7 @@
 
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
-            .sidebar { position: fixed; left: -280px; z-index: 1050; }
+            .sidebar { position: fixed; left: -280px; }
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
@@ -202,7 +203,6 @@
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
-                    // ✨ CORREÇÃO: Mostra o menu de usuários no sidebar para o Admin
                     document.getElementById('menu-usuarios').classList.remove('d-none');
 
                     const resFunc = await fetch('/api/admin/funcionarios');
@@ -212,6 +212,7 @@
                         if (select) {
                             select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+                            select.value = me.id;
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
