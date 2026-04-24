@@ -72,9 +72,12 @@
             .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
             .btn-modern { justify-content: center; }
 
+            /* ✨ SOLUÇÃO DO FUNDO TRANSPARENTE PARA OS CARDS FLUTUAREM */
+            .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
             .table-modern thead { display: none; }
-            .table-modern tbody tr { display: block; margin-bottom: 24px !important; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
-            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
+            .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); overflow: hidden; }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
             .table-modern tbody td:last-child { border-bottom: none; }
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
 
@@ -124,7 +127,7 @@
                 <button class="btn-modern btn-primary-modern" onclick="abrirModalServico()"><i class="bi bi-plus-lg"></i> Novo Serviço</button>
             </div>
 
-            <div class="custom-card p-0 overflow-hidden">
+            <div class="custom-card p-0 overflow-hidden transparent-mobile">
                 <div class="table-responsive">
                     <table class="table table-modern text-center align-middle w-100">
                         <thead>

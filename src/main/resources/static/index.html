@@ -83,15 +83,17 @@
             .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
             .action-bar-custom { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
 
+            /* ✨ SOLUÇÃO DO FUNDO TRANSPARENTE PARA OS CARDS FLUTUAREM */
+            .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
             .table-modern thead { display: none; }
-            /* ✨ CORREÇÃO: Transformando as linhas em Cards espaçados */
             .table-modern tbody tr {
                 display: block;
-                margin-bottom: 24px !important;
+                margin-bottom: 16px !important;
                 border: 1px solid var(--border-color);
                 border-radius: 12px;
                 background-color: var(--bg-card);
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
                 overflow: hidden;
             }
             .table-modern tbody td {
@@ -99,7 +101,7 @@
                 justify-content: space-between;
                 align-items: center;
                 text-align: right;
-                border-bottom: 1px solid var(--border-color);
+                border-bottom: 1px solid rgba(255,255,255,0.05);
                 padding: 14px 16px;
             }
             .table-modern tbody td:last-child { border-bottom: none; }
@@ -174,7 +176,7 @@
                 </div>
             </div>
 
-            <div class="custom-card p-0 overflow-hidden">
+            <div class="custom-card p-0 overflow-hidden transparent-mobile">
                 <div class="table-responsive">
                     <table class="table table-modern text-center w-100">
                         <thead>
@@ -387,7 +389,7 @@
                     const bq = item.dado;
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span></td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações" class="text-light">-</td></tr>`;
+                    corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span></td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações" class="text-light">-</td></tr>`;
                 }
             });
         } catch (e) { console.error(e); }
