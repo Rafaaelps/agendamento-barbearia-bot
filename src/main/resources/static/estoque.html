@@ -109,9 +109,9 @@
             <div class="page-header">
                 <h1 class="page-title">Controle de Estoque</h1>
                 <div class="header-actions d-flex gap-2">
-                    <div id="container-filtro-barbeiro" class="custom-card p-1 d-none d-flex align-items-center flex-grow-1">
-                        <span class="ms-2 small fw-bold text-light"><i class="bi bi-person"></i> BARBEIRO:</span>
-                        <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent text-primary fw-bold" style="box-shadow: none;" onchange="carregarProdutos()"></select>
+                    <div id="container-filtro-barbeiro" class="custom-card p-2 d-none d-flex align-items-center flex-grow-1">
+                        <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-person"></i> BARBEIRO:</label>
+                        <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="carregarProdutos()"></select>
                     </div>
                     <button class="btn-modern btn-primary-modern" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
                 </div>
@@ -128,7 +128,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ✨ VARIÁVEIS GLOBAIS
     let perfilLogado = '';
     let nomeLogado = '';
 
@@ -195,7 +194,6 @@
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
             let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
-            // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
             let seloDono = (p.donoDoRegistro && isAdmin) ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
 
             grid.innerHTML += `
@@ -221,7 +219,6 @@
         });
     }
 
-    // Funções mantidas
     function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
     async function salvarProduto() { const id = document.getElementById('id-produto').value, d = { nome: document.getElementById('nome-produto').value, preco: document.getElementById('preco-produto').value, quantidadeEstoque: document.getElementById('qtd-produto').value }; if(!d.nome || !d.preco || !d.quantidadeEstoque) return alert("Preencha tudo!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }
