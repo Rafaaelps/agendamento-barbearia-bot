@@ -208,12 +208,10 @@
         const hoje = agora.toISOString().split('T')[0];
         document.getElementById('filtro-data').value = hoje;
 
-        // ✨ CARREGA O FILTRO DO SÓCIO E DEPOIS OS DADOS
         await carregarFiltroBarbeiros();
         carregarAgendamentos();
     });
 
-    // ✨ FUNÇÃO MÁGICA: Habilita o filtro se for ADMIN
     async function carregarFiltroBarbeiros() {
         try {
             const resMe = await fetch('/api/usuario/me');
@@ -242,13 +240,13 @@
             const dataEscolhida = document.getElementById('filtro-data').value;
             const filtroStatus = document.getElementById('filtro-status').value;
 
-            // ✨ O FILTRO APLICADO
-            const filtroBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+            // ✨ CORREÇÃO: Força o 'TODOS' caso o select esteja vazio (como é o caso do funcionário)
+            const selectFiltro = document.getElementById('filtro-barbeiro');
+            const filtroBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
 
             let listaMista = [];
             todosAg.filter(ag => ag.dataHoraInicio.startsWith(dataEscolhida)).forEach(ag => {
                 let exibir = (filtroStatus === 'TODOS') || (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) || (filtroStatus === ag.status);
-                // Valida o dono
                 let donoValido = (filtroBarbeiro === 'TODOS') || (ag.donoDoRegistro && ag.donoDoRegistro.id == filtroBarbeiro);
                 if(exibir && donoValido) listaMista.push({ tipo: 'AGENDAMENTO', dado: ag });
             });
@@ -287,7 +285,6 @@
         } catch (e) { console.error(e); }
     }
 
-    // Mantidos originais
     async function carregarServicosEncaixe() { const res = await fetch('/api/servicos'); const servicos = await res.json(); const select = document.getElementById('servico-encaixe'); select.innerHTML = ''; servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`); }
     async function salvarEncaixe() { const dados = { nomeCliente: document.getElementById('nome-encaixe').value, telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000", servicoEscolhido: { id: document.getElementById('servico-encaixe').value }, dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00` }; if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!"); await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide(); carregarAgendamentos(); }
     async function carregarConfigsBot() { const res = await fetch('/api/configuracoes/geral'); const data = await res.json(); document.getElementById('switch-bot-ativo').checked = data.botAtivo; document.getElementById('minutos-bot').value = data.minutosConfirmacao; atualizarLabelBot(data.botAtivo); }

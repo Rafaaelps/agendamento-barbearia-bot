@@ -207,8 +207,9 @@
             const resposta = await fetch('/api/agendamentos');
             const todosAgendamentos = await resposta.json();
 
-            // ✨ O FILTRO APLICADO (Calcula os cards de acordo com o barbeiro selecionado)
-            const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+            // ✨ CORREÇÃO: Força o 'TODOS'
+            const selectFiltro = document.getElementById('filtro-barbeiro');
+            const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
 
             const concluidos = todosAgendamentos.filter(ag => {
                 let ehConcluido = ag.status === 'CONCLUIDO';
@@ -244,9 +245,11 @@
         else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
         else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
 
-        const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
         const corpoTabela = document.getElementById('tabela-clientes');
         corpoTabela.innerHTML = '';
+
         if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes concluídos neste filtro.</td></tr>';
 
         clientesGlobal.forEach(c => {

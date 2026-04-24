@@ -254,7 +254,6 @@
     setInterval(() => { const modalAberto = document.querySelector('.modal.show'); if (!modalAberto) { carregarFinanceiro(); } }, 10000);
   });
 
-  // ✨ FUNÇÃO MÁGICA
   async function carregarFiltroBarbeiros() {
       try {
           const resMe = await fetch('/api/usuario/me');
@@ -285,12 +284,14 @@
       const mesEscolhido = document.getElementById('filtro-mes').value;
       let [receitaBruta, taxasTotal, despesasTotal, extratoMisto] = [0, 0, 0, []];
 
-      // ✨ O FILTRO APLICADO
-      const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+      // ✨ CORREÇÃO: Força o 'TODOS' caso o select esteja vazio
+      const selectFiltro = document.getElementById('filtro-barbeiro');
+      const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
+
       const checkDono = (donoObj) => fBarbeiro === 'TODOS' || (donoObj && donoObj.id == fBarbeiro);
 
       todosAg.filter(ag => ag.status === 'CONCLUIDO' && ehDoMesmoMes(ag.dataHoraInicio, mesEscolhido)).forEach(ag => {
-        if (!checkDono(ag.donoDoRegistro)) return; // 🛑 Descarta se não for do barbeiro filtrado
+        if (!checkDono(ag.donoDoRegistro)) return;
 
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let lucroLivre = Number(ag.faturamentoBarbeiro || 0);
@@ -322,7 +323,7 @@
       extratoMisto.sort((a, b) => new Date(b.data) - new Date(a.data));
       const corpoTb = document.getElementById('tabela-extrato'); corpoTb.innerHTML = '';
 
-      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro encontrado.</td></tr>';
+      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro encontrado para este filtro.</td></tr>';
       else {
         extratoMisto.forEach(item => {
           if (item.tipo === 'CORTE') {
@@ -341,7 +342,6 @@
         });
       }
 
-      // (Cálculos Mês Anterior com o mesmo filtro)
       let lucroNoBolso = (receitaBruta - taxasTotal) - despesasTotal;
       let [anoAnt, mesAntNum] = mesEscolhido.split('-'); let mAnt = parseInt(mesAntNum) - 1; if(mAnt === 0) { mAnt = 12; anoAnt = parseInt(anoAnt) - 1; } const mesAnterior = `${anoAnt}-${String(mAnt).padStart(2, '0')}`;
       let [antEnt, antTx, antDes] = [0, 0, 0];
@@ -381,14 +381,14 @@
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
 
-    // Mostra o selo SÓ se o filtro estiver em "TODOS"
-    const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+    const selectFiltro = document.getElementById('filtro-barbeiro');
+    const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
     let nomeDono = (barbeiroObj && fBarbeiro === 'TODOS') ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
 
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 
-  // (Mantidos exportarPDF, abrirModalEditarFinanceiro, salvarEdicaoFinanceira, abrirModalTaxas, salvarTaxas, abrirModalDespesa, salvarDespesa, deletarDespesa)
+  // Mantidos exportarPDF, abrirModalEditarFinanceiro, salvarEdicaoFinanceira, abrirModalTaxas, salvarTaxas, abrirModalDespesa, salvarDespesa, deletarDespesa...
   async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const mesFormatado = document.getElementById('filtro-mes').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${mesFormatado}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-mes').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
   function abrirModalEditarFinanceiro(id, valorFinal, pgto) { document.getElementById('edit-fin-id').value = id; document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2); let pNorm = (pgto || '').toUpperCase(); let selectPgto = document.getElementById('edit-fin-pgto'); if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO'; else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO'; else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) selectPgto.value = 'PIX_DINHEIRO'; else selectPgto.value = 'PENDENTE'; new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show(); }
   async function salvarEdicaoFinanceira() { const id = document.getElementById('edit-fin-id').value, novoValor = document.getElementById('edit-fin-valor').value, novoPgto = document.getElementById('edit-fin-pgto').value; try { await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' }); await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' }); bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide(); carregarFinanceiro(); } catch (e) { alert("Erro ao editar."); } }

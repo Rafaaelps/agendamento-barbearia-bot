@@ -190,8 +190,10 @@
             const res = await fetch('/api/servicos');
             let servicos = await res.json();
 
-            // ✨ FILTRANDO
-            const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+            // ✨ CORREÇÃO: Força o 'TODOS' caso o select esteja vazio
+            const selectFiltro = document.getElementById('filtro-barbeiro');
+            const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
+
             if (fBarbeiro !== 'TODOS') {
                 servicos = servicos.filter(s => s.donoDoRegistro && s.donoDoRegistro.id == fBarbeiro);
             }

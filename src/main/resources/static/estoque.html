@@ -137,7 +137,6 @@
         carregarProdutos();
     });
 
-    // ✨ FUNÇÃO MÁGICA DE FILTRO
     async function carregarFiltroBarbeiros() {
         try {
             const resMe = await fetch('/api/usuario/me');
@@ -163,8 +162,10 @@
         const res = await fetch('/api/estoque/produtos');
         let produtos = await res.json();
 
-        // ✨ O FILTRO APLICADO (No Javascript)
-        const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+        // ✨ CORREÇÃO: Força o 'TODOS' caso o select esteja vazio (funcionário)
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const fBarbeiro = (selectFiltro && selectFiltro.value) ? selectFiltro.value : 'TODOS';
+
         if (fBarbeiro !== 'TODOS') {
             produtos = produtos.filter(p => p.donoDoRegistro && p.donoDoRegistro.id == fBarbeiro);
         }
@@ -180,7 +181,6 @@
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
             let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
-            // ✨ SELO DO BARBEIRO
             let seloDono = (p.donoDoRegistro && fBarbeiro === 'TODOS') ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
 
             grid.innerHTML += `
