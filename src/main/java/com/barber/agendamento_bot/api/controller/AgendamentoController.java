@@ -2,9 +2,15 @@ package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
 import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
+import com.barber.agendamento_bot.api.entity.Usuario;
+import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import com.barber.agendamento_bot.api.service.AgendaService;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -14,38 +20,21 @@ import java.util.List;
 public class AgendamentoController {
 
     private final AgendaService agendaService;
+    private final UsuarioRepository usuarioRepository; // ✨ NOVO: Adicionado para identificar o barbeiro
 
-    public AgendamentoController(AgendaService agendaService) {
+    public AgendamentoController(AgendaService agendaService, UsuarioRepository usuarioRepository) {
         this.agendaService = agendaService;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    @PostMapping
-    public String receberNovoAgendamento(@RequestBody Agendamento novoAgendamento) {
-        boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
-        if (sucesso) return "✅ Sucesso! Agendamento confirmado para " + novoAgendamento.getNomeCliente();
-        else return "❌ Este horário já está ocupado. Por favor, escolha outro.";
-    }
-
-    // ✨ NOVO: Endpoint para Encaixe Manual
-    @PostMapping("/encaixe")
-    public String realizarEncaixe(@RequestBody Agendamento novoEncaixe) {
-        agendaService.forcarAgendamento(novoEncaixe);
-        return "✅ Encaixe realizado com sucesso!";
-    }
-
-    @PostMapping("/bloqueios")
-    public String criarBloqueio(@RequestBody BloqueioAgenda bloqueio) {
-        agendaService.adicionarBloqueio(bloqueio);
-        return "✅ Horário bloqueado com sucesso! Motivo: " + bloqueio.getMotivo();
-    }
-
-    @GetMapping("/livres")
-    public List<LocalTime> consultarHorariosLivres(@RequestParam LocalDate data, @RequestParam Long servicoId) {
-        return agendaService.buscarHorariosLivres(data, servicoId);
+    // ✨ Função auxiliar para pegar quem está mexendo no sistema
+    private Usuario getUsuarioLogado() {
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepository.findByLogin(login).orElse(null);
     }
 
     @GetMapping
-    public List<Agendamento> listarAgendamentos() {
+    public List<Agendamento> listarTodos() {
         return agendaService.listarTodosOsAgendamentos();
     }
 
@@ -54,21 +43,45 @@ public class AgendamentoController {
         return agendaService.listarBloqueios();
     }
 
+    @PostMapping("/encaixe")
+    public ResponseEntity<?> realizarEncaixe(@RequestBody Agendamento agendamento) {
+        agendaService.forcarAgendamento(agendamento);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/bloqueios")
+    public ResponseEntity<?> adicionarBloqueio(@RequestBody BloqueioAgenda bloqueio) {
+        agendaService.adicionarBloqueio(bloqueio);
+        return ResponseEntity.ok().build();
+    }
+
     @PutMapping("/{id}/cancelar")
-    public String cancelar(@PathVariable Long id) {
+    public ResponseEntity<?> cancelar(@PathVariable Long id) {
         agendaService.cancelarAgendamento(id);
-        return "Agendamento cancelado com sucesso!";
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/concluir")
-    public String concluir(@PathVariable Long id) {
+    public ResponseEntity<?> concluir(@PathVariable Long id) {
         agendaService.concluirAgendamento(id);
-        return "💰 Agendamento marcado como concluído!";
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/valor")
-    public String alterarValor(@PathVariable Long id, @RequestParam java.math.BigDecimal novoValor) {
+    public ResponseEntity<?> atualizarValor(@PathVariable Long id, @RequestParam BigDecimal novoValor) {
         agendaService.atualizarValor(id, novoValor);
-        return "💸 Valor alterado com sucesso!";
+        return ResponseEntity.ok().build();
+    }
+
+    // ✨ A CORREÇÃO ESTÁ AQUI: Agora ele envia o 'logado' como terceiro parâmetro!
+    @GetMapping("/horarios-livres")
+    public ResponseEntity<List<LocalTime>> buscarHorariosLivres(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate data,
+            @RequestParam Long servicoId) {
+
+        Usuario logado = getUsuarioLogado();
+        List<LocalTime> horarios = agendaService.buscarHorariosLivres(data, servicoId, logado);
+
+        return ResponseEntity.ok(horarios);
     }
 }
