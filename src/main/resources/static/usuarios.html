@@ -21,11 +21,11 @@
     .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
     .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-    .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh;}
+    .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; z-index: 1050;}
     .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
     .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
     .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
-    .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; }
+    .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; min-height: 0;}
     .nav-item { margin-bottom: 4px; }
     .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
     .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
@@ -41,7 +41,7 @@
 
     .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
     .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
-    .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+    .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main);}
 
     .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
     .btn-primary-modern { background-color: var(--accent-primary); color: white; }
@@ -56,6 +56,8 @@
     .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
     .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
+    .badge-success { background-color: rgba(16, 185, 129, 0.15); color: var(--success-color); }
+    .badge-primary { background-color: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
 
     .modal-content { background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); }
     .modal-header { border-bottom: 1px solid var(--border-color); }
@@ -64,7 +66,7 @@
 
     @media (max-width: 991.98px) {
         .mobile-topbar { display: flex; }
-        .sidebar { position: fixed; left: -280px; z-index: 1050; }
+        .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
         .sidebar.open { left: 0; }
         .sidebar-overlay.show { display: block; }
         .main-content { padding: 16px; }
@@ -217,7 +219,7 @@
                   document.getElementById('menu-usuarios').classList.remove('d-none');
                   return true;
               } else {
-                  window.location.href = "index.html"; // Bloqueia funcionário curioso
+                  window.location.href = "index.html";
               }
           }
       } catch(e) {}

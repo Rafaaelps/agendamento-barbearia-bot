@@ -25,11 +25,11 @@
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
 
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100dvh; z-index: 1050;}
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; z-index: 1050;}
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
         .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
-        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex-grow: 1; overflow-y: auto;}
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; min-height: 0;}
 
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
@@ -68,7 +68,7 @@
 
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
-            .sidebar { position: fixed; left: -280px; }
+            .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
@@ -227,7 +227,6 @@
             servicos.forEach(s => {
                 let seloBarbeiro = (s.donoDoRegistro && isAdmin) ? ` <small class="text-primary d-block mt-1"><i class="bi bi-person"></i> ${s.donoDoRegistro.nome}</small>` : '';
 
-                // ✨ AQUI: Adicionado o botão de Excluir Serviço ao lado do Editar
                 corpo.innerHTML += `
                     <tr>
                         <td data-label="ID" class="text-light fw-bold">#${s.id}</td>
@@ -248,7 +247,6 @@
     function abrirModalServico(id='', nome='', preco='', duracao='') { document.getElementById('id-servico').value = id; document.getElementById('nome-servico').value = nome; document.getElementById('preco-servico').value = preco; document.getElementById('duracao-servico').value = duracao; document.getElementById('tituloModal').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Serviço' : '<i class="bi bi-plus-circle text-primary me-2"></i> Novo Serviço'; new bootstrap.Modal(document.getElementById('modalServico')).show(); }
     async function salvarServico() { const id = document.getElementById('id-servico').value, d = { nome: document.getElementById('nome-servico').value, preco: document.getElementById('preco-servico').value, duracaoMinutos: document.getElementById('duracao-servico').value }; if (!d.nome || !d.preco || !d.duracaoMinutos) return alert("Preencha tudo!"); await fetch(id ? `/api/servicos/${id}` : '/api/servicos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalServico')).hide(); carregarServicos(); }
 
-    // ✨ NOVA FUNÇÃO: Excluir Serviço
     async function excluirServico(id) {
         if(confirm("Tem certeza que deseja excluir permanentemente este serviço?")) {
             await fetch(`/api/servicos/${id}`, { method: 'DELETE' });
