@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class DespesaController {
 
     private final DespesaRepository repository;
-    private final UsuarioRepository usuarioRepository; // ✨ NOVO
+    private final UsuarioRepository usuarioRepository;
 
     public DespesaController(DespesaRepository repository, UsuarioRepository usuarioRepository) {
         this.repository = repository;
@@ -35,28 +35,39 @@ public class DespesaController {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return List.of();
 
-        // Admin vê despesas de todos
         if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
             return repository.findAll();
         }
 
-        // ✨ Barbeiro vê só as despesas DELE
+        // O funcionário só vê despesas dele, mas como só o admin vai criar agora, essa lista será sempre vazia para ele.
         return repository.findAll().stream()
                 .filter(d -> d.getDonoDoRegistro() != null && d.getDonoDoRegistro().getId().equals(logado.getId()))
                 .collect(Collectors.toList());
     }
 
     @PostMapping
-    public Despesa adicionarDespesa(@RequestBody Despesa despesa) {
+    public ResponseEntity<?> adicionarDespesa(@RequestBody Despesa despesa) {
         Usuario logado = getUsuarioLogado();
-        if (logado != null) despesa.setDonoDoRegistro(logado); // ✨ Carimba a despesa no nome do Barbeiro
 
+        // ✨ CORREÇÃO: Apenas Admin pode criar despesa
+        if (logado == null || (!logado.getPerfil().equals("ADMIN") && !logado.getPerfil().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(403).body("Apenas administradores podem lançar despesas.");
+        }
+
+        despesa.setDonoDoRegistro(logado);
         despesa.setDataHora(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")));
-        return repository.save(despesa);
+        return ResponseEntity.ok(repository.save(despesa));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> apagarDespesa(@PathVariable Long id) {
+        Usuario logado = getUsuarioLogado();
+
+        // ✨ CORREÇÃO: Apenas Admin pode excluir despesa
+        if (logado == null || (!logado.getPerfil().equals("ADMIN") && !logado.getPerfil().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(403).build();
+        }
+
         repository.deleteById(id);
         return ResponseEntity.ok().build();
     }
