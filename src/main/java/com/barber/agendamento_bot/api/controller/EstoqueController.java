@@ -1,11 +1,14 @@
 package com.barber.agendamento_bot.api.controller;
 
 import com.barber.agendamento_bot.api.entity.Produto;
+import com.barber.agendamento_bot.api.entity.Usuario;
 import com.barber.agendamento_bot.api.entity.Venda;
 import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
 import com.barber.agendamento_bot.api.repository.ProdutoRepository;
+import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import com.barber.agendamento_bot.api.repository.VendaRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -21,23 +24,43 @@ public class EstoqueController {
 
     private final ProdutoRepository produtoRepository;
     private final VendaRepository vendaRepository;
-    private final ConfiguracaoRepository configuracaoRepository; // ✨ NOVO
+    private final ConfiguracaoRepository configuracaoRepository;
+    private final UsuarioRepository usuarioRepository; // ✨ NOVO
 
-    public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository, ConfiguracaoRepository configuracaoRepository) {
+    public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository, ConfiguracaoRepository configuracaoRepository, UsuarioRepository usuarioRepository) {
         this.produtoRepository = produtoRepository;
         this.vendaRepository = vendaRepository;
         this.configuracaoRepository = configuracaoRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
+
+    // ✨ DESCOBRE QUEM ESTÁ LOGADO
+    private Usuario getUsuarioLogado() {
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepository.findByLogin(login).orElse(null);
     }
 
     @GetMapping("/produtos")
     public List<Produto> listarProdutos() {
-        return produtoRepository.findAll().stream()
-                .filter(p -> p.getAtivo() == null || p.getAtivo())
-                .collect(Collectors.toList());
+        Usuario logado = getUsuarioLogado();
+        if (logado == null) return List.of();
+
+        // Se for ADMIN, vê todos os produtos ativos do salão
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return produtoRepository.findAll().stream()
+                    .filter(p -> p.getAtivo() == null || p.getAtivo())
+                    .collect(Collectors.toList());
+        }
+
+        // ✨ Se for Barbeiro (João), vê SÓ os produtos ativos DELE
+        return produtoRepository.findByAtivoTrueAndDonoDoRegistro(logado);
     }
 
     @PostMapping("/produtos")
     public Produto salvarProduto(@RequestBody Produto produto) {
+        Usuario logado = getUsuarioLogado();
+        if (logado != null) produto.setDonoDoRegistro(logado); // ✨ Carimba o dono no produto
+
         produto.setNome(produto.getNome().trim());
         produto.setAtivo(true);
         return produtoRepository.save(produto);
@@ -80,7 +103,6 @@ public class EstoqueController {
         produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - quantidade);
         produtoRepository.save(produto);
 
-        // ✨ PUXA AS TAXAS DINÂMICAS DO BANCO DE DADOS
         double taxaCredito = configuracaoRepository.findById("TAXA_CREDITO").map(c -> Double.parseDouble(c.getValor())).orElse(5.0);
         double taxaDebito = configuracaoRepository.findById("TAXA_DEBITO").map(c -> Double.parseDouble(c.getValor())).orElse(2.0);
 
@@ -108,6 +130,17 @@ public class EstoqueController {
 
     @GetMapping("/vendas")
     public List<Venda> listarVendas() {
-        return vendaRepository.findAll();
+        Usuario logado = getUsuarioLogado();
+        if (logado == null) return List.of();
+
+        // Admin vê todas as vendas
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return vendaRepository.findAll();
+        }
+
+        // ✨ Barbeiro vê só as vendas dos produtos DELE
+        return vendaRepository.findAll().stream()
+                .filter(v -> v.getProduto() != null && v.getProduto().getDonoDoRegistro() != null && v.getProduto().getDonoDoRegistro().getId().equals(logado.getId()))
+                .collect(Collectors.toList());
     }
 }

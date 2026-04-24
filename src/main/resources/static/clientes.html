@@ -40,7 +40,7 @@
 
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap;}
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
         .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
@@ -66,7 +66,6 @@
             .main-content { padding: 16px; }
             .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
 
-            /* ✨ SOLUÇÃO DO FUNDO TRANSPARENTE PARA OS CARDS FLUTUAREM */
             .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
 
             .table-modern thead { display: none; }
@@ -93,10 +92,7 @@
 
     <div class="main-wrapper">
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="bi bi-scissors"></i>
-                <span>Barbearia Bot</span>
-            </div>
+            <div class="sidebar-header"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
                 <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
@@ -109,22 +105,27 @@
                 <li class="nav-item"><a href="clientes.html" class="nav-link active"><i class="bi bi-people"></i> Clientes</a></li>
             </ul>
             <div class="sidebar-footer">
-                <form action="/sair" method="POST" class="m-0">
-                    <button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button>
-                </form>
+                <form action="/sair" method="POST" class="m-0"><button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button></form>
             </div>
         </aside>
 
         <main class="main-content">
-            <div class="page-header gap-3">
-                <h1 class="page-title">Gestão de Clientes (CRM)</h1>
-                <div class="d-flex align-items-center custom-card p-3 flex-grow-1 flex-md-grow-0">
-                    <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
-                    <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="renderizarTabela()">
-                        <option value="GASTO" style="color: black;">Quem mais gastou</option>
-                        <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
-                        <option value="FREQUENTES" style="color: black;">Mais visitas</option>
-                    </select>
+            <div class="page-header gap-3 flex-wrap">
+                <h1 class="page-title">Gestão de Clientes</h1>
+                <div class="d-flex gap-2 flex-grow-1 flex-md-grow-0 flex-wrap">
+                    <div class="d-flex align-items-center custom-card p-2 d-none flex-grow-1" id="container-filtro-barbeiro">
+                        <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-person"></i> BARBEIRO:</label>
+                        <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="carregarCRM()"></select>
+                    </div>
+
+                    <div class="d-flex align-items-center custom-card p-2 flex-grow-1">
+                        <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
+                        <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="renderizarTabela()">
+                            <option value="GASTO" style="color: black;">Quem mais gastou</option>
+                            <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
+                            <option value="FREQUENTES" style="color: black;">Mais visitas</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -168,7 +169,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let clientesGlobal = [];
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
         const btnMenu = document.getElementById('mobile-menu-btn');
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -176,14 +177,45 @@
             btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
             overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
         }
+        await carregarFiltroBarbeiros();
         carregarCRM();
     });
+
+    async function carregarFiltroBarbeiros() {
+        try {
+            const resMe = await fetch('/api/usuario/me');
+            if (resMe.ok) {
+                const me = await resMe.json();
+                if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+                    const resFunc = await fetch('/api/admin/funcionarios');
+                    if (resFunc.ok) {
+                        const funcs = await resFunc.json();
+                        const select = document.getElementById('filtro-barbeiro');
+                        if (select) {
+                            select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
+                            funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+    }
 
     async function carregarCRM() {
         try {
             const resposta = await fetch('/api/agendamentos');
             const todosAgendamentos = await resposta.json();
-            const concluidos = todosAgendamentos.filter(ag => ag.status === 'CONCLUIDO');
+
+            // ✨ O FILTRO APLICADO (Calcula os cards de acordo com o barbeiro selecionado)
+            const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+
+            const concluidos = todosAgendamentos.filter(ag => {
+                let ehConcluido = ag.status === 'CONCLUIDO';
+                let ehDono = (fBarbeiro === 'TODOS') || (ag.donoDoRegistro && ag.donoDoRegistro.id == fBarbeiro);
+                return ehConcluido && ehDono;
+            });
+
             const mapaClientes = {};
             let faturamentoGeral = 0; let visitasGerais = 0;
 
@@ -192,7 +224,7 @@
                 const precoCheio = ag.valorFinal ? Number(ag.valorFinal) : valorLivre;
                 const dataAgendamento = new Date(ag.dataHoraInicio);
 
-                if (!mapaClientes[tel]) mapaClientes[tel] = { telefone: tel, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento };
+                if (!mapaClientes[tel]) mapaClientes[tel] = { telefone: tel, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento, donoDoRegistro: ag.donoDoRegistro };
                 mapaClientes[tel].totalVisitas += 1; mapaClientes[tel].gastoTotal += precoCheio;
                 faturamentoGeral += precoCheio; visitasGerais += 1;
 
@@ -212,9 +244,10 @@
         else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
         else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
 
+        const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
         const corpoTabela = document.getElementById('tabela-clientes');
         corpoTabela.innerHTML = '';
-        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes concluídos.</td></tr>';
+        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes concluídos neste filtro.</td></tr>';
 
         clientesGlobal.forEach(c => {
             const dFmt = c.ultimaVisita.toLocaleDateString('pt-BR');
@@ -230,12 +263,14 @@
 
             const btnWhats = `<button onclick="dispararMensagem('${numLimpo}', '${c.nome}', ${diasSumido})" class="btn-success-modern border-0"><i class="bi bi-whatsapp"></i> Lembrete</button>`;
 
+            let seloBarbeiro = (c.donoDoRegistro && fBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${c.donoDoRegistro.nome}</span>` : '';
+
             corpoTabela.innerHTML += `
             <tr>
-                <td data-label="Nome"><strong class="text-white">${c.nome}</strong></td>
+                <td data-label="Nome"><strong class="text-white">${c.nome}</strong>${seloBarbeiro}</td>
                 <td data-label="Contato" class="text-light fw-bold">${c.telefone}</td>
                 <td data-label="Visitas Totais"><span class="badge-modern">${c.totalVisitas}x</span></td>
-                <td data-label="Total Gasto (LTV)" style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                <td data-label="Total Gasto" style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                 <td data-label="Última Visita"><span class="text-light">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
                 <td data-label="Ação">${btnWhats}</td>
             </tr>`;

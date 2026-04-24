@@ -40,7 +40,7 @@
 
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 15px;}
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
 
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
@@ -66,8 +66,9 @@
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
-            .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
             .btn-modern { justify-content: center; }
+
+            .header-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
@@ -83,10 +84,7 @@
 
     <div class="main-wrapper">
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="bi bi-scissors"></i>
-                <span>Barbearia Bot</span>
-            </div>
+            <div class="sidebar-header"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
                 <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
@@ -99,16 +97,20 @@
                 <li class="nav-item"><a href="clientes.html" class="nav-link"><i class="bi bi-people"></i> Clientes</a></li>
             </ul>
             <div class="sidebar-footer">
-                <form action="/sair" method="POST" class="m-0">
-                    <button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button>
-                </form>
+                <form action="/sair" method="POST" class="m-0"><button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button></form>
             </div>
         </aside>
 
         <main class="main-content">
             <div class="page-header">
                 <h1 class="page-title">Controle de Estoque</h1>
-                <button class="btn-modern btn-primary-modern" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
+                <div class="header-actions d-flex gap-2">
+                    <div id="container-filtro-barbeiro" class="custom-card p-1 d-none d-flex align-items-center flex-grow-1">
+                        <span class="ms-2 small fw-bold text-light"><i class="bi bi-person"></i> BARBEIRO:</span>
+                        <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent text-primary fw-bold" style="box-shadow: none;" onchange="carregarProdutos()"></select>
+                    </div>
+                    <button class="btn-modern btn-primary-modern" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
+                </div>
             </div>
 
             <div class="row" id="grid-produtos"></div>
@@ -116,87 +118,13 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalProduto" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold" id="titulo-modal-produto"><i class="bi bi-box-seam text-primary me-2"></i> Cadastrar Produto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="id-produto">
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-light small">NOME DO PRODUTO</label>
-                    <input type="text" id="nome-produto" class="form-control custom-input" placeholder="Ex: Pomada Matte">
-                </div>
-                <div class="row mb-3 g-2">
-                    <div class="col-6">
-                        <label class="form-label fw-bold text-light small">PREÇO (R$)</label>
-                        <input type="number" id="preco-produto" class="form-control custom-input" step="0.01">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label fw-bold text-light small">QUANTIDADE</label>
-                        <input type="number" id="qtd-produto" class="form-control custom-input" min="0">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarProduto()">Salvar Produto</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalRepor" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down text-info me-2"></i> Repor Estoque</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <p class="mb-3 fw-bold text-main fs-5" id="texto-repor-produto">Produto</p>
-                <input type="hidden" id="id-produto-repor">
-                <div class="mb-3 text-start">
-                    <label class="form-label fw-bold text-light small">QTD RECEBIDA</label>
-                    <input type="number" id="qtd-repor" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1">
-                </div>
-                <button class="btn-modern btn-outline-modern w-100 justify-content-center" onclick="processarReposicao()">Adicionar ao Estoque</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalVendaProduto" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold"><i class="bi bi-cart-check text-success me-2"></i> Finalizar Venda</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <p class="mb-3 fw-bold text-main fs-5" id="texto-venda-produto">Produto</p>
-                <input type="hidden" id="id-produto-venda">
-
-                <div class="d-flex justify-content-center align-items-center mb-4">
-                    <label class="fw-bold me-2 text-light small">QTD:</label>
-                    <input type="number" id="qtd-venda" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1" style="width: 80px;">
-                </div>
-
-                <p class="mb-2 text-light small fw-bold">PAGAMENTO:</p>
-                <div class="d-grid gap-2">
-                    <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarVenda('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button>
-                    <button class="btn-modern btn-outline-modern justify-content-center" onclick="processarVenda('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button>
-                    <button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarVenda('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="modalProduto" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold" id="titulo-modal-produto"><i class="bi bi-box-seam text-primary me-2"></i> Cadastrar Produto</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="id-produto"><div class="mb-3"><label class="form-label fw-bold text-light small">NOME DO PRODUTO</label><input type="text" id="nome-produto" class="form-control custom-input" placeholder="Ex: Pomada Matte"></div><div class="row mb-3 g-2"><div class="col-6"><label class="form-label fw-bold text-light small">PREÇO (R$)</label><input type="number" id="preco-produto" class="form-control custom-input" step="0.01"></div><div class="col-6"><label class="form-label fw-bold text-light small">QUANTIDADE</label><input type="number" id="qtd-produto" class="form-control custom-input" min="0"></div></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarProduto()">Salvar Produto</button></div></div></div></div>
+<div class="modal fade" id="modalRepor" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down text-info me-2"></i> Repor Estoque</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 fw-bold text-main fs-5" id="texto-repor-produto">Produto</p><input type="hidden" id="id-produto-repor"><div class="mb-3 text-start"><label class="form-label fw-bold text-light small">QTD RECEBIDA</label><input type="number" id="qtd-repor" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1"></div><button class="btn-modern btn-outline-modern w-100 justify-content-center" onclick="processarReposicao()">Adicionar ao Estoque</button></div></div></div></div>
+<div class="modal fade" id="modalVendaProduto" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-cart-check text-success me-2"></i> Finalizar Venda</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 fw-bold text-main fs-5" id="texto-venda-produto">Produto</p><input type="hidden" id="id-produto-venda"><div class="d-flex justify-content-center align-items-center mb-4"><label class="fw-bold me-2 text-light small">QTD:</label><input type="number" id="qtd-venda" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1" style="width: 80px;"></div><p class="mb-2 text-light small fw-bold">PAGAMENTO:</p><div class="d-grid gap-2"><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarVenda('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarVenda('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button><button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarVenda('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button></div></div></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
         const btnMenu = document.getElementById('mobile-menu-btn');
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -204,30 +132,68 @@
             btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
             overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
         }
+
+        await carregarFiltroBarbeiros();
         carregarProdutos();
     });
 
+    // ✨ FUNÇÃO MÁGICA DE FILTRO
+    async function carregarFiltroBarbeiros() {
+        try {
+            const resMe = await fetch('/api/usuario/me');
+            if (resMe.ok) {
+                const me = await resMe.json();
+                if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+                    const resFunc = await fetch('/api/admin/funcionarios');
+                    if (resFunc.ok) {
+                        const funcs = await resFunc.json();
+                        const select = document.getElementById('filtro-barbeiro');
+                        if (select) {
+                            select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
+                            funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+    }
+
     async function carregarProdutos() {
-        const res = await fetch('/api/estoque/produtos'); const produtos = await res.json();
+        const res = await fetch('/api/estoque/produtos');
+        let produtos = await res.json();
+
+        // ✨ O FILTRO APLICADO (No Javascript)
+        const fBarbeiro = document.getElementById('filtro-barbeiro') ? document.getElementById('filtro-barbeiro').value : 'TODOS';
+        if (fBarbeiro !== 'TODOS') {
+            produtos = produtos.filter(p => p.donoDoRegistro && p.donoDoRegistro.id == fBarbeiro);
+        }
+
         const grid = document.getElementById('grid-produtos'); grid.innerHTML = '';
+
+        if (produtos.length === 0) {
+            grid.innerHTML = '<div class="col-12"><p class="text-light text-center mt-5">Nenhum produto cadastrado para este filtro.</p></div>';
+            return;
+        }
 
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
             let btnExcluir = p.quantidadeEstoque === 0 ? `<button class="btn btn-sm position-absolute top-0 end-0 m-2 border-0 text-light" onclick="excluirProduto(${p.id})"><i class="bi bi-trash3"></i></button>` : '';
 
-            // ✨ CORREÇÃO AQUI: d-flex align-items-stretch no container pai e flex-grow-1 no conteúdo!
+            // ✨ SELO DO BARBEIRO
+            let seloDono = (p.donoDoRegistro && fBarbeiro === 'TODOS') ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
+
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
                     <div class="custom-card w-100 position-relative p-4 text-center d-flex flex-column">
                         ${btnExcluir}
-
                         <div class="flex-grow-1">
                             <small class="text-light fw-bold d-block mb-1">ID: #${p.id}</small>
                             <h5 class="fw-bold text-white mt-2">${p.nome}</h5>
-                            <h3 class="fw-bold my-3" style="color: var(--accent-primary);">R$ ${p.preco.toFixed(2)}</h3>
+                            ${seloDono}
+                            <h3 class="fw-bold my-2" style="color: var(--accent-primary);">R$ ${p.preco.toFixed(2)}</h3>
                             <p class="mb-2 fw-bold small" style="color: var(--${corEstoque.split('-')[1]}-color);"><i class="bi bi-box-seam me-1"></i> Estoque: ${p.quantidadeEstoque} un</p>
                         </div>
-
                         <div class="d-grid gap-2 mt-4 pt-2">
                             <button class="btn-modern btn-outline-modern justify-content-center py-2" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
                             <div class="d-flex gap-2">
@@ -240,29 +206,14 @@
         });
     }
 
-    function abrirModalProduto(id='', nome='', preco='', qtd='') {
-        document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome;
-        document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd;
-        document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto';
-        new bootstrap.Modal(document.getElementById('modalProduto')).show();
-    }
-    async function salvarProduto() {
-        const id = document.getElementById('id-produto').value, d = { nome: document.getElementById('nome-produto').value, preco: document.getElementById('preco-produto').value, quantidadeEstoque: document.getElementById('qtd-produto').value };
-        if(!d.nome || !d.preco || !d.quantidadeEstoque) return alert("Preencha tudo!");
-        await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
-        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos();
-    }
+    // Funções mantidas
+    function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
+    async function salvarProduto() { const id = document.getElementById('id-produto').value, d = { nome: document.getElementById('nome-produto').value, preco: document.getElementById('preco-produto').value, quantidadeEstoque: document.getElementById('qtd-produto').value }; if(!d.nome || !d.preco || !d.quantidadeEstoque) return alert("Preencha tudo!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }
     async function processarReposicao() { await fetch(`/api/estoque/produtos/${document.getElementById('id-produto-repor').value}/repor?quantidade=${document.getElementById('qtd-repor').value}`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalRepor')).hide(); carregarProdutos(); }
     async function excluirProduto(id) { if(confirm("Apagar produto?")) { await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' }); carregarProdutos(); } }
     function abrirModalVenda(id, nome) { document.getElementById('id-produto-venda').value = id; document.getElementById('texto-venda-produto').innerText = nome; document.getElementById('qtd-venda').value = 1; new bootstrap.Modal(document.getElementById('modalVendaProduto')).show(); }
-    async function processarVenda(forma) {
-        const id = document.getElementById('id-produto-venda').value, qtd = document.getElementById('qtd-venda').value;
-        if(qtd < 1) return;
-        const res = await fetch(`/api/estoque/vender?produtoId=${id}&quantidade=${qtd}&pagamento=${forma}`, { method: 'POST' });
-        if(!res.ok) return alert("Erro: " + await res.text());
-        bootstrap.Modal.getInstance(document.getElementById('modalVendaProduto')).hide(); carregarProdutos();
-    }
+    async function processarVenda(forma) { const id = document.getElementById('id-produto-venda').value, qtd = document.getElementById('qtd-venda').value; if(qtd < 1) return; const res = await fetch(`/api/estoque/vender?produtoId=${id}&quantidade=${qtd}&pagamento=${forma}`, { method: 'POST' }); if(!res.ok) return alert("Erro: " + await res.text()); bootstrap.Modal.getInstance(document.getElementById('modalVendaProduto')).hide(); carregarProdutos(); }
 </script>
 </body>
 </html>
