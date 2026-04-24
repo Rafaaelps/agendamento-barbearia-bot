@@ -40,7 +40,7 @@ public class AgendaService {
         Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
         novo.setServicoEscolhido(servicoCompleto);
 
-        Usuario barbeiro = novo.getDonoDoRegistro(); // O dono vem atrelado do robô ou da tela
+        Usuario barbeiro = novo.getDonoDoRegistro();
         if (barbeiro == null) return false;
 
         LocalDateTime inicio = novo.getDataHoraInicio();
@@ -54,7 +54,6 @@ public class AgendaService {
         if (inicio.isBefore(LocalDateTime.now(fusoBR))) return false;
 
         int diaSemanaId = inicio.getDayOfWeek().getValue();
-        // ✨ Usa o horário individual do barbeiro
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
         if (regrasDoDia == null || regrasDoDia.isFechado()) return false;
 
@@ -63,7 +62,6 @@ public class AgendaService {
 
         if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) return false;
 
-        // ✨ Usa os bloqueios e agendamentos SÓ do barbeiro
         List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
         for (BloqueioAgenda bloqueio : bloqueios) {
             if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
@@ -93,7 +91,6 @@ public class AgendaService {
         logService.registrarAcao("AGENDA", "ENCAIXE", "Realizou encaixe manual para: " + novo.getNomeCliente());
     }
 
-    // ✨ NOVO: O método de buscar horários precisa saber de quem é a agenda que ele está lendo!
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId, Usuario barbeiro) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
         if (barbeiro == null) return horariosDisponiveis;
@@ -169,7 +166,6 @@ public class AgendaService {
         return proximoAgendamento;
     }
 
-    // ✨ REGRAS DOS BLOQUEIOS ISOLADOS
     public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
         Usuario logado = getUsuarioLogado();
         if(logado != null) novoBloqueio.setDonoDoRegistro(logado);
@@ -179,5 +175,26 @@ public class AgendaService {
 
     public void removerBloqueio(Long id) {
         bloqueioAgendaRepository.deleteById(id);
+    }
+
+    // ✨ FUNÇÕES QUE ESTAVAM FALTANDO
+    public List<Agendamento> listarTodosOsAgendamentos() {
+        Usuario logado = getUsuarioLogado();
+        if (logado == null) return new ArrayList<>();
+
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return agendamentoRepository.findByStatusNot("CANCELADO");
+        }
+        return agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", logado);
+    }
+
+    public List<BloqueioAgenda> listarBloqueios() {
+        Usuario logado = getUsuarioLogado();
+        if (logado == null) return new ArrayList<>();
+
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return bloqueioAgendaRepository.findAll();
+        }
+        return bloqueioAgendaRepository.findAllByDonoDoRegistro(logado);
     }
 }

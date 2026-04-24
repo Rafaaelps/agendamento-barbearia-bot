@@ -3,11 +3,10 @@ package com.barber.agendamento_bot.api.service;
 import com.barber.agendamento_bot.api.entity.Agendamento;
 import com.barber.agendamento_bot.api.entity.Servico;
 import com.barber.agendamento_bot.api.entity.SessaoBot;
-import com.barber.agendamento_bot.api.entity.Usuario; // ✨ IMPORTADO
+import com.barber.agendamento_bot.api.entity.Usuario;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
 import com.barber.agendamento_bot.api.repository.SessaoBotRepository;
-import com.barber.agendamento_bot.api.repository.UsuarioRepository; // ✨ IMPORTADO
-import jakarta.annotation.PostConstruct;
+import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -27,35 +26,13 @@ public class ChatbotService {
     private final SessaoBotRepository sessaoRepository;
     private final AgendaService agendaService;
     private final ServicoRepository servicoRepository;
-    private final UsuarioRepository usuarioRepository; // ✨ NOVO: Repositório de Usuários
+    private final UsuarioRepository usuarioRepository;
 
     public ChatbotService(SessaoBotRepository sessaoRepository, AgendaService agendaService, ServicoRepository servicoRepository, UsuarioRepository usuarioRepository) {
         this.sessaoRepository = sessaoRepository;
         this.agendaService = agendaService;
         this.servicoRepository = servicoRepository;
-        this.usuarioRepository = usuarioRepository; // ✨ NOVO
-    }
-
-    @PostConstruct
-    public void popularBancoSeEstiverVazio() {
-        if (servicoRepository.count() == 0) {
-            Servico s1 = new Servico();
-            s1.setNome("Corte de Cabelo");
-            s1.setPreco(new BigDecimal("35.00"));
-            s1.setDuracaoMinutos(30);
-
-            Servico s2 = new Servico();
-            s2.setNome("Barba");
-            s2.setPreco(new BigDecimal("25.00"));
-            s2.setDuracaoMinutos(20);
-
-            Servico s3 = new Servico();
-            s3.setNome("Corte + Barba");
-            s3.setPreco(new BigDecimal("55.00"));
-            s3.setDuracaoMinutos(50);
-
-            servicoRepository.saveAll(List.of(s1, s2, s3));
-        }
+        this.usuarioRepository = usuarioRepository;
     }
 
     private void limparDadosTemporariosDaSessao(SessaoBot sessao) {
@@ -65,14 +42,12 @@ public class ChatbotService {
         sessao.setIdAgendamentoTemporario(null);
     }
 
-    // ✨ NOVO: Adicionado o parâmetro 'instanciaWhatsapp' para o robô saber quem está atendendo
     public String processarMensagem(String telefone, String textoRecebido, String instanciaWhatsapp) {
 
         if (textoRecebido == null || textoRecebido.trim().isEmpty()) {
             return "🎧 Opa! Eu sou um assistente virtual em treinamento e ainda não consigo ouvir áudios ou ver imagens.\n\nPor favor, digite a sua mensagem em texto para eu poder te ajudar!";
         }
 
-        // ✨ NOVO: Busca o dono deste WhatsApp no banco de dados
         Usuario barbeiroResponsavel = null;
         if (instanciaWhatsapp != null && !instanciaWhatsapp.isEmpty()) {
             barbeiroResponsavel = usuarioRepository.findByInstanciaWhatsapp(instanciaWhatsapp).orElse(null);
@@ -105,7 +80,6 @@ public class ChatbotService {
             }
         }
 
-        // Confirmacao de presenca
         if (textoLimpo.matches("^(sim|confirmar|confirmo|com certeza).*") && !sessao.getPassoAtual().equals("CONFIRMANDO_CANCELAMENTO")) {
             Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
 
@@ -126,8 +100,6 @@ public class ChatbotService {
                     break;
                 case "ESPERANDO_DATA":
                     sessao.setPassoAtual("ESPERANDO_SERVICO");
-
-                    // ✨ NOVO: Filtra os serviços apenas deste barbeiro
                     List<Servico> listaServicosVoltar;
                     if (barbeiroResponsavel != null) {
                         listaServicosVoltar = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel);
@@ -200,7 +172,6 @@ public class ChatbotService {
             case "ESPERANDO_NOME":
                 sessao.setNomeClienteTemporario(textoRecebido);
 
-                // ✨ NOVO: Filtra os serviços apenas deste barbeiro
                 List<Servico> listaServicos;
                 if (barbeiroResponsavel != null) {
                     listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel);
@@ -249,7 +220,8 @@ public class ChatbotService {
                     if (dataDigitada.isBefore(dataDeHoje)) {
                         respostaDoRobo = "⚠️ Ops, o dia *" + textoLimpo + "* não é possível agendar.\n\nPor favor, digite uma data de hoje em diante (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                     } else {
-                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
+                        // ✨ CORREÇÃO AQUI: Passando o barbeiroResponsavel para a busca
+                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario(), barbeiroResponsavel);
 
                         if (horariosLivres.isEmpty()) {
                             respostaDoRobo = "😔 Não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
@@ -286,7 +258,6 @@ public class ChatbotService {
                     novoAgendamento.setNomeCliente(sessao.getNomeClienteTemporario());
                     novoAgendamento.setDataHoraInicio(dataHoraCompleta);
 
-                    // ✨ NOVO: Atrela o agendamento ao barbeiro dono do WhatsApp!
                     if (barbeiroResponsavel != null) {
                         novoAgendamento.setDonoDoRegistro(barbeiroResponsavel);
                     }
@@ -303,7 +274,8 @@ public class ChatbotService {
                         sessao.setPassoAtual("MENU_INICIAL");
                         limparDadosTemporariosDaSessao(sessao);
                     } else {
-                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario());
+                        // ✨ CORREÇÃO AQUI: Passando o barbeiroResponsavel para a busca
+                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario(), barbeiroResponsavel);
 
                         if (horariosLivres.isEmpty()) {
                             respostaDoRobo = "❌ Esse horário já está ocupado e não temos mais vagas neste dia. Por favor, mande um *Oi* para recomeçar e escolher outra data.";
