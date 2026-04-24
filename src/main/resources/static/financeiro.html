@@ -282,7 +282,7 @@
                       if (select) {
                           select.innerHTML = '<option value="TODOS">Todos os Barbeiros (Salão)</option>';
                           funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
-                          select.value = me.id; // Admin por padrão vê os números dele, mas pode mudar pra TODOS
+                          select.value = "TODOS";
                           document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                       }
                   }
@@ -300,8 +300,7 @@
       const mesEscolhido = document.getElementById('filtro-mes').value;
 
       let [receitaBruta, taxasTotal, despesasTotal, extratoMisto] = [0, 0, 0, []];
-      let comissoesPagasParaBarbeiros = 0;
-      let comissoesRetidasPeloSalao = 0;
+      let comissoesRetidasPeloSalao = 0; // Usado na visão de funcionário específico
 
       const selectFiltro = document.getElementById('filtro-barbeiro');
       const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
@@ -328,50 +327,51 @@
         let fatBarbeiro = Number(ag.faturamentoBarbeiro || 0);
         let comissaoSalao = Number(ag.comissaoDoAdmin || 0);
 
+        // Retrocompatibilidade para registros antigos antes de criarmos a divisão no Java
         if (fatBarbeiro === 0 && comissaoSalao === 0 && pNorm !== 'PENDENTE') {
             let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
             comissaoSalao = valorPosCartao * txSalao;
             fatBarbeiro = valorPosCartao - comissaoSalao;
         }
 
-        receitaBruta += precoCheio;
-        taxasTotal += taxaDaVenda;
-
         let valorLiquidoExibicao = 0;
         let idDonoDesteCorte = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
-        let detalheComissaoHtml = ''; // O Selo de transparência da comissão!
+        let detalheComissaoHtml = '';
 
+        // ✨ SE O DONO TÁ OLHANDO A BARBEARIA INTEIRA
         if (isAdmin && fBarbeiro === 'TODOS') {
             if (idDonoDesteCorte == idLogado) {
-                valorLiquidoExibicao = fatBarbeiro + comissaoSalao;
+                // É um corte do próprio dono
+                receitaBruta += precoCheio;
+                taxasTotal += taxaDaVenda;
+                valorLiquidoExibicao = precoCheio - taxaDaVenda;
             } else {
-                comissoesPagasParaBarbeiros += fatBarbeiro;
+                // É um corte de funcionário (O salão ganha só a comissão!)
+                receitaBruta += comissaoSalao;
                 valorLiquidoExibicao = comissaoSalao;
-                // ✨ A MÁGICA VISUAL DA COMISSÃO DO SALÃO!
                 detalheComissaoHtml = `
                     <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
                         <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
                         <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${taxaDaVenda.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-info mb-1"><span>Repasse (${ag.donoDoRegistro.nome}):</span> <span>- R$ ${fatBarbeiro.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
+                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                     </div>`;
             }
-        } else if (isAdmin && fBarbeiro !== 'TODOS') {
+        }
+        // ✨ SE É A VISÃO INDIVIDUAL DE UM BARBEIRO (Ou o admin filtrando um barbeiro só)
+        else {
+            receitaBruta += precoCheio;
+            taxasTotal += taxaDaVenda;
             valorLiquidoExibicao = fatBarbeiro;
-            comissoesRetidasPeloSalao += comissaoSalao;
-            // Se o admin olhar a conta específica do João, ele também vê a quebra
-            if (idDonoDesteCorte != idLogado) {
+            comissoesRetidasPeloSalao += comissaoSalao; // Acumula como Despesa
+
+            if (isAdmin && idDonoDesteCorte != idLogado) {
                 detalheComissaoHtml = `
                 <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
                     <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
                     <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${taxaDaVenda.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-success mb-1 border-bottom border-secondary pb-1"><span>Líquido Barbeiro:</span> <span>R$ ${fatBarbeiro.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1"><span>Comissão Paga ao Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
                 </div>`;
             }
-        } else {
-            valorLiquidoExibicao = fatBarbeiro;
-            comissoesRetidasPeloSalao += comissaoSalao;
         }
 
         let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
@@ -379,7 +379,7 @@
         extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, precoCheio: precoCheio });
       });
 
-      // --- PRODUTOS DO ESTOQUE ---
+      // --- ESTOQUE (PRODUTOS) ---
       todasV.filter(v => ehDoMesmoMes(v.dataHoraVenda, mesEscolhido)).forEach(v => {
         let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
         if (!checkDono(donoVenda)) return;
@@ -388,26 +388,18 @@
         let valorPosCartao = Number(v.valorTotal || 0);
         let taxaDaVenda = Math.max(0, precoCheio - valorPosCartao);
 
-        // ✨ CORREÇÃO: PRODUTOS NÃO TÊM COMISSÃO PARA O SALÃO. O BARBEIRO FICA COM 100%.
-        let comissaoSalao = 0;
-        let fatBarbeiro = valorPosCartao;
-
-        receitaBruta += precoCheio;
-        taxasTotal += taxaDaVenda;
-
         let valorLiquidoExibicao = 0;
         let idDonoDestaVenda = donoVenda ? donoVenda.id : idLogado;
 
-        if (isAdmin && fBarbeiro === 'TODOS') {
-            if (idDonoDestaVenda == idLogado) {
-                valorLiquidoExibicao = fatBarbeiro;
-            } else {
-                comissoesPagasParaBarbeiros += fatBarbeiro;
-                valorLiquidoExibicao = 0; // O admin ganha R$ 0 na venda de um produto que é do João
-            }
-        } else {
-            valorLiquidoExibicao = fatBarbeiro;
+        // Na visão geral, o salão só vê a venda do produto do barbeiro se o salão ganhar comissão,
+        // como os produtos não tem comissão de salão, vamos ignorar as vendas de funcionários no painel TODOS.
+        if (isAdmin && fBarbeiro === 'TODOS' && idDonoDestaVenda != idLogado) {
+            return; // Oculta a venda da pomada do João no painel global do Salão.
         }
+
+        receitaBruta += precoCheio;
+        taxasTotal += taxaDaVenda;
+        valorLiquidoExibicao = valorPosCartao;
 
         let dataString = Array.isArray(v.dataHoraVenda) ? `${v.dataHoraVenda[0]}-${String(v.dataHoraVenda[1]).padStart(2,'0')}-${String(v.dataHoraVenda[2]).padStart(2,'0')}T${String(v.dataHoraVenda[3]).padStart(2,'0')}:${String(v.dataHoraVenda[4]).padStart(2,'0')}` : v.dataHoraVenda;
         extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: v, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda });
@@ -429,7 +421,7 @@
         extratoMisto.forEach(item => {
           if (item.tipo === 'CORTE') {
               let btnEdit = `<button class="btn btn-sm btn-outline-primary border-0" onclick="abrirModalEditarFinanceiro(${item.obj.id}, ${item.precoCheio}, '${item.obj.formaPagamento}')" title="Editar"><i class="bi bi-pencil-square fs-6"></i></button>`;
-              let descricaoFinal = `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}${item.obj.detalheHtml}`;
+              let descricaoFinal = `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}${item.obj.detalheHtml || ''}`;
               corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, descricaoFinal, item.obj.formaPagamento, item.lucroLivre, item.obj.donoDoRegistro, btnEdit, isAdmin);
           }
           else if (item.tipo === 'VENDA') {
@@ -444,16 +436,21 @@
         });
       }
 
-      let lucroNoBolso = 0; let textoSaidasExtras = "";
+      // ✨ FECHAMENTO DE CAIXA PERFEITO
+      let lucroNoBolso = 0;
+      let textoSaidasExtras = "";
 
       if (isAdmin && fBarbeiro === 'TODOS') {
-          lucroNoBolso = receitaBruta - taxasTotal - despesasTotal - comissoesPagasParaBarbeiros;
-          textoSaidasExtras = `Repasses a Barbeiros: R$ ${comissoesPagasParaBarbeiros.toFixed(2)}`;
+          // Salão: Lucro real já inclui só a comissão recebida dos funcionários.
+          lucroNoBolso = receitaBruta - taxasTotal - despesasTotal;
+          textoSaidasExtras = ``; // Não tem mais "repasses a barbeiros" porque eles ganham da própria máquina.
       } else {
+          // Barbeiro Individual (Ou Admin olhando a conta do Barbeiro)
           lucroNoBolso = (receitaBruta - taxasTotal - comissoesRetidasPeloSalao) - despesasTotal;
-          textoSaidasExtras = `Comissão Paga ao Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
+          textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
       }
 
+      // Previsão
       let hist = {}, totalCts = 0, fatGlobal = 0;
       todosAg.filter(ag => ag.status === 'CONCLUIDO' && checkDono(ag.donoDoRegistro)).forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
@@ -462,20 +459,25 @@
       document.getElementById('indicador-crescimento').innerHTML = `<span class="text-light">Líquido em Conta</span>`;
       document.getElementById('valor-entradas').innerText = receitaBruta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-      let somaSaidas = taxasTotal + despesasTotal + (isAdmin && fBarbeiro === 'TODOS' ? comissoesPagasParaBarbeiros : comissoesRetidasPeloSalao);
+      let somaSaidas = taxasTotal + despesasTotal + (isAdmin && fBarbeiro === 'TODOS' ? 0 : comissoesRetidasPeloSalao);
       document.getElementById('valor-saidas').innerText = somaSaidas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      document.getElementById('detalhe-saidas').innerHTML = `Despesas: R$ ${despesasTotal.toFixed(2)} | Taxas: R$ ${taxasTotal.toFixed(2)}<br>${textoSaidasExtras}`;
+
+      let quebraSaidas = `Despesas: R$ ${despesasTotal.toFixed(2)} | Taxas: R$ ${taxasTotal.toFixed(2)}`;
+      document.getElementById('detalhe-saidas').innerHTML = textoSaidasExtras ? `${quebraSaidas}<br>${textoSaidasExtras}` : quebraSaidas;
+
       document.getElementById('valor-previsao').innerText = previsao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+      // Gráfico
       const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
       if (meuGrafico) meuGrafico.destroy();
 
-      let valExt = isAdmin && fBarbeiro === 'TODOS' ? comissoesPagasParaBarbeiros : comissoesRetidasPeloSalao;
-      let dGraph = [lucroNoBolso < 0 ? 0 : lucroNoBolso, despesasTotal, taxasTotal, valExt];
-      let cGraph = ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
+      let valExt = isAdmin && fBarbeiro === 'TODOS' ? 0 : comissoesRetidasPeloSalao;
+      let labelsG = isAdmin && fBarbeiro === 'TODOS' ? ['Lucro', 'Despesas', 'Taxas'] : ['Lucro', 'Despesas', 'Taxas', 'Comissões'];
+      let dGraph = isAdmin && fBarbeiro === 'TODOS' ? [lucroNoBolso < 0 ? 0 : lucroNoBolso, despesasTotal, taxasTotal] : [lucroNoBolso < 0 ? 0 : lucroNoBolso, despesasTotal, taxasTotal, valExt];
+      let cGraph = isAdmin && fBarbeiro === 'TODOS' ? ['#10B981', '#F59E0B', '#EF4444'] : ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
       if (receitaBruta === 0 && despesasTotal === 0) { dGraph = [1]; cGraph = ['#222B38']; }
-      meuGrafico = new Chart(ctx, { type: 'doughnut', data: { labels: ['Lucro', 'Despesas', 'Taxas', 'Comissões'], datasets: [{ data: dGraph, backgroundColor: cGraph, borderWidth: 0, hoverOffset: 4 }] }, options: { responsive: true, cutout: '75%', plugins: { legend: { display: false } } } });
+      meuGrafico = new Chart(ctx, { type: 'doughnut', data: { labels: labelsG, datasets: [{ data: dGraph, backgroundColor: cGraph, borderWidth: 0, hoverOffset: 4 }] }, options: { responsive: true, cutout: '75%', plugins: { legend: { display: false } } } });
     } catch (e) { console.error(e); }
   }
 
@@ -487,17 +489,16 @@
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
 
-    // Oculta o selo se o detalhe em HTML (recibo) já estiver sendo exibido, pra não duplicar o nome
-    let hideSelo = desc.includes("Repasse");
-
     const selectFiltro = document.getElementById('filtro-barbeiro');
     const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
-    let nomeDono = (barbeiroObj && ehAdmin && fBarbeiro === 'TODOS' && !hideSelo) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
+
+    // ✨ A TAG DO BARBEIRO VOLTOU E NÃO É MAIS ESCONDIDA
+    let nomeDono = (barbeiroObj && ehAdmin && fBarbeiro === 'TODOS') ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
 
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 
-  // (Mantidos as outras funções)
+  // (Mantidos exportarPDF, abrirModalEditarFinanceiro, salvarEdicaoFinanceira, abrirModalTaxas, salvarTaxas, abrirModalDespesa, salvarDespesa, deletarDespesa)
   async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const mesFormatado = document.getElementById('filtro-mes').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${mesFormatado}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-mes').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
   function abrirModalEditarFinanceiro(id, valorFinal, pgto) { document.getElementById('edit-fin-id').value = id; document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2); let pNorm = (pgto || '').toUpperCase(); let selectPgto = document.getElementById('edit-fin-pgto'); if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO'; else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO'; else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) selectPgto.value = 'PIX_DINHEIRO'; else selectPgto.value = 'PENDENTE'; new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show(); }
   async function salvarEdicaoFinanceira() { const id = document.getElementById('edit-fin-id').value, novoValor = document.getElementById('edit-fin-valor').value, novoPgto = document.getElementById('edit-fin-pgto').value; try { await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' }); await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' }); bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide(); carregarFinanceiro(); } catch (e) { alert("Erro ao editar."); } }
