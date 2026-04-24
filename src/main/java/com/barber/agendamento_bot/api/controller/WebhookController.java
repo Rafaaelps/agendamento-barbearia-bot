@@ -21,9 +21,9 @@ public class WebhookController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // =========================================================================
-    // ⚙️ CONFIGURAÇÕES DA SUA EVOLUTION API MANTIDAS
+    // ⚙️ BASE URL DA SUA EVOLUTION API (SEM O NOME DA INSTÂNCIA NO FINAL)
     // =========================================================================
-    private final String EVOLUTION_URL = "http://187.77.224.241:47851/message/sendText/barbearia";
+    private final String EVOLUTION_BASE_URL = "http://187.77.224.241:47851/message/sendText/";
     private final String EVOLUTION_API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
     // =========================================================================
 
@@ -40,6 +40,12 @@ public class WebhookController {
             }
 
             JsonNode payload = objectMapper.readTree(payloadString);
+
+            // ✨ NOVO: Pega o nome da instância diretamente do payload da Evolution
+            String instanciaName = "";
+            if (payload.has("instance")) {
+                instanciaName = payload.get("instance").asText();
+            }
 
             JsonNode data = payload;
             if (payload.has("data")) {
@@ -62,7 +68,7 @@ public class WebhookController {
             String telefone = remoteJid.replace("@s.whatsapp.net", "");
 
             String textoMensagem = "";
-            boolean isMidia = false; // ✨ A CHAVE DA MÁGICA AQUI
+            boolean isMidia = false;
 
             JsonNode message = data.get("message");
 
@@ -71,28 +77,26 @@ public class WebhookController {
             } else if (message.has("extendedTextMessage") && message.get("extendedTextMessage").has("text")) {
                 textoMensagem = message.get("extendedTextMessage").get("text").asText();
             }
-            // ✨ SE NÃO TEM TEXTO, VERIFICA SE É ÁUDIO, FOTO OU FIGURINHA!
             else if (message.has("audioMessage") || message.has("imageMessage") ||
                     message.has("videoMessage") || message.has("stickerMessage") ||
                     message.has("documentMessage")) {
                 isMidia = true;
             }
 
-            // ✨ AGORA ELE DEIXA PASSAR SE TIVER TEXTO OU SE FOR MÍDIA
             if (!textoMensagem.isEmpty() || isMidia) {
 
                 if (isMidia) {
-                    System.out.println("🎤 Áudio/Mídia recebida de " + telefone + " -> Acionando interceptador!");
+                    System.out.println("🎤 Áudio/Mídia recebida de " + telefone + " na instância [" + instanciaName + "] -> Acionando interceptador!");
                 } else {
-                    System.out.println("📩 Texto de " + telefone + ": " + textoMensagem);
+                    System.out.println("📩 Texto de " + telefone + " na instância [" + instanciaName + "]: " + textoMensagem);
                 }
 
-                // O textoMensagem vai entrar vazio se for mídia, o que dispara o aviso "Opa, não escuto áudios" lá no ChatbotService
-                String respostaDoRobo = chatbotService.processarMensagem(telefone, textoMensagem);
+                // ✨ CORREÇÃO AQUI: Passando o terceiro parâmetro (instanciaName) para o ChatbotService!
+                String respostaDoRobo = chatbotService.processarMensagem(telefone, textoMensagem, instanciaName);
 
-                // Só tenta responder se o robô tiver algo a dizer
                 if (respostaDoRobo != null && !respostaDoRobo.isEmpty()) {
-                    enviarMensagemParaEvolution(remoteJid, respostaDoRobo);
+                    // ✨ Passamos a instância para saber por qual número responder
+                    enviarMensagemParaEvolution(remoteJid, respostaDoRobo, instanciaName);
                 }
             }
 
@@ -104,7 +108,8 @@ public class WebhookController {
         return ResponseEntity.ok("OK");
     }
 
-    private void enviarMensagemParaEvolution(String numeroDestino, String textoParaEnviar) {
+    // ✨ Atualizado para receber a instância e construir a URL dinâmica
+    private void enviarMensagemParaEvolution(String numeroDestino, String textoParaEnviar, String instancia) {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -115,14 +120,17 @@ public class WebhookController {
         body.put("number", numeroDestino);
         body.put("text", textoParaEnviar);
         body.put("delay", 1200);
-        body.put("presence", "composing"); // Faz aparecer "Digitando..." no WhatsApp
+        body.put("presence", "composing");
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
+        // Constrói a URL final usando a base + a instância que recebeu a mensagem
+        String urlFinal = EVOLUTION_BASE_URL + instancia;
+
         try {
-            restTemplate.postForEntity(EVOLUTION_URL, request, String.class);
+            restTemplate.postForEntity(urlFinal, request, String.class);
         } catch (Exception e) {
-            System.err.println("❌ Falha ao tentar enviar mensagem de volta: " + e.getMessage());
+            System.err.println("❌ Falha ao tentar enviar mensagem de volta pela instância [" + instancia + "]: " + e.getMessage());
         }
     }
 }
