@@ -181,8 +181,8 @@
             <input type="number" id="taxa-comissao" class="form-control custom-input" step="0.1" placeholder="Ex: 40">
           </div>
           <div class="col-6">
-            <label class="form-label fw-bold text-info small">TAXA PRODUTOS (%)</label>
-            <input type="number" id="taxa-comissao-produto" class="form-control custom-input border-info" step="0.1" placeholder="Ex: 10">
+            <label class="form-label fw-bold text-light small">TAXA PRODUTOS (%)</label>
+            <input type="number" id="taxa-comissao-produto" class="form-control custom-input" step="0.1" placeholder="Ex: 10">
           </div>
         </div>
         <div class="mb-3">
@@ -243,15 +243,15 @@
               let comissaoServ = u.taxaComissao != null ? `${u.taxaComissao}%` : '0%';
               let comissaoProd = u.taxaComissaoProduto != null ? `${u.taxaComissaoProduto}%` : '0%';
 
-              // ✨ CORREÇÃO: Emojis removidos e cores neutras aplicadas (text-light e text-muted)
+              // ✨ CORREÇÃO: Utilizando a variável CSS text-muted (um cinza claro legível no tema) e removendo Emojis
               corpo.innerHTML += `
                   <tr>
                       <td data-label="Nome"><strong class="text-white">${u.nome}</strong></td>
-                      <td data-label="Perfil / Login">${badgePerfil} <br> <small class="text-light">${u.login}</small></td>
-                      <td data-label="WPP Instância" class="text-light"><i class="bi bi-whatsapp text-success me-1"></i> ${wpp}</td>
-                      <td data-label="Comissão do Salão" class="text-light fw-bold text-start ps-md-4">
-                          Serviço: ${comissaoServ} <br>
-                          <span class="text-muted">Produto: ${comissaoProd}</span>
+                      <td data-label="Perfil / Login">${badgePerfil} <br> <small style="color: var(--text-muted);">${u.login}</small></td>
+                      <td data-label="WPP Instância" style="color: var(--text-muted);"><i class="bi bi-whatsapp text-success me-1"></i> ${wpp}</td>
+                      <td data-label="Comissão do Salão" class="text-start ps-md-4">
+                          <div class="text-light fw-bold">Serviço: ${comissaoServ}</div>
+                          <div style="color: var(--text-muted); font-size: 0.9em; font-weight: 500;">Produto: ${comissaoProd}</div>
                       </td>
                       <td data-label="Ações">
                           <div class="d-flex justify-content-end gap-2">
