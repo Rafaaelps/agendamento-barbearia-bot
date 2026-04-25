@@ -240,18 +240,18 @@
               let badgePerfil = u.perfil === 'ADMIN' ? '<span class="badge-modern badge-primary">ADMIN</span>' : '<span class="badge-modern badge-success">BARBEIRO</span>';
               let wpp = u.instanciaWhatsapp || '<small class="text-muted">Sem Instância</small>';
 
-              // Exibe as duas comissões de forma limpa
               let comissaoServ = u.taxaComissao != null ? `${u.taxaComissao}%` : '0%';
               let comissaoProd = u.taxaComissaoProduto != null ? `${u.taxaComissaoProduto}%` : '0%';
 
+              // ✨ CORREÇÃO: Emojis removidos e cores neutras aplicadas (text-light e text-muted)
               corpo.innerHTML += `
                   <tr>
                       <td data-label="Nome"><strong class="text-white">${u.nome}</strong></td>
                       <td data-label="Perfil / Login">${badgePerfil} <br> <small class="text-light">${u.login}</small></td>
                       <td data-label="WPP Instância" class="text-light"><i class="bi bi-whatsapp text-success me-1"></i> ${wpp}</td>
-                      <td data-label="Comissão do Salão" class="text-warning fw-bold text-start ps-md-4">
-                          ✂️ Serv: ${comissaoServ} <br>
-                          <span class="text-info">📦 Prod: ${comissaoProd}</span>
+                      <td data-label="Comissão do Salão" class="text-light fw-bold text-start ps-md-4">
+                          Serviço: ${comissaoServ} <br>
+                          <span class="text-muted">Produto: ${comissaoProd}</span>
                       </td>
                       <td data-label="Ações">
                           <div class="d-flex justify-content-end gap-2">
@@ -264,7 +264,6 @@
       } catch (erro) { console.error("Erro usuarios:", erro); }
   }
 
-  // ✨ Atualizado para puxar a comissaoProduto
   function abrirModalUsuario(id='', nome='', login='', perfil='BARBEIRO', wpp='', comissao='', comissaoProduto='') {
       document.getElementById('id-usuario').value = id;
       document.getElementById('nome-usuario').value = nome;
@@ -286,7 +285,7 @@
           senha: document.getElementById('senha-usuario').value,
           perfil: document.getElementById('perfil-usuario').value,
           taxaComissao: document.getElementById('taxa-comissao').value,
-          taxaComissaoProduto: document.getElementById('taxa-comissao-produto').value, // Envia para o Java!
+          taxaComissaoProduto: document.getElementById('taxa-comissao-produto').value,
           instanciaWhatsapp: document.getElementById('wpp-usuario').value
       };
       if (!d.nome || !d.login) return alert("Nome e Login são obrigatórios!");

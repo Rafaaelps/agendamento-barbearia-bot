@@ -385,7 +385,6 @@
         let valorPosCartao = Number(v.valorTotal || 0);
         let taxaDaVenda = Math.max(0, precoCheio - valorPosCartao);
 
-        // ✨ A MÁGICA DOS PRODUTOS ACONTECE AQUI!
         let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
         let comissaoSalao = valorPosCartao * txSalaoProd;
         let fatBarbeiro = valorPosCartao - comissaoSalao;
@@ -400,7 +399,6 @@
                 taxasTotal += taxaDaVenda;
                 valorLiquidoExibicao = precoCheio - taxaDaVenda;
             } else {
-                // Se não tem comissão de produto, o admin nem vê esse lucro.
                 if (comissaoSalao > 0) {
                     receitaBruta += comissaoSalao;
                     valorLiquidoExibicao = comissaoSalao;
@@ -411,7 +409,7 @@
                         <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                     </div>`;
                 } else {
-                    return; // Aborta e esconde da tela se o admin ganha R$ 0 na venda
+                    return;
                 }
             }
         }
@@ -519,9 +517,8 @@
     const selectFiltro = document.getElementById('filtro-barbeiro');
     const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
-    // ✨ A TAG DO BARBEIRO APARECE SE NÃO TIVER O RECIBO
-    let hideSelo = desc.includes("Valor Cobrado");
-    let nomeDono = (barbeiroObj && ehAdmin && fBarbeiro === 'TODOS' && !hideSelo) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
+    // ✨ CORREÇÃO: A Tag não vai sumir em nenhuma situação!
+    let nomeDono = (barbeiroObj && ehAdmin && fBarbeiro === 'TODOS') ? `<br><span class="badge-modern badge-primary mt-2 d-inline-block"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
 
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
