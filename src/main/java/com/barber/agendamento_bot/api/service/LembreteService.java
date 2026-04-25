@@ -1,15 +1,13 @@
 package com.barber.agendamento_bot.api.service;
 
 import com.barber.agendamento_bot.api.entity.Agendamento;
+import com.barber.agendamento_bot.api.entity.Usuario;
 import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
-import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -23,43 +21,42 @@ import java.util.Map;
 public class LembreteService {
 
     private final AgendamentoRepository agendamentoRepository;
-    private final ConfiguracaoRepository configuracaoRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     private final String EVOLUTION_URL = "http://187.77.224.241:47851";
-    private final String INSTANCE_NAME = "barbearia";
     private final String API_KEY = "EAlUBkxSKCsYF9mSWGZYxTfTF6qXGD4m";
 
-    public LembreteService(AgendamentoRepository agendamentoRepository, ConfiguracaoRepository configuracaoRepository) {
+    public LembreteService(AgendamentoRepository agendamentoRepository) {
         this.agendamentoRepository = agendamentoRepository;
-        this.configuracaoRepository = configuracaoRepository;
     }
 
-    // ⏰ CRON 1: ENVIA O LEMBRETE
+    // ⏰ CRON 1: ENVIA O LEMBRETE (Roda a cada 1 min)
     @Scheduled(cron = "0 * * * * *")
     public void verificarEEnviarLembretes() {
-        boolean botAtivo = configuracaoRepository.findById("BOT_CONFIRMACAO_ATIVO")
-                .map(c -> Boolean.parseBoolean(c.getValor()))
-                .orElse(false);
-
-        if (!botAtivo) return;
-
-        int minutosAviso = configuracaoRepository.findById("BOT_MINUTOS_CONFIRMACAO")
-                .map(c -> Integer.parseInt(c.getValor()))
-                .orElse(35);
-
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
-        LocalDateTime limiteDaBusca = agora.plusMinutes(minutosAviso);
 
-        List<Agendamento> agendamentos = agendamentoRepository
-                .buscarAgendamentosParaLembrar("AGENDADO", agora, limiteDaBusca);
+        List<Agendamento> agendamentos = agendamentoRepository.findByStatusNot("CANCELADO");
 
-        for (Agendamento agendamento : agendamentos) {
-            boolean sucesso = enviarMensagemEvolution(agendamento, false);
-            if (sucesso) {
-                agendamento.setLembreteEnviado(true);
-                agendamentoRepository.save(agendamento);
+        for (Agendamento ag : agendamentos) {
+            if (Boolean.TRUE.equals(ag.getLembreteEnviado()) || ag.getDataHoraInicio().isBefore(agora) || "CONCLUIDO".equals(ag.getStatus())) {
+                continue;
+            }
+
+            Usuario barbeiro = ag.getDonoDoRegistro();
+            if (barbeiro == null || Boolean.FALSE.equals(barbeiro.getBotAtivo()) || barbeiro.getInstanciaWhatsapp() == null || barbeiro.getInstanciaWhatsapp().isEmpty()) {
+                continue;
+            }
+
+            int minutosAviso = barbeiro.getMinutosConfirmacao() != null ? barbeiro.getMinutosConfirmacao() : 30;
+            LocalDateTime horarioParaAvisar = ag.getDataHoraInicio().minusMinutes(minutosAviso);
+
+            if (agora.isAfter(horarioParaAvisar) || agora.isEqual(horarioParaAvisar)) {
+                boolean sucesso = enviarMensagemEvolution(ag, false, barbeiro.getInstanciaWhatsapp());
+                if (sucesso) {
+                    ag.setLembreteEnviado(true);
+                    agendamentoRepository.save(ag);
+                }
             }
         }
     }
@@ -67,39 +64,39 @@ public class LembreteService {
     // 🪓 CRON 2: O CARRASCO (Cancela após 20 minutos de espera)
     @Scheduled(cron = "0 * * * * *")
     public void verificarECancelarNaoConfirmados() {
-        boolean botAtivo = configuracaoRepository.findById("BOT_CONFIRMACAO_ATIVO")
-                .map(c -> Boolean.parseBoolean(c.getValor()))
-                .orElse(false);
-
-        if (!botAtivo) return;
-
-        int minutosAviso = configuracaoRepository.findById("BOT_MINUTOS_CONFIRMACAO")
-                .map(c -> Integer.parseInt(c.getValor()))
-                .orElse(35);
-
-        // Dá 20 minutos de prazo. Nunca cancela no passado (Math.max(5,...))
-        int minutosParaCancelar = Math.max(5, minutosAviso - 20);
-
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
-        LocalDateTime limiteCancelamento = agora.plusMinutes(minutosParaCancelar);
 
-        List<Agendamento> agendamentos = agendamentoRepository
-                .buscarNaoConfirmados("AGENDADO", agora, limiteCancelamento);
+        List<Agendamento> agendamentos = agendamentoRepository.findByStatusNot("CANCELADO");
 
-        for (Agendamento agendamento : agendamentos) {
-            try {
-                agendamento.setStatus("CANCELADO");
-                agendamentoRepository.save(agendamento);
-                enviarMensagemEvolution(agendamento, true);
-                System.out.println("🪓 [CANCELADO] Cliente " + agendamento.getNomeCliente() + " não confirmou a tempo.");
-            } catch (Exception e) {
-                System.err.println("❌ Erro ao cancelar falta de confirmação: " + e.getMessage());
+        for (Agendamento ag : agendamentos) {
+            if (!Boolean.TRUE.equals(ag.getLembreteEnviado()) || ag.getDataHoraInicio().isBefore(agora) || "CONCLUIDO".equals(ag.getStatus()) || "CONFIRMADO".equals(ag.getStatus())) {
+                continue;
+            }
+
+            Usuario barbeiro = ag.getDonoDoRegistro();
+            if (barbeiro == null || Boolean.FALSE.equals(barbeiro.getBotAtivo()) || barbeiro.getInstanciaWhatsapp() == null || barbeiro.getInstanciaWhatsapp().isEmpty()) {
+                continue;
+            }
+
+            int minutosAviso = barbeiro.getMinutosConfirmacao() != null ? barbeiro.getMinutosConfirmacao() : 30;
+            int minutosParaCancelar = Math.max(5, minutosAviso - 20);
+            LocalDateTime limiteCancelamento = ag.getDataHoraInicio().minusMinutes(minutosParaCancelar);
+
+            if (agora.isAfter(limiteCancelamento)) {
+                try {
+                    ag.setStatus("CANCELADO");
+                    agendamentoRepository.save(ag);
+                    enviarMensagemEvolution(ag, true, barbeiro.getInstanciaWhatsapp());
+                    System.out.println("🪓 [CANCELADO] Cliente " + ag.getNomeCliente() + " não confirmou a tempo (Instância: " + barbeiro.getInstanciaWhatsapp() + ").");
+                } catch (Exception e) {
+                    System.err.println("❌ Erro ao cancelar falta de confirmação: " + e.getMessage());
+                }
             }
         }
     }
 
-    private boolean enviarMensagemEvolution(Agendamento agendamento, boolean isCancelamento) {
+    private boolean enviarMensagemEvolution(Agendamento agendamento, boolean isCancelamento, String instancia) {
         String horaFormatada = agendamento.getDataHoraInicio().format(DateTimeFormatter.ofPattern("HH:mm"));
         String mensagem = "";
 
@@ -112,7 +109,8 @@ public class LembreteService {
         String numeroLimpo = agendamento.getTelefoneCliente().replaceAll("[^0-9]", "");
         if (!numeroLimpo.startsWith("55")) numeroLimpo = "55" + numeroLimpo;
 
-        String urlDeDisparo = EVOLUTION_URL + "/message/sendText/" + INSTANCE_NAME;
+        // ✨ URL dinâmica baseada no barbeiro dono do agendamento
+        String urlDeDisparo = EVOLUTION_URL + "/message/sendText/" + instancia;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

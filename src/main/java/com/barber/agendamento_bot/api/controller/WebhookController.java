@@ -41,7 +41,7 @@ public class WebhookController {
 
             JsonNode payload = objectMapper.readTree(payloadString);
 
-            // ✨ NOVO: Pega o nome da instância diretamente do payload da Evolution
+            // ✨ Pega o nome da instância diretamente do payload da Evolution
             String instanciaName = "";
             if (payload.has("instance")) {
                 instanciaName = payload.get("instance").asText();
@@ -91,11 +91,11 @@ public class WebhookController {
                     System.out.println("📩 Texto de " + telefone + " na instância [" + instanciaName + "]: " + textoMensagem);
                 }
 
-                // ✨ CORREÇÃO AQUI: Passando o terceiro parâmetro (instanciaName) para o ChatbotService!
+                // ✨ Passa a instância para o ChatbotService saber quem está atendendo
                 String respostaDoRobo = chatbotService.processarMensagem(telefone, textoMensagem, instanciaName);
 
                 if (respostaDoRobo != null && !respostaDoRobo.isEmpty()) {
-                    // ✨ Passamos a instância para saber por qual número responder
+                    // Responde pela mesma instância
                     enviarMensagemParaEvolution(remoteJid, respostaDoRobo, instanciaName);
                 }
             }
@@ -108,7 +108,6 @@ public class WebhookController {
         return ResponseEntity.ok("OK");
     }
 
-    // ✨ Atualizado para receber a instância e construir a URL dinâmica
     private void enviarMensagemParaEvolution(String numeroDestino, String textoParaEnviar, String instancia) {
         RestTemplate restTemplate = new RestTemplate();
 
@@ -124,7 +123,7 @@ public class WebhookController {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-        // Constrói a URL final usando a base + a instância que recebeu a mensagem
+        // ✨ Constrói a URL final dinamicamente com base em quem atendeu
         String urlFinal = EVOLUTION_BASE_URL + instancia;
 
         try {
