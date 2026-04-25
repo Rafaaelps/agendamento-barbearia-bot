@@ -19,6 +19,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatbotService {
@@ -48,9 +49,21 @@ public class ChatbotService {
             return "🎧 Opa! Eu sou um assistente virtual em treinamento e ainda não consigo ouvir áudios ou ver imagens.\n\nPor favor, digite a sua mensagem em texto para eu poder te ajudar!";
         }
 
+        // ✨ CORREÇÃO 1: Busca o dono da instância ignorando espaços e letras maiúsculas/minúsculas!
         Usuario barbeiroResponsavel = null;
         if (instanciaWhatsapp != null && !instanciaWhatsapp.isEmpty()) {
-            barbeiroResponsavel = usuarioRepository.findByInstanciaWhatsapp(instanciaWhatsapp).orElse(null);
+            String instanciaLimpa = instanciaWhatsapp.trim().toLowerCase();
+            for (Usuario u : usuarioRepository.findAll()) {
+                if (u.getInstanciaWhatsapp() != null && u.getInstanciaWhatsapp().trim().toLowerCase().equals(instanciaLimpa)) {
+                    barbeiroResponsavel = u;
+                    break;
+                }
+            }
+        }
+
+        // ✨ TRAVA DE SEGURANÇA: Se não achar o barbeiro, avisa o dono que algo está errado no cadastro.
+        if (barbeiroResponsavel == null) {
+            return "⚠️ *Aviso do Sistema:*\nEste número de WhatsApp ainda não foi vinculado corretamente a um barbeiro no painel administrativo.\n\nPor favor, peça ao gerente para verificar se o nome da instância *[" + instanciaWhatsapp + "]* está digitado corretamente na aba 'Equipe'.";
         }
 
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
@@ -100,12 +113,8 @@ public class ChatbotService {
                     break;
                 case "ESPERANDO_DATA":
                     sessao.setPassoAtual("ESPERANDO_SERVICO");
-                    List<Servico> listaServicosVoltar;
-                    if (barbeiroResponsavel != null) {
-                        listaServicosVoltar = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel);
-                    } else {
-                        listaServicosVoltar = servicoRepository.findAll();
-                    }
+                    List<Servico> listaServicosVoltar = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
+                            .stream().filter(s -> s.getAtivo() == null || s.getAtivo()).collect(Collectors.toList());
 
                     StringBuilder menuServicos = new StringBuilder("✂️ Vamos escolher outro serviço! O que deseja agendar?\n\n");
                     for (Servico s : listaServicosVoltar) {
@@ -172,15 +181,12 @@ public class ChatbotService {
             case "ESPERANDO_NOME":
                 sessao.setNomeClienteTemporario(textoRecebido);
 
-                List<Servico> listaServicos;
-                if (barbeiroResponsavel != null) {
-                    listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel);
-                } else {
-                    listaServicos = servicoRepository.findAll();
-                }
+                // ✨ CORREÇÃO 2: Busca APENAS os serviços deste barbeiro e que NÃO estão na lixeira.
+                List<Servico> listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
+                        .stream().filter(s -> s.getAtivo() == null || s.getAtivo()).collect(Collectors.toList());
 
                 if (listaServicos.isEmpty()) {
-                    respostaDoRobo = "Ops, não encontrei nenhum serviço cadastrado no momento. Volte mais tarde!";
+                    respostaDoRobo = "Ops, eu ainda não tenho nenhum serviço cadastrado no meu sistema. Volte mais tarde!";
                     sessao.setPassoAtual("MENU_INICIAL");
                     break;
                 }
@@ -199,7 +205,8 @@ public class ChatbotService {
                     Long idEscolhido = Long.parseLong(textoLimpo);
                     Optional<Servico> servicoEncontrado = servicoRepository.findById(idEscolhido);
 
-                    if (servicoEncontrado.isPresent()) {
+                    // Garante que o cliente não escolheu um serviço de outro barbeiro de sacanagem
+                    if (servicoEncontrado.isPresent() && servicoEncontrado.get().getDonoDoRegistro().getId().equals(barbeiroResponsavel.getId())) {
                         sessao.setIdServicoTemporario(idEscolhido);
                         respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.get().getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                         sessao.setPassoAtual("ESPERANDO_DATA");
@@ -220,7 +227,6 @@ public class ChatbotService {
                     if (dataDigitada.isBefore(dataDeHoje)) {
                         respostaDoRobo = "⚠️ Ops, o dia *" + textoLimpo + "* não é possível agendar.\n\nPor favor, digite uma data de hoje em diante (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                     } else {
-                        // ✨ CORREÇÃO AQUI: Passando o barbeiroResponsavel para a busca
                         List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario(), barbeiroResponsavel);
 
                         if (horariosLivres.isEmpty()) {
@@ -257,10 +263,7 @@ public class ChatbotService {
                     novoAgendamento.setTelefoneCliente(sessao.getTelefone());
                     novoAgendamento.setNomeCliente(sessao.getNomeClienteTemporario());
                     novoAgendamento.setDataHoraInicio(dataHoraCompleta);
-
-                    if (barbeiroResponsavel != null) {
-                        novoAgendamento.setDonoDoRegistro(barbeiroResponsavel);
-                    }
+                    novoAgendamento.setDonoDoRegistro(barbeiroResponsavel);
 
                     Servico servicoEscolhido = servicoRepository.findById(sessao.getIdServicoTemporario()).orElse(null);
                     novoAgendamento.setServicoEscolhido(servicoEscolhido);
@@ -274,7 +277,6 @@ public class ChatbotService {
                         sessao.setPassoAtual("MENU_INICIAL");
                         limparDadosTemporariosDaSessao(sessao);
                     } else {
-                        // ✨ CORREÇÃO AQUI: Passando o barbeiroResponsavel para a busca
                         List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario(), barbeiroResponsavel);
 
                         if (horariosLivres.isEmpty()) {

@@ -55,6 +55,8 @@ public class AgendaService {
 
         int diaSemanaId = inicio.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
+
+        // Proteção contra NullPointer se o horário não existir na hora do agendamento
         if (regrasDoDia == null || regrasDoDia.isFechado()) return false;
 
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
@@ -98,7 +100,25 @@ public class AgendaService {
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
-        if (regrasDoDia == null || regrasDoDia.isFechado()) return horariosDisponiveis;
+        // ✨ A MÁGICA AQUI: Se o barbeiro for novo e não tiver a tabela de horários, o sistema cria agora!
+        if (regrasDoDia == null) {
+            String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
+            for (int i = 1; i <= 7; i++) {
+                HorarioFuncionamento h = new HorarioFuncionamento();
+                h.setDiaDaSemana(i);
+                h.setNomeDia(dias[i]);
+                h.setHoraAbertura("09:00");
+                h.setHoraFechamento("19:00");
+                h.setFechado(i == 7);
+                h.setDonoDoRegistro(barbeiro);
+                horarioRepository.save(h);
+                if (i == diaSemanaId) {
+                    regrasDoDia = h;
+                }
+            }
+        }
+
+        if (regrasDoDia.isFechado()) return horariosDisponiveis;
 
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
         LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
@@ -177,7 +197,6 @@ public class AgendaService {
         bloqueioAgendaRepository.deleteById(id);
     }
 
-    // ✨ FUNÇÕES QUE ESTAVAM FALTANDO
     public List<Agendamento> listarTodosOsAgendamentos() {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return new ArrayList<>();
