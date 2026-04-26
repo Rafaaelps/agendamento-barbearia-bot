@@ -56,7 +56,6 @@ public class AgendaService {
         int diaSemanaId = inicio.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
-        // Proteção contra NullPointer se o horário não existir na hora do agendamento
         if (regrasDoDia == null || regrasDoDia.isFechado()) return false;
 
         LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
@@ -100,7 +99,6 @@ public class AgendaService {
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
-        // ✨ A MÁGICA AQUI: Se o barbeiro for novo e não tiver a tabela de horários, o sistema cria agora!
         if (regrasDoDia == null) {
             String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
             for (int i = 1; i <= 7; i++) {
@@ -197,23 +195,46 @@ public class AgendaService {
         bloqueioAgendaRepository.deleteById(id);
     }
 
+    // ✨ ISOLAMENTO DA AGENDA E DO FINANCEIRO
     public List<Agendamento> listarTodosOsAgendamentos() {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return new ArrayList<>();
 
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+        // O Desenvolvedor (SUPER) vê todos os agendamentos do salão inteiro
+        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
             return agendamentoRepository.findByStatusNot("CANCELADO");
         }
+
+        // Os Donos da barbearia veem a si mesmos + os barbeiros contratados
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return agendamentoRepository.findByStatusNot("CANCELADO").stream()
+                    .filter(ag -> ag.getDonoDoRegistro() == null ||
+                            ag.getDonoDoRegistro().getId().equals(logado.getId()) ||
+                            "BARBEIRO".equals(ag.getDonoDoRegistro().getPerfil()))
+                    .toList();
+        }
+
+        // Barbeiro comum
         return agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", logado);
     }
 
+    // ✨ ISOLAMENTO DOS BLOQUEIOS
     public List<BloqueioAgenda> listarBloqueios() {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return new ArrayList<>();
 
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
             return bloqueioAgendaRepository.findAll();
         }
+
+        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+            return bloqueioAgendaRepository.findAll().stream()
+                    .filter(bq -> bq.getDonoDoRegistro() == null ||
+                            bq.getDonoDoRegistro().getId().equals(logado.getId()) ||
+                            "BARBEIRO".equals(bq.getDonoDoRegistro().getPerfil()))
+                    .toList();
+        }
+
         return bloqueioAgendaRepository.findAllByDonoDoRegistro(logado);
     }
 }

@@ -15,7 +15,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // ⚠️ Libera login, webhook do WhatsApp e a rota de checagem de perfil
+                        // Libera login, webhook do WhatsApp e a rota de checagem de perfil
                         .requestMatchers("/login.html", "/fazer-login", "/api/webhook/**", "/webhook/**", "/api/usuario/me").permitAll()
                         .anyRequest().authenticated()
                 )

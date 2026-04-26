@@ -58,6 +58,7 @@
     .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
     .badge-success { background-color: rgba(16, 185, 129, 0.15); color: var(--success-color); }
     .badge-primary { background-color: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
+    .badge-warning { background-color: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
 
     .modal-content { background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); }
     .modal-header { border-bottom: 1px solid var(--border-color); }
@@ -172,6 +173,7 @@
           <select id="perfil-usuario" class="form-select custom-select">
             <option value="BARBEIRO">Barbeiro / Funcionário</option>
             <option value="ADMIN">Administrador (Sócio)</option>
+            <option value="SUPER_ADMIN" id="opt-super" class="d-none">Desenvolvedor (SUPER ADMIN)</option>
           </select>
         </div>
 
@@ -182,7 +184,7 @@
           </div>
           <div class="col-6">
             <label class="form-label fw-bold text-light small">TAXA PRODUTOS (%)</label>
-            <input type="number" id="taxa-comissao-produto" class="form-control custom-input" step="0.1" placeholder="Ex: 10">
+            <input type="number" id="taxa-comissao-produto" class="form-control custom-input border-info" step="0.1" placeholder="Ex: 10">
           </div>
         </div>
         <div class="mb-3">
@@ -199,6 +201,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  let perfilLogadoGlobal = '';
+
   document.addEventListener("DOMContentLoaded", async () => {
       const btnMenu = document.getElementById('mobile-menu-btn');
       const sidebar = document.querySelector('.sidebar');
@@ -217,10 +221,16 @@
           const resMe = await fetch('/api/usuario/me');
           if (resMe.ok) {
               const me = await resMe.json();
+              perfilLogadoGlobal = me.perfil;
               document.getElementById('sidebar-user-name').innerText = 'Usuário: ' + me.nome;
 
-              if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+              if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                   document.getElementById('menu-usuarios').classList.remove('d-none');
+
+                  // Se for você, habilita a opção de criar outros Super Admins no select
+                  if (me.perfil === 'SUPER_ADMIN') {
+                      document.getElementById('opt-super').classList.remove('d-none');
+                  }
                   return true;
               } else {
                   window.location.href = "index.html";
@@ -237,13 +247,16 @@
           const corpo = document.getElementById('tabela-usuarios'); corpo.innerHTML = '';
 
           usuarios.forEach(u => {
-              let badgePerfil = u.perfil === 'ADMIN' ? '<span class="badge-modern badge-primary">ADMIN</span>' : '<span class="badge-modern badge-success">BARBEIRO</span>';
+              let badgePerfil = '';
+              if (u.perfil === 'SUPER_ADMIN') badgePerfil = '<span class="badge-modern badge-warning text-dark">SUPER ADMIN</span>';
+              else if (u.perfil === 'ADMIN') badgePerfil = '<span class="badge-modern badge-primary">ADMIN</span>';
+              else badgePerfil = '<span class="badge-modern badge-success">BARBEIRO</span>';
+
               let wpp = u.instanciaWhatsapp || '<small class="text-muted">Sem Instância</small>';
 
               let comissaoServ = u.taxaComissao != null ? `${u.taxaComissao}%` : '0%';
               let comissaoProd = u.taxaComissaoProduto != null ? `${u.taxaComissaoProduto}%` : '0%';
 
-              // ✨ CORREÇÃO: Utilizando a variável CSS text-muted (um cinza claro legível no tema) e removendo Emojis
               corpo.innerHTML += `
                   <tr>
                       <td data-label="Nome"><strong class="text-white">${u.nome}</strong></td>
