@@ -160,7 +160,6 @@
                 const sideUser = document.getElementById('sidebar-user-name');
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
-                // ✨ CORREÇÃO AQUI: Adicionado a verificação do SUPER_ADMIN
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
 
@@ -171,8 +170,17 @@
 
                         const select = document.getElementById('filtro-barbeiro');
                         if (select) {
-                            select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
+                            select.innerHTML = ''; // Limpa as opções
+
+                            // ✨ MUDANÇA: A opção TODOS agora é exclusiva da sua conta (SUPER_ADMIN)
+                            if (me.perfil === 'SUPER_ADMIN') {
+                                select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
+                            }
+
+                            // Lista os barbeiros e sócios permitidos
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+
+                            // O Admin já começa com a tela filtrada para os dados dele mesmo
                             select.value = me.id;
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
