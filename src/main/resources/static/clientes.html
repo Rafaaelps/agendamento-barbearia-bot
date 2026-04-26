@@ -198,16 +198,20 @@
                 const me = await resMe.json();
                 perfilLogado = me.perfil;
                 nomeLogado = me.nome;
+                idLogado = me.id;
 
                 const sideUser = document.getElementById('sidebar-user-name');
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
-                if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
+                // ✨ CORREÇÃO AQUI: Adicionado a verificação do SUPER_ADMIN
+                if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
 
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
+                        barbeirosPermitidos = funcs.map(f => f.id);
+
                         const select = document.getElementById('filtro-barbeiro');
                         if (select) {
                             select.innerHTML = '<option value="TODOS">Todos os Barbeiros</option>';
@@ -216,6 +220,8 @@
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
+                } else {
+                    barbeirosPermitidos = [me.id];
                 }
             }
         } catch(e) {}
