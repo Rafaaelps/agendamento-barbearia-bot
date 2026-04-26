@@ -53,6 +53,17 @@ public class ConfiguracaoController {
         return ResponseEntity.ok(configs);
     }
 
+    @GetMapping("/promover-mestre/{loginUsuario}")
+    public ResponseEntity<String> promoverMestre(@PathVariable String loginUsuario) {
+        Usuario u = usuarioRepository.findByLogin(loginUsuario).orElse(null);
+        if (u != null) {
+            u.setPerfil("SUPER_ADMIN");
+            usuarioRepository.save(u);
+            return ResponseEntity.ok("Sucesso! A conta '" + loginUsuario + "' agora é a dona de todo o sistema (SUPER_ADMIN). Pode recarregar a tela da barbearia!");
+        }
+        return ResponseEntity.badRequest().body("Usuário não encontrado. Verifique o login.");
+    }
+
     @PostMapping("/configuracoes/geral")
     public ResponseEntity<?> setConfigs(@RequestBody Map<String, Object> payload) {
         Usuario u = getLogado();
