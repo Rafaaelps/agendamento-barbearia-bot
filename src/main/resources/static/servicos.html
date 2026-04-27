@@ -241,15 +241,22 @@
             }
 
             servicos.forEach(s => {
-                // ✨ MUDANÇA: Tag exclusiva para SUPER_ADMIN no filtro TODOS
-                let seloBarbeiro = (s.donoDoRegistro && perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS')
-                    ? ` <small class="text-primary d-block mt-1"><i class="bi bi-person"></i> Cadastrado por: ${s.donoDoRegistro.nome}</small>`
-                    : '';
+                // ✨ TAG EXCLUSIVA: Só aparece para SUPER_ADMIN no filtro de TODOS
+                let tagResponsavel = '';
+                if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') {
+                    const nomeDono = s.donoDoRegistro ? s.donoDoRegistro.nome : 'Sistema';
+                    tagResponsavel = ` <small class="text-primary d-block mt-1" style="font-size: 0.7rem; opacity: 0.8;">
+                                        <i class="bi bi-person-badge"></i> Criado por: ${nomeDono}
+                                       </small>`;
+                }
 
                 corpo.innerHTML += `
                     <tr>
                         <td data-label="ID" class="text-light fw-bold">#${s.id}</td>
-                        <td data-label="Nome"><strong class="text-white">${s.nome}</strong>${seloBarbeiro}</td>
+                        <td data-label="Nome">
+                            <strong class="text-white">${s.nome}</strong>
+                            ${tagResponsavel}
+                        </td>
                         <td data-label="Preço" style="color: var(--success-color);" class="fw-bold">R$ ${Number(s.preco).toFixed(2)}</td>
                         <td data-label="Duração" class="text-light"><i class="bi bi-clock me-1"></i> ${s.duracaoMinutos} min</td>
                         <td data-label="Ações">

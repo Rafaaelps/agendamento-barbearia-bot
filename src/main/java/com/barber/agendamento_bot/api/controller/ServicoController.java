@@ -32,14 +32,14 @@ public class ServicoController {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return List.of();
 
-        // ✨ O SUPER_ADMIN vê TODOS os serviços cadastrados na barbearia
+        // ✨ 1. MESTRE (SUPER_ADMIN): Puxa tudo que não está deletado
         if ("SUPER_ADMIN".equals(logado.getPerfil())) {
             return servicoRepository.findAll().stream()
                     .filter(s -> s.getAtivo() == null || s.getAtivo())
                     .toList();
         }
 
-        // O ADMIN (Sócio) vê apenas os serviços dele e dos barbeiros
+        // ✨ 2. SÓCIO (ADMIN): Puxa os dele + os dos barbeiros (Não vê os de outros Admins)
         if ("ADMIN".equals(logado.getPerfil()) || "ROLE_ADMIN".equals(logado.getPerfil())) {
             return servicoRepository.findAll().stream()
                     .filter(s -> s.getAtivo() == null || s.getAtivo())
@@ -49,7 +49,7 @@ public class ServicoController {
                     .toList();
         }
 
-        // O BARBEIRO vê apenas os serviços criados por ele mesmo
+        // ✨ 3. FUNCIONÁRIO (BARBEIRO): Puxa só os que ele mesmo criou
         return servicoRepository.findAllByDonoDoRegistro(logado).stream()
                 .filter(s -> s.getAtivo() == null || s.getAtivo())
                 .toList();

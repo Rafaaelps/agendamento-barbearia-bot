@@ -215,10 +215,14 @@
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
 
-            // ✨ MUDANÇA: Tag exclusiva para SUPER_ADMIN no filtro TODOS
-            let seloDono = (p.donoDoRegistro && perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS')
-                ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> Responsável: ${p.donoDoRegistro.nome}</div>`
-                : '';
+            // ✨ TAG EXCLUSIVA: Só aparece para SUPER_ADMIN no filtro de TODOS
+            let tagResponsavel = '';
+            if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') {
+                const nomeDono = p.donoDoRegistro ? p.donoDoRegistro.nome : 'Sistema';
+                tagResponsavel = `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block" style="font-size: 0.65rem; background-color: rgba(99, 102, 241, 0.1);">
+                                    <i class="bi bi-person-fill"></i> Responsável: ${nomeDono}
+                                  </div>`;
+            }
 
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
@@ -226,7 +230,7 @@
                         <div class="flex-grow-1">
                             <small class="text-light fw-bold d-block mb-1">ID: #${p.id}</small>
                             <h5 class="fw-bold text-white mt-2">${p.nome}</h5>
-                            ${seloDono}
+                            ${tagResponsavel}
                             <h3 class="fw-bold my-2" style="color: var(--accent-primary);">R$ ${p.preco.toFixed(2)}</h3>
                             <p class="mb-2 fw-bold small" style="color: var(--${corEstoque.split('-')[1]}-color);"><i class="bi bi-box-seam me-1"></i> Estoque: ${p.quantidadeEstoque} un</p>
                         </div>
