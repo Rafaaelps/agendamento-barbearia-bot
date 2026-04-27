@@ -25,7 +25,7 @@ public class EstoqueController {
     private final ProdutoRepository produtoRepository;
     private final VendaRepository vendaRepository;
     private final ConfiguracaoRepository configuracaoRepository;
-    private final UsuarioRepository usuarioRepository; // ✨ NOVO
+    private final UsuarioRepository usuarioRepository;
 
     public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository, ConfiguracaoRepository configuracaoRepository, UsuarioRepository usuarioRepository) {
         this.produtoRepository = produtoRepository;
@@ -34,7 +34,6 @@ public class EstoqueController {
         this.usuarioRepository = usuarioRepository;
     }
 
-    // ✨ DESCOBRE QUEM ESTÁ LOGADO
     private Usuario getUsuarioLogado() {
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepository.findByLogin(login).orElse(null);
@@ -45,21 +44,31 @@ public class EstoqueController {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return List.of();
 
-        // Se for ADMIN, vê todos os produtos ativos do salão
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+        // 1. O SUPER_ADMIN vê todos os produtos ativos de todo o salão
+        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
             return produtoRepository.findAll().stream()
                     .filter(p -> p.getAtivo() == null || p.getAtivo())
                     .collect(Collectors.toList());
         }
 
-        // ✨ Se for Barbeiro (João), vê SÓ os produtos ativos DELE
+        // 2. O ADMIN (Sócio) vê os dele + os dos Barbeiros (Não vê de outros Admins)
+        if ("ADMIN".equals(logado.getPerfil()) || "ROLE_ADMIN".equals(logado.getPerfil())) {
+            return produtoRepository.findAll().stream()
+                    .filter(p -> p.getAtivo() == null || p.getAtivo())
+                    .filter(p -> p.getDonoDoRegistro() == null ||
+                            p.getDonoDoRegistro().getId().equals(logado.getId()) ||
+                            "BARBEIRO".equals(p.getDonoDoRegistro().getPerfil()))
+                    .collect(Collectors.toList());
+        }
+
+        // 3. O BARBEIRO vê SÓ os produtos ativos dele
         return produtoRepository.findByAtivoTrueAndDonoDoRegistro(logado);
     }
 
     @PostMapping("/produtos")
     public Produto salvarProduto(@RequestBody Produto produto) {
         Usuario logado = getUsuarioLogado();
-        if (logado != null) produto.setDonoDoRegistro(logado); // ✨ Carimba o dono no produto
+        if (logado != null) produto.setDonoDoRegistro(logado);
 
         produto.setNome(produto.getNome().trim());
         produto.setAtivo(true);
@@ -134,14 +143,23 @@ public class EstoqueController {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return List.of();
 
-        // Admin vê todas as vendas
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+        // 1. SUPER_ADMIN puxa o histórico global
+        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
             return vendaRepository.findAll();
         }
 
-        // ✨ Barbeiro vê só as vendas dos produtos DELE
+        // 2. ADMIN (Sócio) e BARBEIRO filtram pelas vendas dos produtos que pertencem a eles (ou aos subordinados)
         return vendaRepository.findAll().stream()
-                .filter(v -> v.getProduto() != null && v.getProduto().getDonoDoRegistro() != null && v.getProduto().getDonoDoRegistro().getId().equals(logado.getId()))
+                .filter(v -> v.getProduto() != null && v.getProduto().getDonoDoRegistro() != null)
+                .filter(v -> {
+                    Usuario donoProd = v.getProduto().getDonoDoRegistro();
+                    // Admin vê as dele e dos barbeiros
+                    if ("ADMIN".equals(logado.getPerfil()) || "ROLE_ADMIN".equals(logado.getPerfil())) {
+                        return donoProd.getId().equals(logado.getId()) || "BARBEIRO".equals(donoProd.getPerfil());
+                    }
+                    // Barbeiro vê só as dele
+                    return donoProd.getId().equals(logado.getId());
+                })
                 .collect(Collectors.toList());
     }
 }

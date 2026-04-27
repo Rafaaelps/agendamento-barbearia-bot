@@ -9,7 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/servicos")
@@ -29,40 +28,53 @@ public class ServicoController {
     }
 
     @GetMapping
-    public List<Servico> listarTodosOsServicos() {
+    public List<Servico> listarTodos() {
         Usuario logado = getUsuarioLogado();
         if (logado == null) return List.of();
 
-        List<Servico> lista;
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
-            lista = servicoRepository.findAll();
-        } else {
-            lista = servicoRepository.findAllByDonoDoRegistro(logado);
+        // ✨ O SUPER_ADMIN vê TODOS os serviços cadastrados na barbearia
+        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
+            return servicoRepository.findAll().stream()
+                    .filter(s -> s.getAtivo() == null || s.getAtivo())
+                    .toList();
         }
 
-        // Filtra para mandar para a tela APENAS os que não estão na lixeira
-        return lista.stream().filter(s -> s.getAtivo() == null || s.getAtivo()).collect(Collectors.toList());
+        // O ADMIN (Sócio) vê apenas os serviços dele e dos barbeiros
+        if ("ADMIN".equals(logado.getPerfil()) || "ROLE_ADMIN".equals(logado.getPerfil())) {
+            return servicoRepository.findAll().stream()
+                    .filter(s -> s.getAtivo() == null || s.getAtivo())
+                    .filter(s -> s.getDonoDoRegistro() == null ||
+                            s.getDonoDoRegistro().getId().equals(logado.getId()) ||
+                            "BARBEIRO".equals(s.getDonoDoRegistro().getPerfil()))
+                    .toList();
+        }
+
+        // O BARBEIRO vê apenas os serviços criados por ele mesmo
+        return servicoRepository.findAllByDonoDoRegistro(logado).stream()
+                .filter(s -> s.getAtivo() == null || s.getAtivo())
+                .toList();
     }
 
     @PostMapping
-    public Servico criar(@RequestBody Servico servico) {
+    public ResponseEntity<Servico> adicionarServico(@RequestBody Servico servico) {
         Usuario logado = getUsuarioLogado();
-        if (logado != null) servico.setDonoDoRegistro(logado);
+        if (logado != null) {
+            servico.setDonoDoRegistro(logado);
+        }
         servico.setAtivo(true);
-        return servicoRepository.save(servico);
+        return ResponseEntity.ok(servicoRepository.save(servico));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Servico> atualizar(@PathVariable Long id, @RequestBody Servico dadosAtualizados) {
+    public ResponseEntity<Servico> atualizarServico(@PathVariable Long id, @RequestBody Servico servicoAtualizado) {
         return servicoRepository.findById(id).map(servico -> {
-            servico.setNome(dadosAtualizados.getNome());
-            servico.setPreco(dadosAtualizados.getPreco());
-            servico.setDuracaoMinutos(dadosAtualizados.getDuracaoMinutos());
+            servico.setNome(servicoAtualizado.getNome());
+            servico.setPreco(servicoAtualizado.getPreco());
+            servico.setDuracaoMinutos(servicoAtualizado.getDuracaoMinutos());
             return ResponseEntity.ok(servicoRepository.save(servico));
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ✨ NOVO: A Rota de Exclusão Segura
     @DeleteMapping("/{id}")
     public ResponseEntity<?> excluirServico(@PathVariable Long id) {
         return servicoRepository.findById(id).map(servico -> {

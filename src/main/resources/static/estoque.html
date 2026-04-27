@@ -170,18 +170,22 @@
 
                         const select = document.getElementById('filtro-barbeiro');
                         if (select) {
-                            select.innerHTML = ''; // Limpa as opções
+                            select.innerHTML = '';
 
-                            // ✨ MUDANÇA: A opção TODOS agora é exclusiva da sua conta (SUPER_ADMIN)
+                            // ✨ Apenas o SUPER ADMIN ganha a opção de ver Todos juntos nestas abas
                             if (me.perfil === 'SUPER_ADMIN') {
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
                             }
 
-                            // Lista os barbeiros e sócios permitidos
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
 
-                            // O Admin já começa com a tela filtrada para os dados dele mesmo
-                            select.value = me.id;
+                            // Define onde a tela começa
+                            if (me.perfil === 'SUPER_ADMIN') {
+                                select.value = 'TODOS';
+                            } else {
+                                select.value = me.id;
+                            }
+
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
