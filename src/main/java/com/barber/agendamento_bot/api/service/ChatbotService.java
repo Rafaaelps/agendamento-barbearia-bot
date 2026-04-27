@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -49,7 +50,6 @@ public class ChatbotService {
             return "🎧 Opa! Eu sou um assistente virtual em treinamento e ainda não consigo ouvir áudios ou ver imagens.\n\nPor favor, digite a sua mensagem em texto para eu poder te ajudar!";
         }
 
-        // ✨ CORREÇÃO 1: Busca o dono da instância ignorando espaços e letras maiúsculas/minúsculas!
         Usuario barbeiroResponsavel = null;
         if (instanciaWhatsapp != null && !instanciaWhatsapp.isEmpty()) {
             String instanciaLimpa = instanciaWhatsapp.trim().toLowerCase();
@@ -61,7 +61,6 @@ public class ChatbotService {
             }
         }
 
-        // ✨ TRAVA DE SEGURANÇA: Se não achar o barbeiro, avisa o dono que algo está errado no cadastro.
         if (barbeiroResponsavel == null) {
             return "⚠️ *Aviso do Sistema:*\nEste número de WhatsApp ainda não foi vinculado corretamente a um barbeiro no painel administrativo.\n\nPor favor, peça ao gerente para verificar se o nome da instância *[" + instanciaWhatsapp + "]* está digitado corretamente na aba 'Equipe'.";
         }
@@ -113,12 +112,17 @@ public class ChatbotService {
                     break;
                 case "ESPERANDO_DATA":
                     sessao.setPassoAtual("ESPERANDO_SERVICO");
+                    // ✨ Mapeamento Virtual para quando o usuário aperta Voltar
                     List<Servico> listaServicosVoltar = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
-                            .stream().filter(s -> s.getAtivo() == null || s.getAtivo()).collect(Collectors.toList());
+                            .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
+                            .sorted(Comparator.comparing(Servico::getId))
+                            .collect(Collectors.toList());
 
                     StringBuilder menuServicos = new StringBuilder("✂️ Vamos escolher outro serviço! O que deseja agendar?\n\n");
+                    int indexVoltar = 1;
                     for (Servico s : listaServicosVoltar) {
-                        menuServicos.append(s.getId()).append(" - ").append(s.getNome()).append(" (R$ ").append(s.getPreco()).append(")\n");
+                        menuServicos.append(indexVoltar).append(" - ").append(s.getNome()).append(" (R$ ").append(s.getPreco()).append(")\n");
+                        indexVoltar++;
                     }
                     respostaDoRobo = menuServicos.toString();
                     break;
@@ -181,9 +185,11 @@ public class ChatbotService {
             case "ESPERANDO_NOME":
                 sessao.setNomeClienteTemporario(textoRecebido);
 
-                // ✨ CORREÇÃO 2: Busca APENAS os serviços deste barbeiro e que NÃO estão na lixeira.
+                // ✨ Mapeamento Virtual para criação do Menu
                 List<Servico> listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
-                        .stream().filter(s -> s.getAtivo() == null || s.getAtivo()).collect(Collectors.toList());
+                        .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
+                        .sorted(Comparator.comparing(Servico::getId)) // Garante que a ordem seja sempre a mesma
+                        .collect(Collectors.toList());
 
                 if (listaServicos.isEmpty()) {
                     respostaDoRobo = "Ops, eu ainda não tenho nenhum serviço cadastrado no meu sistema. Volte mais tarde!";
@@ -191,24 +197,34 @@ public class ChatbotService {
                     break;
                 }
 
-                StringBuilder menuServicos = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar para hoje?\n\n");
+                StringBuilder menuServicosAtual = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar para hoje?\n\n");
+                int index = 1;
                 for (Servico s : listaServicos) {
-                    menuServicos.append(s.getId()).append(" - ").append(s.getNome())
+                    menuServicosAtual.append(index).append(" - ").append(s.getNome())
                             .append(" (R$ ").append(s.getPreco()).append(")\n");
+                    index++;
                 }
-                respostaDoRobo = menuServicos.toString();
+
+                respostaDoRobo = menuServicosAtual.toString();
                 sessao.setPassoAtual("ESPERANDO_SERVICO");
                 break;
 
             case "ESPERANDO_SERVICO":
                 try {
-                    Long idEscolhido = Long.parseLong(textoLimpo);
-                    Optional<Servico> servicoEncontrado = servicoRepository.findById(idEscolhido);
+                    int indiceEscolhido = Integer.parseInt(textoLimpo);
 
-                    // Garante que o cliente não escolheu um serviço de outro barbeiro de sacanagem
-                    if (servicoEncontrado.isPresent() && servicoEncontrado.get().getDonoDoRegistro().getId().equals(barbeiroResponsavel.getId())) {
-                        sessao.setIdServicoTemporario(idEscolhido);
-                        respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.get().getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                    // ✨ Lendo o Menu Virtual e traduzindo de volta para o Banco de Dados
+                    List<Servico> listaServicosOpcoes = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
+                            .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
+                            .sorted(Comparator.comparing(Servico::getId))
+                            .collect(Collectors.toList());
+
+                    if (indiceEscolhido >= 1 && indiceEscolhido <= listaServicosOpcoes.size()) {
+                        // Captura o serviço real escondido atrás do número que o cliente digitou (índice 1 = array 0)
+                        Servico servicoEncontrado = listaServicosOpcoes.get(indiceEscolhido - 1);
+
+                        sessao.setIdServicoTemporario(servicoEncontrado.getId());
+                        respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
                         sessao.setPassoAtual("ESPERANDO_DATA");
                     } else {
                         respostaDoRobo = "❌ Número inválido. Por favor, olhe o menu acima e digite o número correto do serviço.";
