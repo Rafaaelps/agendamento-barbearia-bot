@@ -162,6 +162,8 @@
 <script>
     let perfilLogado = '';
     let nomeLogado = '';
+    let idLogado = null;
+    let barbeirosPermitidos = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
         const btnMenu = document.getElementById('mobile-menu-btn');
@@ -193,20 +195,18 @@
                     const resFunc = await fetch('/api/admin/funcionarios');
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
-                        barbeirosPermitidos = funcs.map(f => f.id);
+                        barbeirosPermitidos = funcs.map(f => String(f.id));
 
                         const select = document.getElementById('filtro-barbeiro');
                         if (select) {
                             select.innerHTML = '';
 
-                            // ✨ Apenas o SUPER ADMIN ganha a opção de ver Todos juntos nestas abas
                             if (me.perfil === 'SUPER_ADMIN') {
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
                             }
 
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
 
-                            // Define onde a tela começa
                             if (me.perfil === 'SUPER_ADMIN') {
                                 select.value = 'TODOS';
                             } else {
@@ -217,11 +217,20 @@
                         }
                     }
                 } else {
-                    barbeirosPermitidos = [me.id];
+                    barbeirosPermitidos = [String(me.id)];
                 }
             }
         } catch(e) {}
     }
+
+    // ✨ A CORREÇÃO PRINCIPAL: O Passe Livre do Desenvolvedor
+    const checkDonoValido = (donoObj, fBarbeiro) => {
+        if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') return true; // Passe livre
+        if (!donoObj) return (perfilLogado === 'ADMIN' || perfilLogado === 'SUPER_ADMIN' || perfilLogado === 'ROLE_ADMIN');
+        if (fBarbeiro !== 'TODOS' && donoObj.id != fBarbeiro) return false;
+
+        return barbeirosPermitidos.includes(String(donoObj.id)); // Compara tipo String rigorosamente
+    };
 
     async function carregarServicos() {
         try {
@@ -230,7 +239,6 @@
 
             const selectFiltro = document.getElementById('filtro-barbeiro');
             const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
-            let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
             servicos = servicos.filter(s => checkDonoValido(s.donoDoRegistro, fBarbeiro));
 
@@ -241,7 +249,6 @@
             }
 
             servicos.forEach(s => {
-                // ✨ TAG EXCLUSIVA: Só aparece para SUPER_ADMIN no filtro de TODOS
                 let tagResponsavel = '';
                 if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') {
                     const nomeDono = s.donoDoRegistro ? s.donoDoRegistro.nome : 'Sistema';
