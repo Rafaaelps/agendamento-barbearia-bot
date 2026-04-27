@@ -230,11 +230,9 @@
 
             const selectFiltro = document.getElementById('filtro-barbeiro');
             const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
-            let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
+            let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
-            if (fBarbeiro !== 'TODOS') {
-                servicos = servicos.filter(s => s.donoDoRegistro && s.donoDoRegistro.id == fBarbeiro);
-            }
+            servicos = servicos.filter(s => checkDonoValido(s.donoDoRegistro, fBarbeiro));
 
             const corpo = document.getElementById('tabela-servicos'); corpo.innerHTML = '';
 
@@ -243,7 +241,10 @@
             }
 
             servicos.forEach(s => {
-                let seloBarbeiro = (s.donoDoRegistro && isAdmin) ? ` <small class="text-primary d-block mt-1"><i class="bi bi-person"></i> ${s.donoDoRegistro.nome}</small>` : '';
+                // ✨ MUDANÇA: Tag exclusiva para SUPER_ADMIN no filtro TODOS
+                let seloBarbeiro = (s.donoDoRegistro && perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS')
+                    ? ` <small class="text-primary d-block mt-1"><i class="bi bi-person"></i> Cadastrado por: ${s.donoDoRegistro.nome}</small>`
+                    : '';
 
                 corpo.innerHTML += `
                     <tr>

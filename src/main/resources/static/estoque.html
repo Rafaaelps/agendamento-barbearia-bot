@@ -202,23 +202,23 @@
 
         const selectFiltro = document.getElementById('filtro-barbeiro');
         const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
-        let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
 
-        if (fBarbeiro !== 'TODOS') {
-            produtos = produtos.filter(p => p.donoDoRegistro && p.donoDoRegistro.id == fBarbeiro);
-        }
+        produtos = produtos.filter(p => checkDonoValido(p.donoDoRegistro, fBarbeiro));
 
         const grid = document.getElementById('grid-produtos'); grid.innerHTML = '';
 
         if (produtos.length === 0) {
-            grid.innerHTML = '<div class="col-12"><p class="text-light text-center mt-5">Nenhum produto cadastrado para este filtro.</p></div>';
+            grid.innerHTML = '<div class="col-12"><p class="text-light text-center mt-5">Nenhum produto encontrado para este filtro.</p></div>';
             return;
         }
 
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
 
-            let seloDono = (p.donoDoRegistro && isAdmin) ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> ${p.donoDoRegistro.nome}</div>` : '';
+            // ✨ MUDANÇA: Tag exclusiva para SUPER_ADMIN no filtro TODOS
+            let seloDono = (p.donoDoRegistro && perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS')
+                ? `<div class="badge-modern badge-primary mt-2 mb-1 d-inline-block"><i class="bi bi-person"></i> Responsável: ${p.donoDoRegistro.nome}</div>`
+                : '';
 
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
