@@ -10,6 +10,7 @@ import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -19,7 +20,6 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,7 +67,12 @@ public class ChatbotService {
 
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
         String respostaDoRobo = "";
+
+        // Coloca tudo em minúsculo e remove os espaços extras
         String textoLimpo = textoRecebido.toLowerCase().trim();
+
+        // ✨ MÁGICA: Remove todos os acentos e cedilhas para facilitar a leitura do robô
+        String textoSemAcento = Normalizer.normalize(textoLimpo, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
@@ -82,17 +87,19 @@ public class ChatbotService {
         }
         sessao.setUltimaInteracao(agora);
 
-        if (textoLimpo.matches("^(oi|olá|ola|bom dia|boa tarde|boa noite|menu|recomeçar|cancelar|sair).*")) {
+        // Verifica Oi, Olá, etc (Usando o texto sem acento para pegar "ola")
+        if (textoSemAcento.matches("^(oi|ola|bom dia|boa tarde|boa noite|menu|recomecar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
 
-            if (textoLimpo.equals("cancelar") || textoLimpo.equals("sair")) {
+            if (textoSemAcento.equals("cancelar") || textoSemAcento.equals("sair")) {
                 sessaoRepository.save(sessao);
                 return "🛑 Operação cancelada. Quando quiser recomeçar, é só mandar um 'Oi'!";
             }
         }
 
-        if (textoLimpo.matches("^(sim|confirmar|confirmo|com certeza).*") && !sessao.getPassoAtual().equals("CONFIRMANDO_CANCELAMENTO")) {
+        // Verifica Confirmações do Lembrete Automático
+        if (textoSemAcento.matches("^(sim|confirmar|confirmo|com certeza).*") && !sessao.getPassoAtual().equals("CONFIRMANDO_CANCELAMENTO")) {
             Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
 
             if (ag != null && Boolean.TRUE.equals(ag.getLembreteEnviado()) && "AGENDADO".equals(ag.getStatus())) {
@@ -104,6 +111,18 @@ public class ChatbotService {
             }
         }
 
+        // ✨ NOVA REGRA: IDENTIFICADOR DE AGRADECIMENTOS
+        // O robô só vai responder isso se o cliente já finalizou o agendamento (estiver no MENU_INICIAL)
+        if (sessao.getPassoAtual().equals("MENU_INICIAL")) {
+            // Essa Regex possui todas as suas palavras. O ".*" no final permite que o cliente escreva "Valeu meu querido!" e o robô ainda entenda.
+            String regrasDeObrigado = "^(obrigad[oa]s?|obrigadao|muito obrigad[oa]s?|muitissimo obrigad[oa]s?|obrigad[oa] por tudo|obrigad[oa] de montao|obrigad[oa] de coracao|brigad[oa]s?|brigadao|valeu|beleza|joia|falou|show|firmeza|tmj|tamo junto|gratidao).*";
+
+            if (textoSemAcento.matches(regrasDeObrigado)) {
+                sessaoRepository.save(sessao);
+                return "Fico feliz em ajudar, nós agradecemos o contato! Se precisar de mais alguma coisa, é só chamar. 💈💙";
+            }
+        }
+
         if (textoLimpo.equals("voltar")) {
             switch (sessao.getPassoAtual()) {
                 case "ESPERANDO_HORARIO":
@@ -112,7 +131,6 @@ public class ChatbotService {
                     break;
                 case "ESPERANDO_DATA":
                     sessao.setPassoAtual("ESPERANDO_SERVICO");
-                    // ✨ Mapeamento Virtual para quando o usuário aperta Voltar
                     List<Servico> listaServicosVoltar = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
                             .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
                             .sorted(Comparator.comparing(Servico::getId))
@@ -172,7 +190,7 @@ public class ChatbotService {
                 break;
 
             case "CONFIRMANDO_CANCELAMENTO":
-                if (textoLimpo.contains("sim")) {
+                if (textoSemAcento.contains("sim")) {
                     agendaService.cancelarAgendamento(sessao.getIdAgendamentoTemporario());
                     respostaDoRobo = "✅ Seu agendamento foi cancelado com sucesso. O horário voltou a ficar livre na agenda!";
                 } else {
@@ -183,12 +201,11 @@ public class ChatbotService {
                 break;
 
             case "ESPERANDO_NOME":
-                sessao.setNomeClienteTemporario(textoRecebido);
+                sessao.setNomeClienteTemporario(textoRecebido); // Mantém com letras maiúsculas originais
 
-                // ✨ Mapeamento Virtual para criação do Menu
                 List<Servico> listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
                         .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
-                        .sorted(Comparator.comparing(Servico::getId)) // Garante que a ordem seja sempre a mesma
+                        .sorted(Comparator.comparing(Servico::getId))
                         .collect(Collectors.toList());
 
                 if (listaServicos.isEmpty()) {
@@ -213,14 +230,12 @@ public class ChatbotService {
                 try {
                     int indiceEscolhido = Integer.parseInt(textoLimpo);
 
-                    // ✨ Lendo o Menu Virtual e traduzindo de volta para o Banco de Dados
                     List<Servico> listaServicosOpcoes = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
                             .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
                             .sorted(Comparator.comparing(Servico::getId))
                             .collect(Collectors.toList());
 
                     if (indiceEscolhido >= 1 && indiceEscolhido <= listaServicosOpcoes.size()) {
-                        // Captura o serviço real escondido atrás do número que o cliente digitou (índice 1 = array 0)
                         Servico servicoEncontrado = listaServicosOpcoes.get(indiceEscolhido - 1);
 
                         sessao.setIdServicoTemporario(servicoEncontrado.getId());
