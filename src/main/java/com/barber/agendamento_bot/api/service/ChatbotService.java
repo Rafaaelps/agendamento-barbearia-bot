@@ -62,32 +62,30 @@ public class ChatbotService {
         }
 
         if (barbeiroResponsavel == null) {
-            return "⚠️ *Aviso do Sistema:*\nEste número de WhatsApp ainda não foi vinculado corretamente a um barbeiro no painel administrativo.\n\nPor favor, peça ao gerente para verificar se o nome da instância *[" + instanciaWhatsapp + "]* está digitado corretamente na aba 'Equipe'.";
+            return "⚠️ *Aviso do Sistema:*\nEste número de WhatsApp ainda não foi vinculado corretamente a um barbeiro no painel administrativo.";
         }
 
         SessaoBot sessao = sessaoRepository.findById(telefone).orElse(new SessaoBot(telefone, "MENU_INICIAL"));
         String respostaDoRobo = "";
 
-        // Coloca tudo em minúsculo e remove os espaços extras
         String textoLimpo = textoRecebido.toLowerCase().trim();
-
-        // ✨ MÁGICA: Remove todos os acentos e cedilhas para facilitar a leitura do robô
         String textoSemAcento = Normalizer.normalize(textoLimpo, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
 
+        // Reset por inatividade (10 min)
         if (sessao.getUltimaInteracao() != null) {
             long minutosInativos = ChronoUnit.MINUTES.between(sessao.getUltimaInteracao(), agora);
             if (minutosInativos >= 10 && !sessao.getPassoAtual().equals("MENU_INICIAL")) {
                 sessao.setPassoAtual("MENU_INICIAL");
                 limparDadosTemporariosDaSessao(sessao);
-                respostaDoRobo = "⏳ Vi que você demorou um pouquinho, então eu reiniciei nosso atendimento para organizar a agenda, tá bom?\n\n";
+                respostaDoRobo = "⏳ Vi que você demorou um pouquinho, então eu reiniciei nosso atendimento.\n\n";
             }
         }
         sessao.setUltimaInteracao(agora);
 
-        // Verifica Oi, Olá, etc (Usando o texto sem acento para pegar "ola")
+        // Comandos de interrupção
         if (textoSemAcento.matches("^(oi|ola|bom dia|boa tarde|boa noite|menu|recomecar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
@@ -98,62 +96,40 @@ public class ChatbotService {
             }
         }
 
-        // Verifica Confirmações do Lembrete Automático
-        if (textoSemAcento.matches("^(sim|confirmar|confirmo|com certeza).*") && !sessao.getPassoAtual().equals("CONFIRMANDO_CANCELAMENTO")) {
-            Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
-
-            if (ag != null && Boolean.TRUE.equals(ag.getLembreteEnviado()) && "AGENDADO".equals(ag.getStatus())) {
-                agendaService.confirmarPresenca(ag.getId());
-                sessao.setPassoAtual("MENU_INICIAL");
-                limparDadosTemporariosDaSessao(sessao);
-                sessaoRepository.save(sessao);
-                return "✅ *Presença confirmada!* Muito obrigado, " + ag.getNomeCliente() + ". Estamos te esperando no horário marcado! 💈";
-            }
-        }
-
-        // ✨ NOVA REGRA: IDENTIFICADOR DE AGRADECIMENTOS
-        // O robô só vai responder isso se o cliente já finalizou o agendamento (estiver no MENU_INICIAL)
+        // Lógica de Agradecimentos
         if (sessao.getPassoAtual().equals("MENU_INICIAL")) {
-            // Essa Regex possui todas as suas palavras. O ".*" no final permite que o cliente escreva "Valeu meu querido!" e o robô ainda entenda.
             String regrasDeObrigado = "^(obrigad[oa]s?|obrigadao|muito obrigad[oa]s?|muitissimo obrigad[oa]s?|obrigad[oa] por tudo|obrigad[oa] de montao|obrigad[oa] de coracao|brigad[oa]s?|brigadao|valeu|beleza|joia|falou|show|firmeza|tmj|tamo junto|gratidao).*";
-
             if (textoSemAcento.matches(regrasDeObrigado)) {
                 sessaoRepository.save(sessao);
                 return "Fico feliz em ajudar, nós agradecemos o contato! Se precisar de mais alguma coisa, é só chamar. 💈💙";
             }
         }
 
+        // Voltar etapa
         if (textoLimpo.equals("voltar")) {
             switch (sessao.getPassoAtual()) {
                 case "ESPERANDO_HORARIO":
                     sessao.setPassoAtual("ESPERANDO_DATA");
-                    respostaDoRobo = "🗓️ Vamos escolher outra data! Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                    respostaDoRobo = "🗓️ Vamos escolher outra data! Para qual dia você deseja agendar? (DD/MM):";
                     break;
                 case "ESPERANDO_DATA":
                     sessao.setPassoAtual("ESPERANDO_SERVICO");
-                    List<Servico> listaServicosVoltar = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
+                    List<Servico> servs = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
                             .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
-                            .sorted(Comparator.comparing(Servico::getId))
-                            .collect(Collectors.toList());
-
-                    StringBuilder menuServicos = new StringBuilder("✂️ Vamos escolher outro serviço! O que deseja agendar?\n\n");
-                    int indexVoltar = 1;
-                    for (Servico s : listaServicosVoltar) {
-                        menuServicos.append(indexVoltar).append(" - ").append(s.getNome()).append(" (R$ ").append(s.getPreco()).append(")\n");
-                        indexVoltar++;
+                            .sorted(Comparator.comparing(Servico::getId)).toList();
+                    StringBuilder menu = new StringBuilder("✂️ Escolha o serviço:\n\n");
+                    for (int i = 0; i < servs.size(); i++) {
+                        menu.append(i + 1).append(" - ").append(servs.get(i).getNome()).append("\n");
                     }
-                    respostaDoRobo = menuServicos.toString();
+                    respostaDoRobo = menu.toString();
                     break;
                 default:
                     sessao.setPassoAtual("MENU_INICIAL");
                     limparDadosTemporariosDaSessao(sessao);
                     break;
             }
-
-            if (!sessao.getPassoAtual().equals("MENU_INICIAL")) {
-                sessaoRepository.save(sessao);
-                return respostaDoRobo + "\n\n*Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
-            }
+            sessaoRepository.save(sessao);
+            return respostaDoRobo + "\n\n*Digite 'voltar' ou 'cancelar'.*";
         }
 
         DateTimeFormatter formatadorData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -162,184 +138,122 @@ public class ChatbotService {
         switch (sessao.getPassoAtual()) {
 
             case "MENU_INICIAL":
-                respostaDoRobo += "Olá! Sou o assistente virtual. O que você deseja fazer?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
+                respostaDoRobo += "Olá! Sou o assistente virtual. O que deseja?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
                 sessao.setPassoAtual("ESPERANDO_OPCAO_INICIAL");
                 break;
 
             case "ESPERANDO_OPCAO_INICIAL":
                 if (textoLimpo.equals("1")) {
-                    respostaDoRobo = "Legal! Para começarmos, qual é o seu nome?";
+                    respostaDoRobo = "Qual é o seu nome?";
                     sessao.setPassoAtual("ESPERANDO_NOME");
-                }
-                else if (textoLimpo.equals("2")) {
-                    Agendamento agendamentoEncontrado = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
-
-                    if (agendamentoEncontrado != null) {
-                        sessao.setIdAgendamentoTemporario(agendamentoEncontrado.getId());
-                        String dataBonita = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm").format(agendamentoEncontrado.getDataHoraInicio());
-                        respostaDoRobo = "Encontrei um agendamento de *" + agendamentoEncontrado.getServicoEscolhido().getNome() + "* para o dia *" + dataBonita + "*.\n\nVocê tem certeza que deseja cancelar? Digite *SIM* para confirmar ou *NAO* para voltar ao menu.";
+                } else if (textoLimpo.equals("2")) {
+                    Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
+                    if (ag != null) {
+                        sessao.setIdAgendamentoTemporario(ag.getId());
+                        respostaDoRobo = "Confirma o cancelamento? Digite *SIM* ou *NAO*.";
                         sessao.setPassoAtual("CONFIRMANDO_CANCELAMENTO");
                     } else {
-                        respostaDoRobo = "Você não tem nenhum agendamento ativo no momento. Digite *Oi* para voltar.";
+                        respostaDoRobo = "Sem agendamentos ativos. Digite *Oi*.";
                         sessao.setPassoAtual("MENU_INICIAL");
                     }
                 }
-                else {
-                    respostaDoRobo = "Opção inválida. Digite 1 para Agendar ou 2 para Cancelar.";
-                }
-                break;
-
-            case "CONFIRMANDO_CANCELAMENTO":
-                if (textoSemAcento.contains("sim")) {
-                    agendaService.cancelarAgendamento(sessao.getIdAgendamentoTemporario());
-                    respostaDoRobo = "✅ Seu agendamento foi cancelado com sucesso. O horário voltou a ficar livre na agenda!";
-                } else {
-                    respostaDoRobo = "Tudo bem, não cancelamos nada. Digite *Oi* para recomeçar.";
-                }
-                sessao.setPassoAtual("MENU_INICIAL");
-                sessao.setIdAgendamentoTemporario(null);
                 break;
 
             case "ESPERANDO_NOME":
-                sessao.setNomeClienteTemporario(textoRecebido); // Mantém com letras maiúsculas originais
-
+                sessao.setNomeClienteTemporario(textoRecebido);
                 List<Servico> listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
                         .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
-                        .sorted(Comparator.comparing(Servico::getId))
-                        .collect(Collectors.toList());
-
-                if (listaServicos.isEmpty()) {
-                    respostaDoRobo = "Ops, eu ainda não tenho nenhum serviço cadastrado no meu sistema. Volte mais tarde!";
-                    sessao.setPassoAtual("MENU_INICIAL");
-                    break;
+                        .sorted(Comparator.comparing(Servico::getId)).toList();
+                StringBuilder sb = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar?\n\n");
+                for (int i = 0; i < listaServicos.size(); i++) {
+                    sb.append(i + 1).append(" - ").append(listaServicos.get(i).getNome()).append(" (R$ ").append(listaServicos.get(i).getPreco()).append(")\n");
                 }
-
-                StringBuilder menuServicosAtual = new StringBuilder("Prazer, " + textoRecebido + "! O que deseja agendar para hoje?\n\n");
-                int index = 1;
-                for (Servico s : listaServicos) {
-                    menuServicosAtual.append(index).append(" - ").append(s.getNome())
-                            .append(" (R$ ").append(s.getPreco()).append(")\n");
-                    index++;
-                }
-
-                respostaDoRobo = menuServicosAtual.toString();
+                respostaDoRobo = sb.toString();
                 sessao.setPassoAtual("ESPERANDO_SERVICO");
                 break;
 
             case "ESPERANDO_SERVICO":
                 try {
-                    int indiceEscolhido = Integer.parseInt(textoLimpo);
-
-                    List<Servico> listaServicosOpcoes = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
+                    int indice = Integer.parseInt(textoLimpo);
+                    List<Servico> servs = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
                             .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
-                            .sorted(Comparator.comparing(Servico::getId))
-                            .collect(Collectors.toList());
-
-                    if (indiceEscolhido >= 1 && indiceEscolhido <= listaServicosOpcoes.size()) {
-                        Servico servicoEncontrado = listaServicosOpcoes.get(indiceEscolhido - 1);
-
-                        sessao.setIdServicoTemporario(servicoEncontrado.getId());
-                        respostaDoRobo = "Perfeito. Você escolheu *" + servicoEncontrado.getNome() + "*. Para qual dia você deseja agendar? (Digite no formato DD/MM, ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                            .sorted(Comparator.comparing(Servico::getId)).toList();
+                    if (indice >= 1 && indice <= servs.size()) {
+                        Servico s = servs.get(indice - 1);
+                        sessao.setIdServicoTemporario(s.getId());
+                        respostaDoRobo = "Escolheu " + s.getNome() + ". Para qual dia? (DD/MM):";
                         sessao.setPassoAtual("ESPERANDO_DATA");
-                    } else {
-                        respostaDoRobo = "❌ Número inválido. Por favor, olhe o menu acima e digite o número correto do serviço.";
                     }
-                } catch (NumberFormatException e) {
-                    respostaDoRobo = "⚠️ Não entendi. Por favor, digite apenas o NÚMERO correspondente ao serviço desejado.";
-                }
+                } catch (Exception e) { respostaDoRobo = "Digite apenas o número."; }
                 break;
 
             case "ESPERANDO_DATA":
                 try {
-                    int anoAtual = agora.getYear();
-                    LocalDate dataDigitada = LocalDate.parse(textoLimpo + "/" + anoAtual, formatadorData);
-                    LocalDate dataDeHoje = agora.toLocalDate();
-
-                    if (dataDigitada.isBefore(dataDeHoje)) {
-                        respostaDoRobo = "⚠️ Ops, o dia *" + textoLimpo + "* não é possível agendar.\n\nPor favor, digite uma data de hoje em diante (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                    LocalDate data = LocalDate.parse(textoLimpo + "/" + agora.getYear(), formatadorData);
+                    if (data.isBefore(agora.toLocalDate())) {
+                        respostaDoRobo = "Data inválida. Digite hoje ou depois:";
                     } else {
-                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario(), barbeiroResponsavel);
-
-                        if (horariosLivres.isEmpty()) {
-                            respostaDoRobo = "😔 Não temos mais horários disponíveis para o dia *" + textoLimpo + "*. Estamos lotados ou fechados.\n\nPor favor, digite outra data (ex: " + dataDeHoje.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
+                        List<LocalTime> livres = agendaService.buscarHorariosLivres(data, sessao.getIdServicoTemporario(), barbeiroResponsavel);
+                        if (livres.isEmpty()) {
+                            respostaDoRobo = "Sem horários para este dia. Tente outro:";
                         } else {
                             sessao.setDataTemporaria(textoLimpo);
-
-                            StringBuilder mensagemHorarios = new StringBuilder("Certo! Para o dia *" + textoLimpo + "*, temos estes horários livres:\n\n");
-                            for (LocalTime h : horariosLivres) {
-                                mensagemHorarios.append("⏰ *").append(h.format(formatadorHora)).append("*\n");
-                            }
-                            mensagemHorarios.append("\nQual horário você prefere? (Digite no formato HH:mm, ex: ").append(horariosLivres.get(0).format(formatadorHora)).append("):");
-
-                            respostaDoRobo = mensagemHorarios.toString();
+                            StringBuilder hl = new StringBuilder("Horários livres para " + textoLimpo + ":\n\n");
+                            livres.forEach(h -> hl.append("⏰ *").append(h.format(formatadorHora)).append("*\n"));
+                            respostaDoRobo = hl.append("\nQual prefere? (Ex: 14:30):").toString();
                             sessao.setPassoAtual("ESPERANDO_HORARIO");
                         }
                     }
-
-                } catch (DateTimeParseException e) {
-                    respostaDoRobo = "⚠️ Formato de data inválido! Por favor, digite o dia e o mês separados por barra (ex: " + agora.format(DateTimeFormatter.ofPattern("dd/MM")) + "):";
-                }
+                } catch (Exception e) { respostaDoRobo = "Use o formato DD/MM."; }
                 break;
 
             case "ESPERANDO_HORARIO":
                 try {
-                    LocalTime horaDigitada = LocalTime.parse(textoLimpo);
-                    String diaMes = sessao.getDataTemporaria();
-                    int anoAtual = agora.getYear();
+                    LocalTime hora = LocalTime.parse(textoLimpo);
+                    LocalDate data = LocalDate.parse(sessao.getDataTemporaria() + "/" + agora.getYear(), formatadorData);
 
-                    LocalDate dataDigitada = LocalDate.parse(diaMes + "/" + anoAtual, formatadorData);
-                    LocalDateTime dataHoraCompleta = LocalDateTime.of(dataDigitada, horaDigitada);
+                    // ✨ TRAVA DE LIMITE: 2 agendamentos por dia via bot
+                    if (agendaService.atingiuLimiteDiario(sessao.getTelefone(), data)) {
+                        respostaDoRobo = "⚠️ *Limite atingido!*\n\nPermitimos apenas *2 agendamentos ativos* por dia via WhatsApp. Ligue para a barbearia para mais horários, ou cancele um horário agendado para reagendar.";
+                        sessao.setPassoAtual("MENU_INICIAL");
+                        limparDadosTemporariosDaSessao(sessao);
+                        break;
+                    }
 
-                    Agendamento novoAgendamento = new Agendamento();
-                    novoAgendamento.setTelefoneCliente(sessao.getTelefone());
-                    novoAgendamento.setNomeCliente(sessao.getNomeClienteTemporario());
-                    novoAgendamento.setDataHoraInicio(dataHoraCompleta);
-                    novoAgendamento.setDonoDoRegistro(barbeiroResponsavel);
+                    Agendamento novo = new Agendamento();
+                    novo.setTelefoneCliente(sessao.getTelefone());
+                    novo.setNomeCliente(sessao.getNomeClienteTemporario());
+                    novo.setDataHoraInicio(LocalDateTime.of(data, hora));
+                    novo.setDonoDoRegistro(barbeiroResponsavel);
+                    novo.setServicoEscolhido(servicoRepository.findById(sessao.getIdServicoTemporario()).orElse(null));
+                    novo.setFormaPagamento("PENDENTE");
+                    novo.setFaturamentoBarbeiro(BigDecimal.ZERO);
 
-                    Servico servicoEscolhido = servicoRepository.findById(sessao.getIdServicoTemporario()).orElse(null);
-                    novoAgendamento.setServicoEscolhido(servicoEscolhido);
-                    novoAgendamento.setFormaPagamento("PENDENTE");
-                    novoAgendamento.setFaturamentoBarbeiro(BigDecimal.ZERO);
-
-                    boolean sucesso = agendaService.tentarAgendar(novoAgendamento);
-
-                    if (sucesso) {
-                        respostaDoRobo = "✅ Tudo certo, " + sessao.getNomeClienteTemporario() + "! Seu agendamento para o dia " + diaMes + " às " + textoLimpo + " está confirmado.";
+                    if (agendaService.tentarAgendar(novo)) {
+                        respostaDoRobo = "✅ Confirmado! Te esperamos dia " + sessao.getDataTemporaria() + " às " + textoLimpo + ".";
                         sessao.setPassoAtual("MENU_INICIAL");
                         limparDadosTemporariosDaSessao(sessao);
                     } else {
-                        List<LocalTime> horariosLivres = agendaService.buscarHorariosLivres(dataDigitada, sessao.getIdServicoTemporario(), barbeiroResponsavel);
-
-                        if (horariosLivres.isEmpty()) {
-                            respostaDoRobo = "❌ Esse horário já está ocupado e não temos mais vagas neste dia. Por favor, mande um *Oi* para recomeçar e escolher outra data.";
-                            sessao.setPassoAtual("MENU_INICIAL");
-                            limparDadosTemporariosDaSessao(sessao);
-                        } else {
-                            StringBuilder mensagemHorarios = new StringBuilder("❌ Esse horário já está ocupado ou é inválido. Por favor, escolha um dos horários livres abaixo:\n\n");
-                            for (LocalTime h : horariosLivres) {
-                                mensagemHorarios.append("⏰ *").append(h.format(formatadorHora)).append("*\n");
-                            }
-                            respostaDoRobo = mensagemHorarios.toString();
-                        }
+                        respostaDoRobo = "Horário ocupado. Escolha outro:";
                     }
-                } catch (DateTimeParseException e) {
-                    respostaDoRobo = "⚠️ Formato de horário inválido! Por favor, digite a hora com dois pontos (ex: 14:30):";
-                }
+                } catch (Exception e) { respostaDoRobo = "Horário inválido. Use HH:mm."; }
                 break;
 
-            default:
-                respostaDoRobo = "Ops, me perdi. Vamos recomeçar? Diga Oi!";
+            case "CONFIRMANDO_CANCELAMENTO":
+                if (textoSemAcento.contains("sim")) {
+                    agendaService.cancelarAgendamento(sessao.getIdAgendamentoTemporario());
+                    respostaDoRobo = "✅ Cancelado com sucesso.";
+                } else {
+                    respostaDoRobo = "Ok, mantido.";
+                }
                 sessao.setPassoAtual("MENU_INICIAL");
+                break;
         }
 
         sessaoRepository.save(sessao);
-
-        List<String> passosComRetorno = List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO", "CONFIRMANDO_CANCELAMENTO");
-
-        if (passosComRetorno.contains(sessao.getPassoAtual())) {
-            respostaDoRobo += "\n\n*Digite 'voltar' para a etapa anterior ou 'cancelar' para sair.*";
+        if (List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO").contains(sessao.getPassoAtual())) {
+            respostaDoRobo += "\n\n*Digite 'voltar' ou 'cancelar'.*";
         }
-
         return respostaDoRobo;
     }
 }

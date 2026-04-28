@@ -36,6 +36,18 @@ public class AgendaService {
         return usuarioRepository.findByLogin(login).orElse(null);
     }
 
+    public boolean atingiuLimiteDiario(String telefone, LocalDate data) {
+        LocalDateTime inicioDia = data.atStartOfDay();
+        LocalDateTime fimDia = data.atTime(23, 59, 59);
+
+        // Conta quantos agendamentos ativos (não cancelados) esse número tem no dia
+        long total = agendamentoRepository.countByTelefoneClienteAndDataHoraInicioBetweenAndStatusNot(
+                telefone, inicioDia, fimDia, "CANCELADO"
+        );
+
+        return total >= 2; // Retorna 'true' se já tiver 2 ou mais
+    }
+
     public boolean tentarAgendar(Agendamento novo) {
         Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
         novo.setServicoEscolhido(servicoCompleto);

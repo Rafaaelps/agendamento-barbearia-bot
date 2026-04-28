@@ -23,4 +23,11 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     // ✨ NOVOS MÉTODOS PARA O SISTEMA DE MULTI-USUÁRIOS
     List<Agendamento> findByStatusNotAndDonoDoRegistro(String status, Usuario dono);
     List<Agendamento> findByTelefoneClienteAndStatusNotAndDonoDoRegistro(String telefoneCliente, String status, Usuario dono);
+
+    long countByTelefoneClienteAndDataHoraInicioBetweenAndStatusNot(
+            String telefone,
+            LocalDateTime inicio,
+            LocalDateTime fim,
+            String status
+    );
 }
