@@ -212,11 +212,10 @@ public class ChatbotService {
                     LocalTime hora = LocalTime.parse(textoLimpo);
                     LocalDate data = LocalDate.parse(sessao.getDataTemporaria() + "/" + agora.getYear(), formatadorData);
 
-                    // ✨ TRAVA DE LIMITE: 2 agendamentos por dia via bot
+                    // ✨ MUDANÇA AQUI: TRAVA DE LIMITE COM MINI-MENU
                     if (agendaService.atingiuLimiteDiario(sessao.getTelefone(), data)) {
-                        respostaDoRobo = "⚠️ *Limite atingido!*\n\nPermitimos apenas *2 agendamentos ativos* por dia via WhatsApp. Ligue para a barbearia para mais horários, ou cancele um horário agendado para reagendar.";
-                        sessao.setPassoAtual("MENU_INICIAL");
-                        limparDadosTemporariosDaSessao(sessao);
+                        respostaDoRobo = "⚠️ *Limite atingido!*\n\nPermitimos apenas *2 agendamentos ativos* por dia via WhatsApp.\n\nEscolha uma opção:\n*1* - Cancelar um agendamento já feito para liberar vaga\n*2* - Encerrar atendimento";
+                        sessao.setPassoAtual("ESPERANDO_OPCAO_LIMITE");
                         break;
                     }
 
@@ -239,10 +238,32 @@ public class ChatbotService {
                 } catch (Exception e) { respostaDoRobo = "Horário inválido. Use HH:mm."; }
                 break;
 
+            // ✨ NOVO CASE: Trata a escolha do usuário após atingir o limite
+            case "ESPERANDO_OPCAO_LIMITE":
+                if (textoLimpo.equals("1")) {
+                    Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
+                    if (ag != null) {
+                        sessao.setIdAgendamentoTemporario(ag.getId());
+                        String dataFmt = ag.getDataHoraInicio().format(DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm"));
+                        respostaDoRobo = "Encontrei seu agendamento de *" + ag.getServicoEscolhido().getNome() + "* para o dia *" + dataFmt + "*.\n\nConfirma o cancelamento? Digite *SIM* ou *NAO*.";
+                        sessao.setPassoAtual("CONFIRMANDO_CANCELAMENTO");
+                    } else {
+                        respostaDoRobo = "Estranho, não encontrei agendamentos ativos. Digite *Oi* para recomeçar.";
+                        sessao.setPassoAtual("MENU_INICIAL");
+                    }
+                } else if (textoLimpo.equals("2")) {
+                    respostaDoRobo = "🛑 Atendimento encerrado. Se precisar de algo, é só chamar!";
+                    sessao.setPassoAtual("MENU_INICIAL");
+                    limparDadosTemporariosDaSessao(sessao);
+                } else {
+                    respostaDoRobo = "Opção inválida. Digite *1* para cancelar um agendamento ou *2* para sair.";
+                }
+                break;
+
             case "CONFIRMANDO_CANCELAMENTO":
                 if (textoSemAcento.contains("sim")) {
                     agendaService.cancelarAgendamento(sessao.getIdAgendamentoTemporario());
-                    respostaDoRobo = "✅ Cancelado com sucesso.";
+                    respostaDoRobo = "✅ Cancelado com sucesso. A vaga foi liberada!";
                 } else {
                     respostaDoRobo = "Ok, mantido.";
                 }
