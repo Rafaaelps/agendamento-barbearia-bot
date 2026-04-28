@@ -4,6 +4,7 @@ import com.barber.agendamento_bot.api.entity.Agendamento;
 import com.barber.agendamento_bot.api.entity.Servico;
 import com.barber.agendamento_bot.api.entity.SessaoBot;
 import com.barber.agendamento_bot.api.entity.Usuario;
+import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
 import com.barber.agendamento_bot.api.repository.ServicoRepository;
 import com.barber.agendamento_bot.api.repository.SessaoBotRepository;
 import com.barber.agendamento_bot.api.repository.UsuarioRepository;
@@ -29,12 +30,14 @@ public class ChatbotService {
     private final AgendaService agendaService;
     private final ServicoRepository servicoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AgendamentoRepository agendamentoRepository; // ✨ NOVO
 
-    public ChatbotService(SessaoBotRepository sessaoRepository, AgendaService agendaService, ServicoRepository servicoRepository, UsuarioRepository usuarioRepository) {
+    public ChatbotService(SessaoBotRepository sessaoRepository, AgendaService agendaService, ServicoRepository servicoRepository, UsuarioRepository usuarioRepository, AgendamentoRepository agendamentoRepository) {
         this.sessaoRepository = sessaoRepository;
         this.agendaService = agendaService;
         this.servicoRepository = servicoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.agendamentoRepository = agendamentoRepository;
     }
 
     private void limparDadosTemporariosDaSessao(SessaoBot sessao) {
@@ -74,7 +77,6 @@ public class ChatbotService {
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
         LocalDateTime agora = LocalDateTime.now(fusoBR);
 
-        // Reset por inatividade (10 min)
         if (sessao.getUltimaInteracao() != null) {
             long minutosInativos = ChronoUnit.MINUTES.between(sessao.getUltimaInteracao(), agora);
             if (minutosInativos >= 10 && !sessao.getPassoAtual().equals("MENU_INICIAL")) {
@@ -85,7 +87,6 @@ public class ChatbotService {
         }
         sessao.setUltimaInteracao(agora);
 
-        // Comandos de interrupção
         if (textoSemAcento.matches("^(oi|ola|bom dia|boa tarde|boa noite|menu|recomecar|cancelar|sair).*")) {
             sessao.setPassoAtual("MENU_INICIAL");
             limparDadosTemporariosDaSessao(sessao);
@@ -96,7 +97,6 @@ public class ChatbotService {
             }
         }
 
-        // Lógica de Agradecimentos
         if (sessao.getPassoAtual().equals("MENU_INICIAL")) {
             String regrasDeObrigado = "^(obrigad[oa]s?|obrigadao|muito obrigad[oa]s?|muitissimo obrigad[oa]s?|obrigad[oa] por tudo|obrigad[oa] de montao|obrigad[oa] de coracao|brigad[oa]s?|brigadao|valeu|beleza|joia|falou|show|firmeza|tmj|tamo junto|gratidao).*";
             if (textoSemAcento.matches(regrasDeObrigado)) {
@@ -105,7 +105,6 @@ public class ChatbotService {
             }
         }
 
-        // Voltar etapa
         if (textoLimpo.equals("voltar")) {
             switch (sessao.getPassoAtual()) {
                 case "ESPERANDO_HORARIO":
@@ -147,15 +146,49 @@ public class ChatbotService {
                     respostaDoRobo = "Qual é o seu nome?";
                     sessao.setPassoAtual("ESPERANDO_NOME");
                 } else if (textoLimpo.equals("2")) {
-                    Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
-                    if (ag != null) {
-                        sessao.setIdAgendamentoTemporario(ag.getId());
-                        respostaDoRobo = "Confirma o cancelamento? Digite *SIM* ou *NAO*.";
+                    // ✨ MUDANÇA 1: Lista todos os agendamentos ativos do cliente
+                    List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusNotOrderByDataHoraInicioAsc(telefone, "CANCELADO");
+
+                    if (ativos.isEmpty()) {
+                        respostaDoRobo = "Você não tem nenhum agendamento ativo no momento. Digite *Oi* para recomeçar.";
+                        sessao.setPassoAtual("MENU_INICIAL");
+                    } else if (ativos.size() == 1) {
+                        sessao.setIdAgendamentoTemporario(ativos.get(0).getId());
+                        String dataFmt = ativos.get(0).getDataHoraInicio().format(DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm"));
+                        respostaDoRobo = "Encontrei um agendamento de *" + ativos.get(0).getServicoEscolhido().getNome() + "* para o dia *" + dataFmt + "*.\n\nConfirma o cancelamento? Digite *SIM* ou *NAO*.";
                         sessao.setPassoAtual("CONFIRMANDO_CANCELAMENTO");
                     } else {
-                        respostaDoRobo = "Sem agendamentos ativos. Digite *Oi*.";
-                        sessao.setPassoAtual("MENU_INICIAL");
+                        StringBuilder sb = new StringBuilder("Você tem " + ativos.size() + " horários marcados. Qual deles deseja cancelar?\n\n");
+                        for(int i = 0; i < ativos.size(); i++) {
+                            sb.append(i + 1).append(" - ").append(ativos.get(i).getServicoEscolhido().getNome())
+                                    .append(" (Dia ").append(ativos.get(i).getDataHoraInicio().format(DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm"))).append(")\n");
+                        }
+                        sb.append("\n*").append(ativos.size() + 1).append("* - Voltar ao menu inicial");
+                        respostaDoRobo = sb.toString();
+                        sessao.setPassoAtual("ESCOLHENDO_CANCELAMENTO_GERAL");
                     }
+                }
+                break;
+
+            // ✨ NOVO CASE: Trata o cancelamento geral quando há múltiplos
+            case "ESCOLHENDO_CANCELAMENTO_GERAL":
+                try {
+                    int escolha = Integer.parseInt(textoLimpo);
+                    List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusNotOrderByDataHoraInicioAsc(telefone, "CANCELADO");
+
+                    if (escolha == ativos.size() + 1) {
+                        respostaDoRobo = "Operação cancelada. Digite *Oi* para recomeçar.";
+                        sessao.setPassoAtual("MENU_INICIAL");
+                    } else if (escolha >= 1 && escolha <= ativos.size()) {
+                        Agendamento agCancelado = ativos.get(escolha - 1);
+                        agendaService.cancelarAgendamento(agCancelado.getId());
+                        respostaDoRobo = "✅ O agendamento de *" + agCancelado.getServicoEscolhido().getNome() + "* foi cancelado com sucesso!";
+                        sessao.setPassoAtual("MENU_INICIAL");
+                    } else {
+                        respostaDoRobo = "❌ Número inválido. Escolha um dos agendamentos acima ou a última opção para sair.";
+                    }
+                } catch(Exception e) {
+                    respostaDoRobo = "⚠️ Digite apenas o número correspondente à opção.";
                 }
                 break;
 
@@ -183,6 +216,8 @@ public class ChatbotService {
                         sessao.setIdServicoTemporario(s.getId());
                         respostaDoRobo = "Escolheu " + s.getNome() + ". Para qual dia? (DD/MM):";
                         sessao.setPassoAtual("ESPERANDO_DATA");
+                    } else {
+                        respostaDoRobo = "❌ Número inválido. Por favor, olhe o menu acima e digite o número correto do serviço.";
                     }
                 } catch (Exception e) { respostaDoRobo = "Digite apenas o número."; }
                 break;
@@ -212,10 +247,21 @@ public class ChatbotService {
                     LocalTime hora = LocalTime.parse(textoLimpo);
                     LocalDate data = LocalDate.parse(sessao.getDataTemporaria() + "/" + agora.getYear(), formatadorData);
 
-                    // ✨ MUDANÇA AQUI: TRAVA DE LIMITE COM MINI-MENU
+                    // ✨ MUDANÇA 2: Inteligência de retomar agendamento após liberar limite
                     if (agendaService.atingiuLimiteDiario(sessao.getTelefone(), data)) {
-                        respostaDoRobo = "⚠️ *Limite atingido!*\n\nPermitimos apenas *2 agendamentos ativos* por dia via WhatsApp.\n\nEscolha uma opção:\n*1* - Cancelar um agendamento já feito para liberar vaga\n*2* - Encerrar atendimento";
-                        sessao.setPassoAtual("ESPERANDO_OPCAO_LIMITE");
+                        LocalDateTime inicioDia = data.atStartOfDay();
+                        LocalDateTime fimDia = data.atTime(23, 59, 59);
+                        List<Agendamento> agsDoDia = agendamentoRepository.findByTelefoneClienteAndDataHoraInicioBetweenAndStatusNotOrderByDataHoraInicioAsc(telefone, inicioDia, fimDia, "CANCELADO");
+
+                        StringBuilder menuLimite = new StringBuilder("⚠️ *Limite atingido!*\nVocê já tem 2 agendamentos para o dia *" + sessao.getDataTemporaria() + "*.\n\nPara liberar vaga e agendar esse novo horário, qual você deseja cancelar?\n\n");
+                        for (int i = 0; i < agsDoDia.size(); i++) {
+                            menuLimite.append(i + 1).append(" - ").append(agsDoDia.get(i).getServicoEscolhido().getNome())
+                                    .append(" às ").append(agsDoDia.get(i).getDataHoraInicio().format(formatadorHora)).append("\n");
+                        }
+                        menuLimite.append("\n*").append(agsDoDia.size() + 1).append("* - Não quero cancelar (Sair)");
+
+                        respostaDoRobo = menuLimite.toString();
+                        sessao.setPassoAtual("ESCOLHENDO_CANCELAMENTO_LIMITE");
                         break;
                     }
 
@@ -238,25 +284,37 @@ public class ChatbotService {
                 } catch (Exception e) { respostaDoRobo = "Horário inválido. Use HH:mm."; }
                 break;
 
-            // ✨ NOVO CASE: Trata a escolha do usuário após atingir o limite
-            case "ESPERANDO_OPCAO_LIMITE":
-                if (textoLimpo.equals("1")) {
-                    Agendamento ag = agendaService.buscarAgendamentoAtivoPorTelefone(telefone);
-                    if (ag != null) {
-                        sessao.setIdAgendamentoTemporario(ag.getId());
-                        String dataFmt = ag.getDataHoraInicio().format(DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm"));
-                        respostaDoRobo = "Encontrei seu agendamento de *" + ag.getServicoEscolhido().getNome() + "* para o dia *" + dataFmt + "*.\n\nConfirma o cancelamento? Digite *SIM* ou *NAO*.";
-                        sessao.setPassoAtual("CONFIRMANDO_CANCELAMENTO");
-                    } else {
-                        respostaDoRobo = "Estranho, não encontrei agendamentos ativos. Digite *Oi* para recomeçar.";
+            // ✨ NOVO CASE: Exclui e Retoma o agendamento!
+            case "ESCOLHENDO_CANCELAMENTO_LIMITE":
+                try {
+                    int escolha = Integer.parseInt(textoLimpo);
+                    LocalDate data = LocalDate.parse(sessao.getDataTemporaria() + "/" + agora.getYear(), formatadorData);
+                    LocalDateTime inicioDia = data.atStartOfDay();
+                    LocalDateTime fimDia = data.atTime(23, 59, 59);
+                    List<Agendamento> agsDoDia = agendamentoRepository.findByTelefoneClienteAndDataHoraInicioBetweenAndStatusNotOrderByDataHoraInicioAsc(telefone, inicioDia, fimDia, "CANCELADO");
+
+                    if (escolha == agsDoDia.size() + 1) {
+                        respostaDoRobo = "🛑 Atendimento encerrado. Se precisar de algo, é só chamar!";
                         sessao.setPassoAtual("MENU_INICIAL");
+                        limparDadosTemporariosDaSessao(sessao);
+                    } else if (escolha >= 1 && escolha <= agsDoDia.size()) {
+                        Agendamento agCancelado = agsDoDia.get(escolha - 1);
+                        agendaService.cancelarAgendamento(agCancelado.getId());
+
+                        // ✨ A MÁGICA: Recarrega os horários livres e devolve a bola pro cliente
+                        List<LocalTime> livres = agendaService.buscarHorariosLivres(data, sessao.getIdServicoTemporario(), barbeiroResponsavel);
+                        StringBuilder hl = new StringBuilder("✅ *" + agCancelado.getServicoEscolhido().getNome() + " às " + agCancelado.getDataHoraInicio().format(formatadorHora) + "* cancelado com sucesso!\n\n");
+                        hl.append("A vaga foi liberada. Voltando ao seu novo agendamento, qual horário você prefere para o dia *").append(sessao.getDataTemporaria()).append("*?\n\n");
+                        livres.forEach(h -> hl.append("⏰ *").append(h.format(formatadorHora)).append("*\n"));
+                        hl.append("\n(Ex: 14:30):");
+
+                        respostaDoRobo = hl.toString();
+                        sessao.setPassoAtual("ESPERANDO_HORARIO"); // Joga ele de volta pra etapa de digitar a hora!
+                    } else {
+                        respostaDoRobo = "❌ Número inválido. Escolha um dos agendamentos acima ou a última opção para sair.";
                     }
-                } else if (textoLimpo.equals("2")) {
-                    respostaDoRobo = "🛑 Atendimento encerrado. Se precisar de algo, é só chamar!";
-                    sessao.setPassoAtual("MENU_INICIAL");
-                    limparDadosTemporariosDaSessao(sessao);
-                } else {
-                    respostaDoRobo = "Opção inválida. Digite *1* para cancelar um agendamento ou *2* para sair.";
+                } catch (Exception e) {
+                    respostaDoRobo = "⚠️ Digite apenas o número correspondente à opção.";
                 }
                 break;
 
@@ -272,7 +330,7 @@ public class ChatbotService {
         }
 
         sessaoRepository.save(sessao);
-        if (List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO").contains(sessao.getPassoAtual())) {
+        if (List.of("ESPERANDO_NOME", "ESPERANDO_SERVICO", "ESPERANDO_DATA", "ESPERANDO_HORARIO", "ESCOLHENDO_CANCELAMENTO_GERAL", "ESCOLHENDO_CANCELAMENTO_LIMITE").contains(sessao.getPassoAtual())) {
             respostaDoRobo += "\n\n*Digite 'voltar' ou 'cancelar'.*";
         }
         return respostaDoRobo;
