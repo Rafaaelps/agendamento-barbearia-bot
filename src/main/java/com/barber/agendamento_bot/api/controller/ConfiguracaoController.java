@@ -86,13 +86,19 @@ public class ConfiguracaoController {
     // 2. HORÁRIOS DE FUNCIONAMENTO (INDIVIDUAIS POR BARBEIRO)
     // =========================================================
     @GetMapping("/horarios")
-    public ResponseEntity<List<HorarioFuncionamento>> getHorarios() {
-        Usuario u = getLogado();
-        if (u == null) return ResponseEntity.status(401).build();
+    public ResponseEntity<List<HorarioFuncionamento>> getHorarios(@RequestParam(required = false) Long barbeiroId) {
+        Usuario logado = getLogado();
+        if (logado == null) return ResponseEntity.status(401).build();
 
-        List<HorarioFuncionamento> horarios = horarioRepository.findAllByDonoDoRegistroOrderByDiaDaSemanaAsc(u);
+        // ✨ Se o Admin passar um ID, buscamos o horário daquele barbeiro específico.
+        // Se não passar nada, buscamos o do próprio logado.
+        Usuario alvo = logado;
+        if (barbeiroId != null && (logado.getPerfil().contains("ADMIN") || logado.getPerfil().equals("SUPER_ADMIN"))) {
+            alvo = usuarioRepository.findById(barbeiroId).orElse(logado);
+        }
 
-        // Se o barbeiro for novo e não tiver horários, cria a semana automaticamente para ele!
+        List<HorarioFuncionamento> horarios = horarioRepository.findAllByDonoDoRegistroOrderByDiaDaSemanaAsc(alvo);
+
         if (horarios.isEmpty()) {
             String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
             for (int i = 1; i <= 7; i++) {
@@ -101,8 +107,8 @@ public class ConfiguracaoController {
                 h.setNomeDia(dias[i]);
                 h.setHoraAbertura("09:00");
                 h.setHoraFechamento("19:00");
-                h.setFechado(i == 7); // Domingo fechado por padrão
-                h.setDonoDoRegistro(u);
+                h.setFechado(i == 7);
+                h.setDonoDoRegistro(alvo);
                 horarioRepository.save(h);
                 horarios.add(h);
             }
@@ -111,13 +117,19 @@ public class ConfiguracaoController {
     }
 
     @PutMapping("/horarios")
-    public ResponseEntity<?> salvarHorarios(@RequestBody List<HorarioFuncionamento> alterados) {
-        Usuario u = getLogado();
+    public ResponseEntity<?> salvarHorarios(@RequestParam(required = false) Long barbeiroId, @RequestBody List<HorarioFuncionamento> alterados) {
+        Usuario logado = getLogado();
+        if (logado == null) return ResponseEntity.status(401).build();
+
+        Usuario alvo = logado;
+        if (barbeiroId != null && (logado.getPerfil().contains("ADMIN") || logado.getPerfil().equals("SUPER_ADMIN"))) {
+            alvo = usuarioRepository.findById(barbeiroId).orElse(logado);
+        }
+
         for (HorarioFuncionamento h : alterados) {
             HorarioFuncionamento db = horarioRepository.findById(h.getId()).orElse(null);
-
-            // Segurança: Só altera se o horário pertencer ao usuário logado!
-            if (db != null && db.getDonoDoRegistro() != null && db.getDonoDoRegistro().getId().equals(u.getId())) {
+            // ✨ Segurança: Só permite salvar se o registro pertencer ao alvo correto
+            if (db != null && db.getDonoDoRegistro().getId().equals(alvo.getId())) {
                 db.setHoraAbertura(h.getHoraAbertura());
                 db.setHoraFechamento(h.getHoraFechamento());
                 db.setFechado(h.isFechado());

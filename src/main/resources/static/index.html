@@ -334,12 +334,48 @@
     function atualizarLabelBot(ativo) { const lbl = document.getElementById('label-bot-status'); const cmp = document.getElementById('campos-bot-config'); if(ativo) { lbl.innerText="Robô Ligado"; lbl.classList.add('text-success'); cmp.style.opacity="1"; cmp.style.pointerEvents="auto"; } else { lbl.innerText="Robô Desligado"; lbl.classList.remove('text-success'); cmp.style.opacity="0.5"; cmp.style.pointerEvents="none"; } }
     async function salvarConfigsBot() { await fetch('/api/configuracoes/geral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ botAtivo: document.getElementById('switch-bot-ativo').checked, minutosConfirmacao: parseInt(document.getElementById('minutos-bot').value) }) }); bootstrap.Modal.getInstance(document.getElementById('modalConfigBot')).hide(); }
     let gradeHorariosGlobal = [];
-    async function carregarGradeHorarios() { const res = await fetch('/api/horarios'); gradeHorariosGlobal = await res.json(); gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana); renderizarGradeHorarios(); }
+    async function carregarGradeHorarios() {
+        const selectBarbeiro = document.getElementById('filtro-barbeiro');
+        let url = '/api/horarios';
+
+        // Se houver um barbeiro selecionado no filtro, pedimos os horários DELE
+        if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
+            url += '?barbeiroId=' + selectBarbeiro.value;
+        }
+
+        const res = await fetch(url);
+        if (res.ok) {
+            gradeHorariosGlobal = await res.json();
+            gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana);
+            renderizarGradeHorarios();
+        }
+    }
     function renderizarGradeHorarios() { const corpo = document.getElementById('corpo-modal-horarios'); corpo.innerHTML = ''; gradeHorariosGlobal.forEach((dia, index) => { const chk = dia.fechado ? '' : 'checked', dis = dia.fechado ? 'disabled' : ''; corpo.innerHTML += `<div class="custom-card mb-3 p-3"><div class="d-flex justify-content-between mb-3"><span class="badge-modern ${dia.fechado ? 'badge-danger' : 'badge-primary'}">${dia.nomeDia}</span><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" ${chk} onchange="toggleDia(${index})"></div></div><div class="row g-2"><div class="col-6"><label class="form-label text-light small fw-bold">Abertura</label><input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})"></div><div class="col-6"><label class="form-label text-light small fw-bold">Fechamento</label><input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})"></div></div></div>`; }); }
     function toggleDia(idx) { gradeHorariosGlobal[idx].fechado = !gradeHorariosGlobal[idx].fechado; renderizarGradeHorarios(); }
     function alterarHoraAbertura(idx) { gradeHorariosGlobal[idx].horaAbertura = document.getElementById(`hora-abertura-${idx}`).value; }
     function alterarHoraFechamento(idx) { gradeHorariosGlobal[idx].horaFechamento = document.getElementById(`hora-fechamento-${idx}`).value; }
-    async function salvarGradeHorarios() { await fetch('/api/horarios', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gradeHorariosGlobal) }); bootstrap.Modal.getInstance(document.getElementById('modalHorarios')).hide(); }
+    async function salvarGradeHorarios() {
+        const selectBarbeiro = document.getElementById('filtro-barbeiro');
+        let url = '/api/horarios';
+
+        // Manda o ID do barbeiro na hora de salvar
+        if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
+            url += '?barbeiroId=' + selectBarbeiro.value;
+        }
+
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gradeHorariosGlobal)
+        });
+
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalHorarios')).hide();
+            alert("Expediente atualizado com sucesso!");
+        } else {
+            alert("Erro ao salvar o expediente.");
+        }
+    }
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
     async function processarPagamento(metodo) { const id = document.getElementById('id-agendamento-pagamento').value; await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' }); await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide(); carregarAgendamentos(); }
     async function salvarBloqueio() { const dados = { dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`, dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`, motivo: document.getElementById('motivo-bloqueio').value }; await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide(); carregarAgendamentos(); }

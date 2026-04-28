@@ -99,6 +99,7 @@ public class AgendaService {
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
+        // Se não tiver horário, cria na hora
         if (regrasDoDia == null) {
             String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
             for (int i = 1; i <= 7; i++) {
@@ -110,16 +111,18 @@ public class AgendaService {
                 h.setFechado(i == 7);
                 h.setDonoDoRegistro(barbeiro);
                 horarioRepository.save(h);
-                if (i == diaSemanaId) {
-                    regrasDoDia = h;
-                }
+                if (i == diaSemanaId) regrasDoDia = h;
             }
         }
 
         if (regrasDoDia.isFechado()) return horariosDisponiveis;
 
-        LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
-        LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
+        // Proteção contra horários em branco que o usuário possa ter salvo sem querer
+        String horaAb = (regrasDoDia.getHoraAbertura() == null || regrasDoDia.getHoraAbertura().isEmpty()) ? "09:00" : regrasDoDia.getHoraAbertura();
+        String horaFc = (regrasDoDia.getHoraFechamento() == null || regrasDoDia.getHoraFechamento().isEmpty()) ? "19:00" : regrasDoDia.getHoraFechamento();
+
+        LocalTime aberturaDoDia = LocalTime.parse(horaAb);
+        LocalTime fechamentoDoDia = LocalTime.parse(horaFc);
 
         Servico servicoEscolhido = servicoRepository.findById(servicoId).orElseThrow();
         int duracao = servicoEscolhido.getDuracaoMinutos();
@@ -128,23 +131,38 @@ public class AgendaService {
         List<BloqueioAgenda> todosBloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
-        LocalDate dataDeHoje = LocalDate.now(fusoBR);
-        LocalTime horaAtual = LocalTime.now(fusoBR);
+        LocalDateTime momentoAtual = LocalDateTime.now(fusoBR);
 
         LocalTime horarioTeste = aberturaDoDia;
 
-        while (horarioTeste.plusMinutes(duracao).compareTo(fechamentoDoDia) <= 0) {
-            if (dataBuscada.equals(dataDeHoje) && horarioTeste.isBefore(horaAtual.plusMinutes(15))) {
-                horarioTeste = horarioTeste.plusMinutes(30); continue;
+        // Loop seguro contra a meia-noite
+        while (true) {
+            LocalTime fimTentativaTime = horarioTeste.plusMinutes(duracao);
+
+            // ✨ TRAVA 1: Se o fim do serviço for ANTES do início (passou da meia-noite) ou APÓS o fechamento -> PARA O LOOP!
+            if (fimTentativaTime.isBefore(horarioTeste) || fimTentativaTime.isAfter(fechamentoDoDia)) {
+                // Exceção: Se o fechamento for exatamente 00:00, permitimos até 23:59
+                if (!fechamentoDoDia.equals(LocalTime.MIDNIGHT)) {
+                    break;
+                }
             }
 
-            LocalDateTime inicioTentativa = LocalDateTime.of(dataBuscada, horarioTeste);
-            LocalDateTime fimTentativa = inicioTentativa.plusMinutes(duracao);
+            LocalDateTime inicioTentativaCompleto = LocalDateTime.of(dataBuscada, horarioTeste);
+            LocalDateTime fimTentativaCompleta = inicioTentativaCompleto.plusMinutes(duracao);
+
+            // ✨ TRAVA 2: Ignora horários no passado usando Data + Hora completas (sem bugar à noite)
+            if (inicioTentativaCompleto.isBefore(momentoAtual.plusMinutes(15))) {
+                LocalTime proximo = horarioTeste.plusMinutes(30);
+                if (proximo.isBefore(horarioTeste)) break; // Se o pulo passou da meia-noite, para
+                horarioTeste = proximo;
+                continue;
+            }
+
             boolean temConflito = false;
 
             for (Agendamento existente : todosNoBanco) {
                 if (existente.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
-                    if (inicioTentativa.isBefore(existente.getDataHoraFim()) && fimTentativa.isAfter(existente.getDataHoraInicio())) {
+                    if (inicioTentativaCompleto.isBefore(existente.getDataHoraFim()) && fimTentativaCompleta.isAfter(existente.getDataHoraInicio())) {
                         temConflito = true; break;
                     }
                 }
@@ -154,15 +172,20 @@ public class AgendaService {
                 for (BloqueioAgenda bloqueio : todosBloqueios) {
                     if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
                     if (bloqueio.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
-                        if (inicioTentativa.isBefore(bloqueio.getDataHoraFim()) && fimTentativa.isAfter(bloqueio.getDataHoraInicio())) {
+                        if (inicioTentativaCompleto.isBefore(bloqueio.getDataHoraFim()) && fimTentativaCompleta.isAfter(bloqueio.getDataHoraInicio())) {
                             temConflito = true; break;
                         }
                     }
                 }
             }
+
             if (!temConflito) horariosDisponiveis.add(horarioTeste);
-            horarioTeste = horarioTeste.plusMinutes(30);
+
+            LocalTime proximo = horarioTeste.plusMinutes(30);
+            if (proximo.isBefore(horarioTeste)) break; // Impede Loop Infinito ao chegar perto de 23:59
+            horarioTeste = proximo;
         }
+
         return horariosDisponiveis;
     }
 
