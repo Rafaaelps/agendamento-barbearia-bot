@@ -138,7 +138,7 @@
           <div class="custom-card stat-card">
             <div>
               <div class="d-flex justify-content-between">
-                <span class="stat-title">Faturamento Bruto</span>
+                <span class="stat-title" id="label-bruto">Faturamento Bruto</span>
                 <i class="bi bi-cash-coin stat-icon text-muted"></i>
               </div>
               <div class="stat-value text-muted" id="card-faturamento">R$ 0,00</div>
@@ -147,7 +147,7 @@
           </div>
         </div>
         <div class="col-12 col-md-4">
-          <div class="custom-card stat-card" style="border-color: rgba(16, 185, 129, 0.4);">
+          <div class="custom-card stat-card" style="border-left: 4px solid var(--success-color);">
             <div>
               <div class="d-flex justify-content-between">
                 <span class="stat-title text-success" id="label-lucro">Lucro no Bolso</span>
@@ -194,7 +194,7 @@
               </div>
               <div class="stat-value text-warning" id="card-previsao">R$ 0,00</div>
             </div>
-            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno para o próximo mês.</div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno para o próximo mês baseada no histórico.</div>
           </div>
         </div>
       </div>
@@ -222,7 +222,7 @@
 
 <div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-dash-circle text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">O QUE FOI COMPRADO/PAGO?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz, Gilette..."></div><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR R$</label><input type="number" id="valor-despesa" class="form-control custom-input" placeholder="0.00" step="0.01"></div></div><div class="modal-footer border-0"><button class="btn-modern w-100 justify-content-center" style="background-color: var(--danger-color); color: white;" onclick="salvarDespesa()">Adicionar Custo</button></div></div></div></div>
 
-<div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-percent text-warning me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO CRÉDITO (%)</label><input type="number" id="taxa-credito" class="form-control custom-input" step="0.1"></div><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO DÉBITO (%)</label><input type="number" id="taxa-debito" class="form-control custom-input" step="0.1"></div><p class="text-muted small">O sistema descontará automaticamente essa porcentagem na hora de calcular seu Lucro no Bolso.</p></div><div class="modal-footer border-0"><button class="btn-modern btn-warning-modern w-100 justify-content-center" style="background-color: var(--warning-color); color: white;" onclick="salvarTaxas()">Salvar Taxas</button></div></div></div></div>
+<div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-percent text-warning me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO CRÉDITO (%)</label><input type="number" id="taxa-credito" class="form-control custom-input" step="0.1"></div><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO DÉBITO (%)</label><input type="number" id="taxa-debito" class="form-control custom-input" step="0.1"></div><p class="text-muted small">Taxas individuais dos barbeiros que serão removidas da visão do caixa.</p></div><div class="modal-footer border-0"><button class="btn-modern btn-warning-modern w-100 justify-content-center" style="background-color: var(--warning-color); color: white;" onclick="salvarTaxas()">Salvar Taxas</button></div></div></div></div>
 
 <div class="modal fade" id="modalEditarTransacao" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Transação</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR BRUTO COBRADO (R$)</label><input type="number" id="edit-valor" class="form-control custom-input" step="0.01"></div><div class="mb-3"><label class="form-label fw-bold text-light small">MÉTODO DE PAGAMENTO</label><select id="edit-metodo" class="form-select custom-select"><option value="PIX_DINHEIRO">PIX / Dinheiro</option><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option></select></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoTransacao()">Atualizar Valores</button></div></div></div></div>
 
@@ -261,20 +261,14 @@
 
                   const select = document.getElementById('filtro-barbeiro');
                   select.innerHTML = '';
-
-                  if (me.perfil === 'SUPER_ADMIN') {
-                      select.innerHTML += '<option value="TODOS">Visão Geral (Todos)</option>';
-                  }
-
+                  if (me.perfil === 'SUPER_ADMIN') select.innerHTML += '<option value="TODOS">Visão Geral (Todos)</option>';
                   select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
                   funcs.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
 
                   select.value = me.perfil === 'SUPER_ADMIN' ? 'TODOS' : 'CAIXA';
                   document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
               }
-          } else {
-              barbeirosPermitidos = [me.id];
-          }
+          } else { barbeirosPermitidos = [me.id]; }
       }
   }
 
@@ -334,171 +328,148 @@
   }
 
   async function carregarFinanceiro() {
-      const [resAg, resDesp] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/despesas')]);
+      const [resAg, resDesp, resConf] = await Promise.all([
+          fetch('/api/agendamentos'), fetch('/api/despesas'), fetch('/api/configuracoes/geral')
+      ]);
       const todosAg = await resAg.json();
       const todasDesp = resDesp.ok ? await resDesp.json() : [];
+      const config = resConf.ok ? await resConf.json() : { taxaCredito: 0, taxaDebito: 0 };
 
-      const dataInicio = document.getElementById('filtro-data-inicio').value;
-      const dataFim = document.getElementById('filtro-data-fim').value;
-      const selectFiltro = document.getElementById('filtro-barbeiro');
-      const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
+      const taxaC = config.taxaCredito || 0;
+      const taxaD = config.taxaDebito || 0;
 
-      if (filtroBarbeiro === 'CAIXA') {
-          document.getElementById('label-lucro').innerText = 'Lucro do Caixa (Comissões)';
-          document.getElementById('label-gastos').innerText = 'Despesas da Loja';
-      } else if (filtroBarbeiro !== 'TODOS') {
+      const dIni = document.getElementById('filtro-data-inicio').value;
+      const dFim = document.getElementById('filtro-data-fim').value;
+      const filtro = document.getElementById('filtro-barbeiro').value;
+
+      // Atualização Dinâmica dos Rótulos (Sem mudar o layout)
+      if (filtro === 'CAIXA') {
+          document.getElementById('label-bruto').innerText = 'Total de Comissões';
+          document.getElementById('label-lucro').innerText = 'Lucro do Caixa';
+          document.getElementById('label-gastos').innerText = 'Despesas do Salão';
+      } else if (filtro !== 'TODOS') {
+          document.getElementById('label-bruto').innerText = 'Faturamento Bruto';
           document.getElementById('label-lucro').innerText = 'Seu Lucro Líquido';
-          document.getElementById('label-gastos').innerText = 'Comissão paga à Casa';
+          document.getElementById('label-gastos').innerText = 'Comissão para o Salão';
       } else {
+          document.getElementById('label-bruto').innerText = 'Faturamento Bruto';
           document.getElementById('label-lucro').innerText = 'Lucro no Bolso';
           document.getElementById('label-gastos').innerText = 'Gastos / Comissões';
       }
 
       let transacoes = [];
-      let totalBruto = 0; let totalLucro = 0; let totalGastos = 0; let qtdAgendamentosPeriodo = 0;
-      let somaServicosBruto = 0; // Para o ticket médio não quebrar na visão de caixa
+      let totalBrutoCard = 0, totalLucroCard = 0, totalGastosCard = 0, qtdPeriodo = 0, somaPrecoServicos = 0;
 
-      const dataAtual = new Date();
-      const mesAtual = dataAtual.getMonth(); const anoAtual = dataAtual.getFullYear();
-      const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1; const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
-      let lucroAtual = 0; let lucroAnterior = 0; let historicoClientes = {};
+      // Variáveis de Inteligência
+      const dataHoje = new Date();
+      const mesAt = dataHoje.getMonth(), anoAt = dataHoje.getFullYear();
+      const mesAn = mesAt === 0 ? 11 : mesAt - 1, anoAn = mesAt === 0 ? anoAt - 1 : anoAt;
+      let lucroMesAt = 0, lucroMesAn = 0, cliFieis = {};
 
       todosAg.forEach(ag => {
           if (ag.status !== 'CONCLUIDO') return;
 
-          const dataAg = ag.dataHoraInicio.split('T')[0];
-          const dentroDoPeriodo = (dataAg >= dataInicio && dataAg <= dataFim);
+          const dAg = ag.dataHoraInicio.split('T')[0];
+          const dentroPeriodo = (dAg >= dIni && dAg <= dFim);
 
-          let donoValido = false;
-          if (filtroBarbeiro === 'TODOS' || filtroBarbeiro === 'CAIXA') {
-              donoValido = true;
-          } else {
-              donoValido = (ag.donoDoRegistro && ag.donoDoRegistro.id == filtroBarbeiro);
-          }
-
+          let donoValido = (filtro === 'TODOS' || filtro === 'CAIXA') ? true : (ag.donoDoRegistro && ag.donoDoRegistro.id == filtro);
           if (!donoValido) return;
 
-          const valorBruto = ag.valorFinal || ag.servicoEscolhido.preco;
-          const comissaoCasa = valorBruto - ag.faturamentoBarbeiro;
+          const bruto = ag.valorFinal || ag.servicoEscolhido.preco;
+          let valTaxa = 0;
+          if (ag.formaPagamento === 'CREDITO') valTaxa = bruto * (taxaC / 100);
+          else if (ag.formaPagamento === 'DEBITO') valTaxa = bruto * (taxaD / 100);
+
+          // ✨ A lógica pedida: A taxa é individual do barbeiro.
+          // Comissão Pura da Casa = Bruto - (O que o barbeiro levou + taxa do cartão)
+          const comissaoPura = bruto - ag.faturamentoBarbeiro - valTaxa;
           const liquidoBarbeiro = ag.faturamentoBarbeiro;
 
-          let lucroDaTransacao = 0;
-          let gastoDaTransacao = 0;
-          let brutoParaCard = 0;
+          let lucroT = 0, gastoT = 0, brutoT = 0;
 
-          if (filtroBarbeiro === 'CAIXA') {
-              // ✨ A MÁGICA PEDIDA: Faturamento Bruto agora é a soma das Comissões
-              brutoParaCard = comissaoCasa;
-              lucroDaTransacao = comissaoCasa;
-              gastoDaTransacao = 0;
-          } else if (filtroBarbeiro === 'TODOS') {
-              brutoParaCard = valorBruto;
-              lucroDaTransacao = valorBruto;
-              gastoDaTransacao = 0;
+          if (filtro === 'CAIXA') {
+              brutoT = comissaoPura; lucroT = comissaoPura; gastoT = 0;
+          } else if (filtro === 'TODOS') {
+              brutoT = bruto; lucroT = bruto; gastoT = 0;
           } else {
-              brutoParaCard = valorBruto;
-              lucroDaTransacao = liquidoBarbeiro;
-              gastoDaTransacao = comissaoCasa;
+              brutoT = bruto; lucroT = liquidoBarbeiro; gastoT = bruto - liquidoBarbeiro;
           }
 
-          const dataObj = new Date(ag.dataHoraInicio);
-          if (dataObj.getMonth() === mesAtual && dataObj.getFullYear() === anoAtual) { lucroAtual += lucroDaTransacao; }
-          else if (dataObj.getMonth() === mesAnterior && dataObj.getFullYear() === anoAnterior) { lucroAnterior += lucroDaTransacao; }
+          // Inteligência Global
+          const dObj = new Date(ag.dataHoraInicio);
+          if (dObj.getMonth() === mesAt && dObj.getFullYear() === anoAt) lucroMesAt += lucroT;
+          else if (dObj.getMonth() === mesAn && dObj.getFullYear() === anoAn) lucroMesAn += lucroT;
 
-          if (!historicoClientes[ag.telefoneCliente]) historicoClientes[ag.telefoneCliente] = { visitas: 0, gastoTotal: 0 };
-          historicoClientes[ag.telefoneCliente].visitas++;
-          historicoClientes[ag.telefoneCliente].gastoTotal += valorBruto;
+          if (!cliFieis[ag.telefoneCliente]) cliFieis[ag.telefoneCliente] = { v: 0, g: 0 };
+          cliFieis[ag.telefoneCliente].v++; cliFieis[ag.telefoneCliente].g += bruto;
 
-          if (dentroDoPeriodo) {
-              totalBruto += brutoParaCard; // Usa o valor ajustado (comissão se for caixa)
-              totalLucro += lucroDaTransacao;
-              totalGastos += gastoDaTransacao;
-              somaServicosBruto += valorBruto; // Sempre soma o valor cheio para o Ticket Médio
-              qtdAgendamentosPeriodo++;
+          if (dentroPeriodo) {
+              totalBrutoCard += brutoT; totalLucroCard += lucroT; totalGastosCard += gastoT;
+              somaPrecoServicos += bruto; qtdPeriodo++;
 
-              let descHTML = `Corte: ${ag.nomeCliente} (${ag.servicoEscolhido.nome})`;
-              if (filtroBarbeiro === 'CAIXA') {
-                  descHTML += `<br><small class="text-success opacity-75">Comissão Recebida: R$ ${comissaoCasa.toFixed(2).replace('.', ',')}</small>`;
-              } else if (filtroBarbeiro !== 'TODOS') {
-                  descHTML += `<br><small class="text-danger opacity-75">Comissão Paga: R$ ${comissaoCasa.toFixed(2).replace('.', ',')}</small>`;
-              }
+              let desc = `Corte: ${ag.nomeCliente} (${ag.servicoEscolhido.nome})`;
+              if (filtro === 'CAIXA') desc += `<br><small class="text-success opacity-75">Comissão: R$ ${comissaoPura.toFixed(2).replace('.', ',')}</small>`;
+              else if (filtro !== 'TODOS') desc += `<br><small class="text-danger opacity-75">Sua Comissão: R$ ${liquidoBarbeiro.toFixed(2).replace('.', ',')}</small>`;
 
-              transacoes.push({
-                  id: ag.id, dataStr: ag.dataHoraInicio,
-                  dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(ag.dataHoraInicio)),
-                  descricao: descHTML, tipo: 'ENTRADA', pagamento: ag.formaPagamento,
-                  valor: lucroDaTransacao, valorCheio: valorBruto
-              });
+              transacoes.push({ id: ag.id, dStr: ag.dataHoraInicio, dBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(dObj), desc: desc, tipo: 'ENTRADA', pag: ag.formaPagamento, valor: lucroT, vCheio: bruto });
           }
       });
 
       todasDesp.forEach(d => {
           if(!d.dataHora) return;
-          const dataD = d.dataHora.split('T')[0];
-          const dentroDoPeriodo = (dataD >= dataInicio && dataD <= dataFim);
+          const dD = d.dataHora.split('T')[0];
+          if (filtro !== 'CAIXA' && filtro !== 'TODOS') return;
 
-          if (filtroBarbeiro !== 'CAIXA' && filtroBarbeiro !== 'TODOS') return;
+          const dObj = new Date(d.dataHora);
+          if (dObj.getMonth() === mesAt && dObj.getFullYear() === anoAt) lucroMesAt -= d.valor;
+          else if (dObj.getMonth() === mesAn && dObj.getFullYear() === anoAn) lucroMesAn -= d.valor;
 
-          const dataObj = new Date(d.dataHora);
-          if (dataObj.getMonth() === mesAtual && dataObj.getFullYear() === anoAtual) { lucroAtual -= d.valor; }
-          else if (dataObj.getMonth() === mesAnterior && dataObj.getFullYear() === anoAnterior) { lucroAnterior -= d.valor; }
-
-          if (dentroDoPeriodo) {
-              transacoes.push({
-                  id: d.id, dataStr: d.dataHora,
-                  dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(d.dataHora)),
-                  descricao: d.descricao, tipo: 'SAIDA', pagamento: '-',
-                  valor: d.valor, valorCheio: d.valor
-              });
-              totalGastos += d.valor;
-              totalLucro -= d.valor; // O lucro do caixa desconta as despesas
+          if (dD >= dIni && dD <= dFim) {
+              transacoes.push({ id: d.id, dStr: d.dataHora, dBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(dObj), desc: d.descricao, tipo: 'SAIDA', pag: '-', valor: d.valor, vCheio: d.valor });
+              totalGastosCard += d.valor; totalLucroCard -= d.valor;
           }
       });
 
+      // Atualização dos Cards
+      document.getElementById('card-faturamento').innerText = `R$ ${totalBrutoCard.toFixed(2).replace('.', ',')}`;
+      document.getElementById('card-lucro').innerText = `R$ ${totalLucroCard.toFixed(2).replace('.', ',')}`;
+      document.getElementById('card-gastos').innerText = `R$ ${totalGastosCard.toFixed(2).replace('.', ',')}`;
+
+      let tkt = qtdPeriodo > 0 ? (somaPrecoServicos / qtdPeriodo) : 0;
+      document.getElementById('card-ticket').innerText = `R$ ${tkt.toFixed(2).replace('.', ',')}`;
+
+      let prev = 0; Object.values(cliFieis).forEach(c => { if(c.v > 1) prev += (c.g / c.v); });
+      document.getElementById('card-previsao').innerText = `R$ ${prev.toFixed(2).replace('.', ',')}`;
+
       const badge = document.getElementById('badge-comparacao');
-      if (lucroAnterior === 0 && lucroAtual === 0) { badge.style.display = 'none'; }
+      if (lucroMesAn === 0 && lucroMesAt === 0) badge.style.display = 'none';
       else {
-          let percentual = lucroAnterior > 0 ? ((lucroAtual - lucroAnterior) / lucroAnterior) * 100 : 100;
+          let p = lucroMesAn > 0 ? ((lucroMesAt - lucroMesAn) / lucroMesAn) * 100 : 100;
           badge.style.display = 'inline-block';
-          if (percentual >= 0) { badge.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'; badge.style.color = 'var(--success-color)'; badge.innerHTML = `<i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}% vs Mês Passado`; }
-          else { badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)'; badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`; }
+          badge.className = `comparativo-badge mt-2 ${p >= 0 ? 'text-success' : 'text-danger'}`;
+          badge.style.backgroundColor = p >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+          badge.innerHTML = `<i class="bi bi-arrow-${p >= 0 ? 'up' : 'down'}-right"></i> ${Math.abs(p).toFixed(1)}% vs Mês Passado`;
       }
 
-      let previsaoProximoMes = 0;
-      Object.values(historicoClientes).forEach(c => {
-          if (c.visitas > 1) previsaoProximoMes += (c.gastoTotal / c.visitas);
-      });
-
-      // Ticket médio não é afetado pela regra do Caixa, usa a soma dos serviços reais
-      let ticketMedio = qtdAgendamentosPeriodo > 0 ? (somaServicosBruto / qtdAgendamentosPeriodo) : 0;
-
-      document.getElementById('card-ticket').innerText = `R$ ${ticketMedio.toFixed(2).replace('.', ',')}`;
-      document.getElementById('card-previsao').innerText = `R$ ${previsaoProximoMes.toFixed(2).replace('.', ',')}`;
-
-      transacoes.sort((a, b) => new Date(b.dataStr) - new Date(a.dataStr));
-
-      document.getElementById('card-faturamento').innerText = `R$ ${totalBruto.toFixed(2).replace('.', ',')}`;
-      document.getElementById('card-lucro').innerText = `R$ ${totalLucro.toFixed(2).replace('.', ',')}`;
-      document.getElementById('card-gastos').innerText = `R$ ${totalGastos.toFixed(2).replace('.', ',')}`;
-
+      // Renderização da Tabela
+      transacoes.sort((a, b) => new Date(b.dStr) - new Date(a.dStr));
       const corpo = document.getElementById('tabela-financeiro'); corpo.innerHTML = '';
-      if (transacoes.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro neste período.</td></tr>';
+      if (transacoes.length === 0) corpo.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Nenhum movimento neste período.</td></tr>';
 
       transacoes.forEach(t => {
           let color = t.tipo === 'ENTRADA' ? 'text-success' : 'text-danger';
-          let icon = t.tipo === 'ENTRADA' ? '<i class="bi bi-arrow-down-left-circle-fill"></i> Entrada' : '<i class="bi bi-arrow-up-right-circle-fill"></i> Saída';
-
-          let actionBtn = t.tipo === 'ENTRADA'
-              ? `<button class="btn btn-sm btn-outline-modern border-0 text-primary" onclick="abrirEdicao(${t.id}, ${t.valorCheio}, '${t.pagamento}')" title="Editar Pagamento"><i class="bi bi-pencil-square fs-6"></i></button>`
-              : `<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${t.id})" title="Excluir Despesa"><i class="bi bi-trash3 fs-6"></i></button>`;
+          let icon = t.tipo === 'ENTRADA' ? '<i class="bi bi-arrow-down-left-circle-fill"></i>' : '<i class="bi bi-arrow-up-right-circle-fill"></i>';
+          let btn = t.tipo === 'ENTRADA'
+              ? `<button class="btn btn-sm text-primary border-0" onclick="abrirEdicao(${t.id}, ${t.vCheio}, '${t.pag}')"><i class="bi bi-pencil-square"></i></button>`
+              : `<button class="btn btn-sm text-danger border-0" onclick="deletarDespesa(${t.id})"><i class="bi bi-trash3"></i></button>`;
 
           corpo.innerHTML += `<tr>
-              <td data-label="Data" class="fw-bold text-muted">${t.dataBonita}</td>
-              <td data-label="Descrição" class="text-light text-start">${t.descricao}</td>
-              <td data-label="Tipo" class="${color} fw-bold">${icon}</td>
-              <td data-label="Pgto" class="text-muted">${t.pagamento}</td>
-              <td data-label="Valor Líquido" class="fw-bold text-white">R$ ${t.valor.toFixed(2).replace('.', ',')}</td>
-              <td data-label="Ações" class="col-acoes">${actionBtn}</td>
+              <td data-label="Data" class="fw-bold text-muted">${t.dBonita}</td>
+              <td data-label="Descrição" class="text-light text-start">${t.desc}</td>
+              <td data-label="Tipo" class="${color} fw-bold">${icon} ${t.tipo}</td>
+              <td data-label="Pgto" class="text-muted">${t.pag}</td>
+              <td data-label="Valor" class="fw-bold text-white">R$ ${t.valor.toFixed(2).replace('.', ',')}</td>
+              <td data-label="Ações" class="col-acoes">${btn}</td>
           </tr>`;
       });
   }
