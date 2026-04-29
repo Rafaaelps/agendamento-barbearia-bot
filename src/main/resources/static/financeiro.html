@@ -152,10 +152,13 @@
             <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold text-primary" style="box-shadow: none;" onchange="carregarFinanceiro()"></select>
           </div>
 
-          <div class="d-flex align-items-center custom-card p-1 month-container">
-            <label for="filtro-mes" class="me-2 ms-2 fw-bold text-white mb-0 small">MÊS:</label>
-            <input type="month" id="filtro-mes" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none;" onchange="carregarFinanceiro()">
+          <div class="d-flex align-items-center custom-card p-1 month-container flex-wrap">
+            <label class="me-2 ms-2 fw-bold text-white mb-0 small">PERÍODO:</label>
+            <input type="date" id="filtro-data-inicio" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none; max-width: 140px;" onchange="carregarFinanceiro()">
+            <span class="mx-1 text-muted">até</span>
+            <input type="date" id="filtro-data-fim" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none; max-width: 140px;" onchange="carregarFinanceiro()">
           </div>
+
           <div class="buttons-grid">
             <button class="btn-modern btn-outline-modern" onclick="exportarPDF()"><i class="bi bi-printer"></i> PDF</button>
             <button class="btn-modern btn-danger-modern d-none" id="btn-custo" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
@@ -252,8 +255,11 @@
     if(btnMenu && sidebar && overlay) { btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); }); overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); }); }
 
     const dataHoje = new Date();
-    const ano = dataHoje.getFullYear(); const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
-    document.getElementById('filtro-mes').value = `${ano}-${mes}`;
+    const primeiroDia = new Date(dataHoje.getFullYear(), dataHoje.getMonth(), 1).toISOString().split('T')[0];
+    const hoje = dataHoje.toISOString().split('T')[0];
+
+    document.getElementById('filtro-data-inicio').value = primeiroDia;
+    document.getElementById('filtro-data-fim').value = hoje;
 
     try { const res = await fetch('/api/configuracoes/geral'); const taxas = await res.json(); taxaCredGlobal = (taxas.credito || 5) / 100; taxaDebGlobal = (taxas.debito || 2) / 100; } catch(e) {}
 
@@ -287,19 +293,16 @@
                       if (select) {
                           select.innerHTML = '';
 
-                          // ✨ SUPER ADMIN tem acesso a TUDO + Caixa
                           if (me.perfil === 'SUPER_ADMIN') {
                               select.innerHTML += '<option value="TODOS">Todos os Barbeiros (Salão)</option>';
                               select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
                           }
-                          // ✨ ADMIN (Sócio) só vê o Caixa e ele mesmo
                           else if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
                               select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
                           }
 
                           funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
 
-                          // Define onde a tela começa
                           if (me.perfil === 'SUPER_ADMIN') {
                               select.value = 'TODOS';
                           } else {
@@ -316,13 +319,28 @@
       } catch(e) {}
   }
 
-  const ehDoMesmoMes = (dataStringOuArray, mesFiltro) => { if (!dataStringOuArray) return false; if (typeof dataStringOuArray === 'string') return dataStringOuArray.substring(0, 7) === mesFiltro; if (Array.isArray(dataStringOuArray)) { const ano = dataStringOuArray[0]; const mes = String(dataStringOuArray[1]).padStart(2, '0'); return `${ano}-${mes}` === mesFiltro; } return false; };
+  // ✨ Função adaptada para verificar o período de datas ao invés de apenas o mês
+  const estaNoPeriodo = (dataStringOuArray, dtInicio, dtFim) => {
+      if (!dataStringOuArray) return false;
+      let dataComp = "";
+      if (typeof dataStringOuArray === 'string') {
+          dataComp = dataStringOuArray.substring(0, 10);
+      } else if (Array.isArray(dataStringOuArray)) {
+          const ano = dataStringOuArray[0];
+          const mes = String(dataStringOuArray[1]).padStart(2, '0');
+          const dia = String(dataStringOuArray[2]).padStart(2, '0');
+          dataComp = `${ano}-${mes}-${dia}`;
+      }
+      return dataComp >= dtInicio && dataComp <= dtFim;
+  };
 
   async function carregarFinanceiro() {
     try {
       const [resAg, resV, resD] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/estoque/vendas'), fetch('/api/despesas')]);
       const [todosAg, todasV, todasD] = [await resAg.json(), await resV.json(), await resD.json()];
-      const mesEscolhido = document.getElementById('filtro-mes').value;
+
+      const dataInicio = document.getElementById('filtro-data-inicio').value;
+      const dataFim = document.getElementById('filtro-data-fim').value;
 
       let [receitaBruta, taxasTotal, despesasTotal, extratoMisto] = [0, 0, 0, []];
       let comissoesRetidasPeloSalao = 0;
@@ -337,7 +355,7 @@
       };
 
       // --- CORTES DE CABELO ---
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && ehDoMesmoMes(ag.dataHoraInicio, mesEscolhido)).forEach(ag => {
+      todosAg.filter(ag => ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dataInicio, dataFim)).forEach(ag => {
         if (!checkDono(ag.donoDoRegistro)) return;
 
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
@@ -366,7 +384,6 @@
         let detalheComissaoHtml = '';
         let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
 
-        // ✨ VISÃO GERAL (SUPER ADMIN)
         if (isAdmin && fBarbeiro === 'TODOS') {
             if (idDonoDesteCorte == idLogado) {
                 receitaBruta += precoCheio;
@@ -385,9 +402,7 @@
             let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
             extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, precoCheio: precoCheio });
         }
-        // ✨ O NOVO CAIXA (SÓCIO)
         else if (fBarbeiro === 'CAIXA') {
-            // O Admin ganha apenas as comissões. Ele não vê os próprios serviços no caixa da barbearia.
             if (idDonoDesteCorte != idLogado && comissaoSalao > 0) {
                 receitaBruta += comissaoSalao;
                 valorLiquidoExibicao = comissaoSalao;
@@ -397,11 +412,9 @@
                         <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Comissão Recebida (Livre):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                     </div>`;
                 let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
-                // O caixa não tem taxa, a taxa já foi cobrada do barbeiro.
                 extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio });
             }
         }
-        // ✨ VISÃO INDIVIDUAL
         else {
             receitaBruta += precoCheio;
             taxasTotal += taxaDaVenda;
@@ -422,7 +435,7 @@
       });
 
       // --- PRODUTOS DO ESTOQUE ---
-      todasV.filter(v => ehDoMesmoMes(v.dataHoraVenda, mesEscolhido)).forEach(v => {
+      todasV.filter(v => estaNoPeriodo(v.dataHoraVenda, dataInicio, dataFim)).forEach(v => {
         let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
         if (!checkDono(donoVenda)) return;
 
@@ -439,7 +452,6 @@
         let detalheComissaoHtml = '';
         let dataString = Array.isArray(v.dataHoraVenda) ? `${v.dataHoraVenda[0]}-${String(v.dataHoraVenda[1]).padStart(2,'0')}-${String(v.dataHoraVenda[2]).padStart(2,'0')}T${String(v.dataHoraVenda[3]).padStart(2,'0')}:${String(v.dataHoraVenda[4]).padStart(2,'0')}` : v.dataHoraVenda;
 
-        // ✨ VISÃO GERAL (SUPER ADMIN)
         if (isAdmin && fBarbeiro === 'TODOS') {
             if (idDonoDestaVenda == idLogado) {
                 receitaBruta += precoCheio;
@@ -460,7 +472,6 @@
             let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
             extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda });
         }
-        // ✨ O NOVO CAIXA (SÓCIO)
         else if (fBarbeiro === 'CAIXA') {
             if (idDonoDestaVenda != idLogado && comissaoSalao > 0) {
                 receitaBruta += comissaoSalao;
@@ -474,7 +485,6 @@
                 extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0 });
             }
         }
-        // ✨ VISÃO INDIVIDUAL
         else {
             receitaBruta += precoCheio;
             taxasTotal += taxaDaVenda;
@@ -495,7 +505,7 @@
       });
 
       // --- DESPESAS ---
-      todasD.filter(d => ehDoMesmoMes(d.dataHora, mesEscolhido)).forEach(d => {
+      todasD.filter(d => estaNoPeriodo(d.dataHora, dataInicio, dataFim)).forEach(d => {
         if (!checkDono(d.donoDoRegistro)) return;
         despesasTotal += Number(d.valor || 0);
         let dataString = Array.isArray(d.dataHora) ? `${d.dataHora[0]}-${String(d.dataHora[1]).padStart(2,'0')}-${String(d.dataHora[2]).padStart(2,'0')}T${String(d.dataHora[3]).padStart(2,'0')}:${String(d.dataHora[4]).padStart(2,'0')}` : d.dataHora;
@@ -526,7 +536,6 @@
         });
       }
 
-      // ✨ FECHAMENTO DE CAIXA INTELIGENTE
       let lucroNoBolso = 0;
       let textoSaidasExtras = "";
 
@@ -541,7 +550,6 @@
           textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
       }
 
-      // Previsão de Clientes sempre considera a soma geral de quem está no filtro
       let hist = {}, totalCts = 0, fatGlobal = 0;
       todosAg.filter(ag => ag.status === 'CONCLUIDO' && checkDono(ag.donoDoRegistro)).forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
@@ -599,8 +607,52 @@
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 
-  // (Mantidos exportarPDF, abrirModalEditarFinanceiro, salvarEdicaoFinanceira, abrirModalTaxas, salvarTaxas, abrirModalDespesa, salvarDespesa, deletarDespesa)
-  async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const mesFormatado = document.getElementById('filtro-mes').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${mesFormatado}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-mes').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
+  async function exportarPDF() {
+      const el = document.getElementById('area-relatorio');
+      const botoes = document.getElementById('botoes-acao');
+      const tituloPag = document.getElementById('titulo-pagina');
+      const tituloPDF = document.getElementById('titulo-pdf');
+      const containerTabela = document.getElementById('container-tabela-extrato');
+      const cGrafico = document.getElementById('coluna-grafico');
+      const cTabela = document.getElementById('coluna-tabela');
+      const mobileTop = document.getElementById('mobile-topbar-print');
+
+      if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important');
+      botoes.style.setProperty('display', 'none', 'important');
+      tituloPag.style.display = 'none';
+
+      const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/');
+      const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/');
+      tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`;
+      tituloPDF.classList.remove('d-none');
+
+      document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none');
+      cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4');
+      cTabela.classList.replace('col-lg-8', 'w-100');
+
+      const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color };
+      document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF";
+      document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333');
+      document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333');
+      document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666');
+
+      await html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, backgroundColor: '#FFFFFF' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      }).from(el).save();
+
+      document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = "";
+      document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = '');
+      botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none');
+      if(mobileTop) mobileTop.style.display = '';
+      cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4');
+      cTabela.classList.replace('w-100', 'col-lg-8');
+      document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = '');
+  }
   function abrirModalEditarFinanceiro(id, valorFinal, pgto) { document.getElementById('edit-fin-id').value = id; document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2); let pNorm = (pgto || '').toUpperCase(); let selectPgto = document.getElementById('edit-fin-pgto'); if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO'; else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO'; else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) selectPgto.value = 'PIX_DINHEIRO'; else selectPgto.value = 'PENDENTE'; new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show(); }
   async function salvarEdicaoFinanceira() { const id = document.getElementById('edit-fin-id').value, novoValor = document.getElementById('edit-fin-valor').value, novoPgto = document.getElementById('edit-fin-pgto').value; try { await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' }); await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' }); bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide(); carregarFinanceiro(); } catch (e) { alert("Erro ao editar."); } }
   async function abrirModalTaxas() { const res = await fetch('/api/configuracoes/geral'); const config = await res.json(); document.getElementById('taxa-credito').value = config.taxaCredito || 5; document.getElementById('taxa-debito').value = config.taxaDebito || 2; new bootstrap.Modal(document.getElementById('modalTaxas')).show(); }
