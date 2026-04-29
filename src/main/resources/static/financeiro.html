@@ -28,11 +28,15 @@
     .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
     .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
     .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-    .page-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px; }
     .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
+    .action-bar-custom { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
     .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
     .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+    .btn-modern { padding: 10px 16px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; white-space: nowrap; }
+    .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+    .btn-outline-modern:hover { border-color: var(--text-muted); color: white; }
     .table-modern { color: var(--text-main); margin: 0; width: 100%; }
     .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
     .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
@@ -54,6 +58,18 @@
         .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
         .table-modern tbody td:last-child { border-bottom: none; }
         .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+    }
+
+    /* Estilo para Impressão de PDF */
+    @media print {
+        .sidebar, .mobile-topbar, .action-bar-custom, .custom-card select, .custom-card input, .btn-logout, label, #container-filtro-barbeiro, .col-acoes { display: none !important; }
+        .main-wrapper { margin: 0; padding: 0; }
+        .main-content { padding: 0; }
+        body { background-color: #fff; color: #000; }
+        .custom-card { border: 1px solid #ccc; box-shadow: none; background-color: #fff; break-inside: avoid; }
+        .text-white, .text-light, .text-muted, .text-success, .text-danger, .text-warning, .text-info { color: #000 !important; }
+        .table-modern td, .table-modern th { border: 1px solid #ccc; background-color: #fff; color: #000; }
+        .badge-modern { border: 1px solid #000; color: #000; background: transparent; }
     }
   </style>
 </head>
@@ -92,6 +108,11 @@
     <main class="main-content">
       <div class="page-header-custom">
         <h1 class="page-title">Gestão Financeira</h1>
+        <div class="action-bar-custom">
+          <button class="btn-modern btn-outline-modern" onclick="window.print()"><i class="bi bi-file-earmark-pdf text-danger"></i> Gerar PDF</button>
+          <button class="btn-modern btn-outline-modern" data-bs-toggle="modal" data-bs-target="#modalTaxas" onclick="carregarTaxas()"><i class="bi bi-percent text-warning"></i> Taxas da Máquina</button>
+          <button class="btn-modern" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger-color); border: 1px solid rgba(239, 68, 68, 0.2);" data-bs-toggle="modal" data-bs-target="#modalDespesa"><i class="bi bi-dash-circle"></i> Acrescentar Custos</button>
+        </div>
       </div>
 
       <div class="custom-card p-4 mb-4">
@@ -105,7 +126,7 @@
             </div>
           </div>
           <div class="col-12 col-md-6 pe-0 d-none" id="container-filtro-barbeiro">
-            <label class="form-label text-primary small fw-bold mb-1"><i class="bi bi-person"></i> BARBEIRO</label>
+            <label class="form-label text-primary small fw-bold mb-1"><i class="bi bi-person"></i> CAIXA / BARBEIRO</label>
             <select id="filtro-barbeiro" class="form-select custom-select" style="border-color: var(--accent-primary);" onchange="carregarFinanceiro()">
             </select>
           </div>
@@ -173,7 +194,7 @@
               </div>
               <div class="stat-value text-warning" id="card-previsao">R$ 0,00</div>
             </div>
-            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno para o próximo mês baseada no histórico de clientes recorrentes.</div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno para o próximo mês baseada no histórico.</div>
           </div>
         </div>
       </div>
@@ -187,7 +208,8 @@
               <th>Descrição</th>
               <th>Tipo</th>
               <th>Forma de Pgto</th>
-              <th>Valor</th>
+              <th>Valor Líquido</th>
+              <th class="col-acoes">Ações</th>
             </tr>
             </thead>
             <tbody id="tabela-financeiro"></tbody>
@@ -198,6 +220,13 @@
   </div>
 </div>
 
+<div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-dash-circle text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">O QUE FOI COMPRADO/PAGO?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz, Gilette..."></div><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR R$</label><input type="number" id="valor-despesa" class="form-control custom-input" placeholder="0.00" step="0.01"></div></div><div class="modal-footer border-0"><button class="btn-modern w-100 justify-content-center" style="background-color: var(--danger-color); color: white;" onclick="salvarDespesa()">Adicionar Custo</button></div></div></div></div>
+
+<div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-percent text-warning me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO CRÉDITO (%)</label><input type="number" id="taxa-credito" class="form-control custom-input" step="0.1"></div><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO DÉBITO (%)</label><input type="number" id="taxa-debito" class="form-control custom-input" step="0.1"></div><p class="text-muted small">O sistema descontará automaticamente essa porcentagem na hora de calcular seu Lucro no Bolso.</p></div><div class="modal-footer border-0"><button class="btn-modern btn-warning-modern w-100 justify-content-center" style="background-color: var(--warning-color); color: white;" onclick="salvarTaxas()">Salvar Taxas</button></div></div></div></div>
+
+<div class="modal fade" id="modalEditarTransacao" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Transação</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR BRUTO COBRADO (R$)</label><input type="number" id="edit-valor" class="form-control custom-input" step="0.01"></div><div class="mb-3"><label class="form-label fw-bold text-light small">MÉTODO DE PAGAMENTO</label><select id="edit-metodo" class="form-select custom-select"><option value="PIX_DINHEIRO">PIX / Dinheiro</option><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option></select></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoTransacao()">Atualizar Valores</button></div></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   let perfilLogado = ''; let idLogado = null; let barbeirosPermitidos = [];
 
@@ -229,88 +258,138 @@
               if (resFunc.ok) {
                   const funcs = await resFunc.json();
                   barbeirosPermitidos = funcs.map(f => f.id);
+
                   const select = document.getElementById('filtro-barbeiro');
                   select.innerHTML = '';
-                  if (me.perfil === 'SUPER_ADMIN') select.innerHTML += '<option value="TODOS">Todos (Geral)</option>';
-                  funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
-                  select.value = me.id;
+                  // ✨ Correção da Lista de Barbeiros
+                  select.innerHTML += '<option value="TODOS">Visão Geral (Todos)</option>';
+                  select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
+                  funcs.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
+
+                  select.value = 'TODOS';
                   document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
               }
-          } else { barbeirosPermitidos = [me.id]; }
+          } else {
+              barbeirosPermitidos = [me.id];
+          }
       }
   }
 
-  function calcularEstatisticasExtras(agendamentosTotaisBanco, filtroBarbeiro, isAdmin) {
-      const dataAtual = new Date();
-      const mesAtual = dataAtual.getMonth();
-      const anoAtual = dataAtual.getFullYear();
-      const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
-      const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+  // ✨ CORREÇÃO DA LÓGICA DE FILTRO DO BARBEIRO
+  function checarDonoValido(donoObj, filtroSelecionado) {
+      let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
-      let lucroAtual = 0; let lucroAnterior = 0;
-      let historicoClientes = {}; // Para calcular a previsão
+      if (filtroSelecionado === 'TODOS') {
+          return (!donoObj && isAdmin) || (donoObj && barbeirosPermitidos.includes(donoObj.id));
+      }
+      if (filtroSelecionado === 'CAIXA') {
+          return (!donoObj && isAdmin);
+      }
+      return (donoObj && donoObj.id == filtroSelecionado);
+  }
+
+  async function carregarTaxas() {
+      const res = await fetch('/api/configuracoes/geral');
+      if(res.ok) {
+          const data = await res.json();
+          document.getElementById('taxa-credito').value = data.taxaCredito;
+          document.getElementById('taxa-debito').value = data.taxaDebito;
+      }
+  }
+
+  async function salvarTaxas() {
+      await fetch('/api/configuracoes/geral', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taxaCredito: parseFloat(document.getElementById('taxa-credito').value), taxaDebito: parseFloat(document.getElementById('taxa-debito').value) })
+      });
+      bootstrap.Modal.getInstance(document.getElementById('modalTaxas')).hide();
+      carregarFinanceiro();
+  }
+
+  async function salvarDespesa() {
+      const desc = document.getElementById('desc-despesa').value;
+      const valor = document.getElementById('valor-despesa').value;
+      if(!desc || !valor) return alert("Preencha a descrição e o valor.");
+      await fetch('/api/despesas', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ descricao: desc, valor: parseFloat(valor) })
+      });
+      bootstrap.Modal.getInstance(document.getElementById('modalDespesa')).hide();
+      document.getElementById('desc-despesa').value = ''; document.getElementById('valor-despesa').value = '';
+      carregarFinanceiro();
+  }
+
+  async function deletarDespesa(id) {
+      if(confirm("Remover esta despesa?")) {
+          await fetch(`/api/despesas/${id}`, { method: 'DELETE' });
+          carregarFinanceiro();
+      }
+  }
+
+  function abrirEdicao(id, valor, metodo) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-valor').value = valor;
+      document.getElementById('edit-metodo').value = metodo === 'PIX_DINHEIRO' || metodo === 'DINHEIRO' ? 'PIX_DINHEIRO' : metodo;
+      new bootstrap.Modal(document.getElementById('modalEditarTransacao')).show();
+  }
+
+  async function salvarEdicaoTransacao() {
+      const id = document.getElementById('edit-id').value;
+      const valor = document.getElementById('edit-valor').value;
+      const metodo = document.getElementById('edit-metodo').value;
+      await fetch(`/api/agendamentos/${id}/valor?novoValor=${valor}`, { method: 'PUT' });
+      await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' });
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarTransacao')).hide();
+      carregarFinanceiro();
+  }
+
+  function calcularEstatisticasExtras(agendamentosTotaisBanco, filtroBarbeiro) {
+      const dataAtual = new Date();
+      const mesAtual = dataAtual.getMonth(); const anoAtual = dataAtual.getFullYear();
+      const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1; const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+      let lucroAtual = 0; let lucroAnterior = 0; let historicoClientes = {};
 
       agendamentosTotaisBanco.forEach(ag => {
           if (ag.status === 'CONCLUIDO') {
-              let donoValido = (!ag.donoDoRegistro && isAdmin) || (ag.donoDoRegistro && (filtroBarbeiro === 'TODOS' || ag.donoDoRegistro.id == filtroBarbeiro || barbeirosPermitidos.includes(ag.donoDoRegistro.id)));
-              if (!donoValido) return;
+              if (!checarDonoValido(ag.donoDoRegistro, filtroBarbeiro)) return;
 
-              // 1. Lógica de Comparação Mensal
               const dataAg = new Date(ag.dataHoraInicio);
-              if (dataAg.getMonth() === mesAtual && dataAg.getFullYear() === anoAtual) {
-                  lucroAtual += ag.faturamentoBarbeiro;
-              } else if (dataAg.getMonth() === mesAnterior && dataAg.getFullYear() === anoAnterior) {
-                  lucroAnterior += ag.faturamentoBarbeiro;
-              }
+              if (dataAg.getMonth() === mesAtual && dataAg.getFullYear() === anoAtual) { lucroAtual += ag.faturamentoBarbeiro; }
+              else if (dataAg.getMonth() === mesAnterior && dataAg.getFullYear() === anoAnterior) { lucroAnterior += ag.faturamentoBarbeiro; }
 
-              // 2. Lógica de Previsão de Clientes Fiéis
-              if (!historicoClientes[ag.telefoneCliente]) {
-                  historicoClientes[ag.telefoneCliente] = { visitas: 0, gastoTotal: 0 };
-              }
+              if (!historicoClientes[ag.telefoneCliente]) historicoClientes[ag.telefoneCliente] = { visitas: 0, gastoTotal: 0 };
               historicoClientes[ag.telefoneCliente].visitas++;
               historicoClientes[ag.telefoneCliente].gastoTotal += ag.faturamentoBarbeiro;
           }
       });
 
-      // Pintar Badge de Comparação
       const badge = document.getElementById('badge-comparacao');
-      if (lucroAnterior === 0 && lucroAtual === 0) {
-          badge.style.display = 'none';
-      } else {
+      if (lucroAnterior === 0 && lucroAtual === 0) { badge.style.display = 'none'; }
+      else {
           let percentual = lucroAnterior > 0 ? ((lucroAtual - lucroAnterior) / lucroAnterior) * 100 : 100;
           badge.style.display = 'inline-block';
-          if (percentual >= 0) {
-              badge.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'; badge.style.color = 'var(--success-color)';
-              badge.innerHTML = `<i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}% vs Mês Passado`;
-          } else {
-              badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)';
-              badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`;
-          }
+          if (percentual >= 0) { badge.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'; badge.style.color = 'var(--success-color)'; badge.innerHTML = `<i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}% vs Mês Passado`; }
+          else { badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)'; badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`; }
       }
 
-      // Calcular e Pintar Previsão
       let previsaoProximoMes = 0;
       Object.values(historicoClientes).forEach(c => {
-          if (c.visitas > 1) {
-              // Se o cliente vem mais de uma vez, assumimos que ele gasta a média dele por mês
-              previsaoProximoMes += (c.gastoTotal / c.visitas);
-          }
+          if (c.visitas > 1) previsaoProximoMes += (c.gastoTotal / c.visitas);
       });
       document.getElementById('card-previsao').innerText = `R$ ${previsaoProximoMes.toFixed(2).replace('.', ',')}`;
   }
 
   async function carregarFinanceiro() {
-      const [resAg] = await Promise.all([fetch('/api/agendamentos')]);
+      const [resAg, resDesp] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/despesas')]);
       const todosAg = await resAg.json();
+      const todasDesp = resDesp.ok ? await resDesp.json() : [];
 
       const dataInicio = document.getElementById('filtro-data-inicio').value;
       const dataFim = document.getElementById('filtro-data-fim').value;
       const selectFiltro = document.getElementById('filtro-barbeiro');
       const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
-      let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
-      // Chama a função das estatísticas globais (Comparação e Previsão)
-      calcularEstatisticasExtras(todosAg, filtroBarbeiro, isAdmin);
+      calcularEstatisticasExtras(todosAg, filtroBarbeiro);
 
       let transacoes = [];
       let totalBruto = 0; let totalLucro = 0; let totalGastos = 0; let qtdAgendamentosPeriodo = 0;
@@ -319,14 +398,8 @@
           const dataAg = ag.dataHoraInicio.split('T')[0];
           return dataAg >= dataInicio && dataAg <= dataFim && ag.status === 'CONCLUIDO';
       }).forEach(ag => {
-          let donoValido = (!ag.donoDoRegistro && isAdmin) || (ag.donoDoRegistro && (filtroBarbeiro === 'TODOS' || ag.donoDoRegistro.id == filtroBarbeiro || barbeirosPermitidos.includes(ag.donoDoRegistro.id)));
-          if(donoValido) {
-              transacoes.push({
-                  dataStr: ag.dataHoraInicio,
-                  dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(ag.dataHoraInicio)),
-                  descricao: `Corte: ${ag.nomeCliente} (${ag.servicoEscolhido.nome})`,
-                  tipo: 'ENTRADA', pagamento: ag.formaPagamento, valor: ag.faturamentoBarbeiro, valorCheio: ag.valorFinal || ag.servicoEscolhido.preco
-              });
+          if(checarDonoValido(ag.donoDoRegistro, filtroBarbeiro)) {
+              transacoes.push({ id: ag.id, dataStr: ag.dataHoraInicio, dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(ag.dataHoraInicio)), descricao: `Corte: ${ag.nomeCliente} (${ag.servicoEscolhido.nome})`, tipo: 'ENTRADA', pagamento: ag.formaPagamento, valor: ag.faturamentoBarbeiro, valorCheio: ag.valorFinal || ag.servicoEscolhido.preco });
               totalBruto += (ag.valorFinal || ag.servicoEscolhido.preco);
               totalLucro += ag.faturamentoBarbeiro;
               totalGastos += ((ag.valorFinal || ag.servicoEscolhido.preco) - ag.faturamentoBarbeiro);
@@ -334,24 +407,39 @@
           }
       });
 
+      todasDesp.filter(d => {
+          if(!d.dataHora) return false;
+          const dataD = d.dataHora.split('T')[0];
+          return dataD >= dataInicio && dataD <= dataFim;
+      }).forEach(d => {
+          if(checarDonoValido(d.donoDoRegistro, filtroBarbeiro)) {
+              transacoes.push({ id: d.id, dataStr: d.dataHora, dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(d.dataHora)), descricao: d.descricao, tipo: 'SAIDA', pagamento: '-', valor: d.valor, valorCheio: d.valor });
+              totalGastos += d.valor;
+              totalLucro -= d.valor;
+          }
+      });
+
       transacoes.sort((a, b) => new Date(b.dataStr) - new Date(a.dataStr));
 
-      // Pinta os cartões principais
       document.getElementById('card-faturamento').innerText = `R$ ${totalBruto.toFixed(2).replace('.', ',')}`;
       document.getElementById('card-lucro').innerText = `R$ ${totalLucro.toFixed(2).replace('.', ',')}`;
       document.getElementById('card-gastos').innerText = `R$ ${totalGastos.toFixed(2).replace('.', ',')}`;
 
-      // Pinta o Ticket Médio
       let ticketMedio = qtdAgendamentosPeriodo > 0 ? (totalLucro / qtdAgendamentosPeriodo) : 0;
       document.getElementById('card-ticket').innerText = `R$ ${ticketMedio.toFixed(2).replace('.', ',')}`;
 
       const corpo = document.getElementById('tabela-financeiro'); corpo.innerHTML = '';
-      if (transacoes.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="5" class="text-light py-4 text-center">Nenhum movimento financeiro neste período.</td></tr>';
+      if (transacoes.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro neste período.</td></tr>';
 
       transacoes.forEach(t => {
           let color = t.tipo === 'ENTRADA' ? 'text-success' : 'text-danger';
           let icon = t.tipo === 'ENTRADA' ? '<i class="bi bi-arrow-down-left-circle-fill"></i> Entrada' : '<i class="bi bi-arrow-up-right-circle-fill"></i> Saída';
-          corpo.innerHTML += `<tr><td data-label="Data" class="fw-bold text-muted">${t.dataBonita}</td><td data-label="Descrição" class="text-light">${t.descricao}</td><td data-label="Tipo" class="${color} fw-bold">${icon}</td><td data-label="Pgto" class="text-muted">${t.pagamento}</td><td data-label="Valor" class="fw-bold text-white">R$ ${t.valor.toFixed(2).replace('.', ',')}</td></tr>`;
+
+          let actionBtn = t.tipo === 'ENTRADA'
+              ? `<button class="btn btn-sm btn-outline-modern border-0 text-primary" onclick="abrirEdicao(${t.id}, ${t.valorCheio}, '${t.pagamento}')" title="Editar Pagamento"><i class="bi bi-pencil-square fs-6"></i></button>`
+              : `<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${t.id})" title="Excluir Despesa"><i class="bi bi-trash3 fs-6"></i></button>`;
+
+          corpo.innerHTML += `<tr><td data-label="Data" class="fw-bold text-muted">${t.dataBonita}</td><td data-label="Descrição" class="text-light">${t.descricao}</td><td data-label="Tipo" class="${color} fw-bold">${icon}</td><td data-label="Pgto" class="text-muted">${t.pagamento}</td><td data-label="Valor Líquido" class="fw-bold text-white">R$ ${t.valor.toFixed(2).replace('.', ',')}</td><td data-label="Ações" class="col-acoes">${actionBtn}</td></tr>`;
       });
   }
 </script>
