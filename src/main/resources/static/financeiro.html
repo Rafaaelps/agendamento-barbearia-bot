@@ -194,7 +194,7 @@
               </div>
               <div class="stat-value text-warning" id="card-previsao">R$ 0,00</div>
             </div>
-            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno baseada no histórico de clientes recorrentes.</div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno para o próximo mês.</div>
           </div>
         </div>
       </div>
@@ -343,7 +343,6 @@
       const selectFiltro = document.getElementById('filtro-barbeiro');
       const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
-      // Atualização Dinâmica dos Rótulos dos Cards
       if (filtroBarbeiro === 'CAIXA') {
           document.getElementById('label-lucro').innerText = 'Lucro do Caixa (Comissões)';
           document.getElementById('label-gastos').innerText = 'Despesas da Loja';
@@ -357,8 +356,8 @@
 
       let transacoes = [];
       let totalBruto = 0; let totalLucro = 0; let totalGastos = 0; let qtdAgendamentosPeriodo = 0;
+      let somaServicosBruto = 0; // Para o ticket médio não quebrar na visão de caixa
 
-      // Variáveis para Inteligência (Comparação Mensal e Previsão)
       const dataAtual = new Date();
       const mesAtual = dataAtual.getMonth(); const anoAtual = dataAtual.getFullYear();
       const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1; const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
@@ -385,19 +384,23 @@
 
           let lucroDaTransacao = 0;
           let gastoDaTransacao = 0;
+          let brutoParaCard = 0;
 
           if (filtroBarbeiro === 'CAIXA') {
+              // ✨ A MÁGICA PEDIDA: Faturamento Bruto agora é a soma das Comissões
+              brutoParaCard = comissaoCasa;
               lucroDaTransacao = comissaoCasa;
-              gastoDaTransacao = 0; // Despesas somadas abaixo
+              gastoDaTransacao = 0;
           } else if (filtroBarbeiro === 'TODOS') {
+              brutoParaCard = valorBruto;
               lucroDaTransacao = valorBruto;
               gastoDaTransacao = 0;
           } else {
+              brutoParaCard = valorBruto;
               lucroDaTransacao = liquidoBarbeiro;
               gastoDaTransacao = comissaoCasa;
           }
 
-          // Alimentando a inteligência (independente do filtro de data)
           const dataObj = new Date(ag.dataHoraInicio);
           if (dataObj.getMonth() === mesAtual && dataObj.getFullYear() === anoAtual) { lucroAtual += lucroDaTransacao; }
           else if (dataObj.getMonth() === mesAnterior && dataObj.getFullYear() === anoAnterior) { lucroAnterior += lucroDaTransacao; }
@@ -406,11 +409,11 @@
           historicoClientes[ag.telefoneCliente].visitas++;
           historicoClientes[ag.telefoneCliente].gastoTotal += valorBruto;
 
-          // Se estiver no período, alimenta a tabela
           if (dentroDoPeriodo) {
-              totalBruto += valorBruto;
+              totalBruto += brutoParaCard; // Usa o valor ajustado (comissão se for caixa)
               totalLucro += lucroDaTransacao;
               totalGastos += gastoDaTransacao;
+              somaServicosBruto += valorBruto; // Sempre soma o valor cheio para o Ticket Médio
               qtdAgendamentosPeriodo++;
 
               let descHTML = `Corte: ${ag.nomeCliente} (${ag.servicoEscolhido.nome})`;
@@ -434,7 +437,6 @@
           const dataD = d.dataHora.split('T')[0];
           const dentroDoPeriodo = (dataD >= dataInicio && dataD <= dataFim);
 
-          // Só exibe as despesas da barbearia no CAIXA ou TODOS
           if (filtroBarbeiro !== 'CAIXA' && filtroBarbeiro !== 'TODOS') return;
 
           const dataObj = new Date(d.dataHora);
@@ -449,11 +451,10 @@
                   valor: d.valor, valorCheio: d.valor
               });
               totalGastos += d.valor;
-              totalLucro -= d.valor;
+              totalLucro -= d.valor; // O lucro do caixa desconta as despesas
           }
       });
 
-      // Montagem do Badge de Comparação
       const badge = document.getElementById('badge-comparacao');
       if (lucroAnterior === 0 && lucroAtual === 0) { badge.style.display = 'none'; }
       else {
@@ -463,17 +464,17 @@
           else { badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)'; badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`; }
       }
 
-      // Montagem do Ticket Médio e Previsão
       let previsaoProximoMes = 0;
       Object.values(historicoClientes).forEach(c => {
           if (c.visitas > 1) previsaoProximoMes += (c.gastoTotal / c.visitas);
       });
-      let ticketMedio = qtdAgendamentosPeriodo > 0 ? (totalBruto / qtdAgendamentosPeriodo) : 0;
+
+      // Ticket médio não é afetado pela regra do Caixa, usa a soma dos serviços reais
+      let ticketMedio = qtdAgendamentosPeriodo > 0 ? (somaServicosBruto / qtdAgendamentosPeriodo) : 0;
 
       document.getElementById('card-ticket').innerText = `R$ ${ticketMedio.toFixed(2).replace('.', ',')}`;
       document.getElementById('card-previsao').innerText = `R$ ${previsaoProximoMes.toFixed(2).replace('.', ',')}`;
 
-      // Fechamento e Tabela
       transacoes.sort((a, b) => new Date(b.dataStr) - new Date(a.dataStr));
 
       document.getElementById('card-faturamento').innerText = `R$ ${totalBruto.toFixed(2).replace('.', ',')}`;
