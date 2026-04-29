@@ -42,4 +42,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     // Descobre o nome do cliente baseado na última vez que ele agendou
     Agendamento findFirstByTelefoneClienteOrderByDataHoraInicioDesc(String telefoneCliente);
+
+    // Busca a agenda do barbeiro filtrando apenas os status ativos
+    List<Agendamento> findByStatusInAndDonoDoRegistro(List<String> statuses, Usuario dono);
 }

@@ -86,7 +86,7 @@ public class AgendaService {
         });
     }
 
-    // ✨ REGRA 1: Verifica se o cliente já atingiu 2 agendamentos ativos no mesmo dia
+    // ✨ REGRA: Verifica se o cliente já atingiu 2 agendamentos pendentes no dia
     public boolean atingiuLimiteDiario(String telefone, LocalDate data) {
         LocalDateTime inicioDia = data.atStartOfDay();
         LocalDateTime fimDia = data.atTime(23, 59, 59);
@@ -97,7 +97,7 @@ public class AgendaService {
         return total >= 2;
     }
 
-    // ✨ REGRA 2: Só pega agendamentos que ainda vão acontecer, ignorando concluídos
+    // ✨ REGRA: Busca apenas agendamentos pendentes, ignorando os já concluídos
     public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
         List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(
                 telefone, Arrays.asList("AGENDADO", "CONFIRMADO")
@@ -105,7 +105,7 @@ public class AgendaService {
         return ativos.isEmpty() ? null : ativos.get(0);
     }
 
-    // ✨ REGRA 3: O Motor de Horários com a trava do "Loop Infinito" resolvida
+    // ✨ REGRA: Motor de Horários com proteção de meia-noite e liberação de vagas para serviços CONCLUÍDOS
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId, Usuario barbeiro) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
         if (barbeiro == null) return horariosDisponiveis;
@@ -139,7 +139,8 @@ public class AgendaService {
         Servico servicoEscolhido = servicoRepository.findById(servicoId).orElseThrow();
         int duracao = servicoEscolhido.getDuracaoMinutos();
 
-        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", barbeiro);
+        // ✨ IMPORTANTE: Aqui ele ignora CONCLUÍDO e CANCELADO para liberar a agenda
+        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusInAndDonoDoRegistro(Arrays.asList("AGENDADO", "CONFIRMADO"), barbeiro);
         List<BloqueioAgenda> todosBloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
@@ -150,7 +151,7 @@ public class AgendaService {
         while (true) {
             LocalTime fimTentativaTime = horarioTeste.plusMinutes(duracao);
 
-            // Trava de Segurança contra a meia-noite (Evita o loop infinito)
+            // Trava de segurança contra o loop da meia-noite
             if (fimTentativaTime.isBefore(horarioTeste) || fimTentativaTime.isAfter(fechamentoDoDia)) {
                 if (!fechamentoDoDia.equals(LocalTime.MIDNIGHT)) {
                     break;
@@ -160,6 +161,7 @@ public class AgendaService {
             LocalDateTime inicioTentativaCompleto = LocalDateTime.of(dataBuscada, horarioTeste);
             LocalDateTime fimTentativaCompleta = inicioTentativaCompleto.plusMinutes(duracao);
 
+            // Evita agendar no passado
             if (inicioTentativaCompleto.isBefore(momentoAtual.plusMinutes(15))) {
                 LocalTime proximo = horarioTeste.plusMinutes(30);
                 if (proximo.isBefore(horarioTeste)) break;
