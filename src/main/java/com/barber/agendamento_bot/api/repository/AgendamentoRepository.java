@@ -39,4 +39,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     // Conta quantos agendamentos pendentes existem no dia
     long countByTelefoneClienteAndDataHoraInicioBetweenAndStatusIn(String telefone, LocalDateTime inicio, LocalDateTime fim, List<String> statuses);
+
+    // Descobre o nome do cliente baseado na última vez que ele agendou
+    Agendamento findFirstByTelefoneClienteOrderByDataHoraInicioDesc(String telefoneCliente);
 }

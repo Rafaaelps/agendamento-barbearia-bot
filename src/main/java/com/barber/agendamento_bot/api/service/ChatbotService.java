@@ -22,7 +22,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatbotService {
@@ -138,16 +137,46 @@ public class ChatbotService {
         switch (sessao.getPassoAtual()) {
 
             case "MENU_INICIAL":
-                respostaDoRobo += "Olá! Sou o assistente virtual. O que deseja?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
+                // ✨ NOVO: Reconhece o cliente logo no cumprimento!
+                Agendamento clienteConhecido = agendamentoRepository.findFirstByTelefoneClienteOrderByDataHoraInicioDesc(telefone);
+                if (clienteConhecido != null && clienteConhecido.getNomeCliente() != null) {
+                    respostaDoRobo += "Olá, " + clienteConhecido.getNomeCliente() + "! Sou o assistente virtual. O que deseja?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
+                } else {
+                    respostaDoRobo += "Olá! Sou o assistente virtual. O que deseja?\n*1* - Novo Agendamento\n*2* - Cancelar Agendamento";
+                }
                 sessao.setPassoAtual("ESPERANDO_OPCAO_INICIAL");
                 break;
 
             case "ESPERANDO_OPCAO_INICIAL":
                 if (textoLimpo.equals("1")) {
-                    respostaDoRobo = "Qual é o seu nome?";
-                    sessao.setPassoAtual("ESPERANDO_NOME");
+                    // ✨ NOVO: Se conhece o cliente, pula a pergunta do nome e vai para os serviços
+                    Agendamento ultimoAg = agendamentoRepository.findFirstByTelefoneClienteOrderByDataHoraInicioDesc(telefone);
+
+                    if (ultimoAg != null && ultimoAg.getNomeCliente() != null) {
+                        sessao.setNomeClienteTemporario(ultimoAg.getNomeCliente());
+
+                        List<Servico> listaServicos = servicoRepository.findAllByDonoDoRegistro(barbeiroResponsavel)
+                                .stream().filter(s -> s.getAtivo() == null || s.getAtivo())
+                                .sorted(Comparator.comparing(Servico::getId)).toList();
+
+                        if (listaServicos.isEmpty()) {
+                            respostaDoRobo = "Ops, eu ainda não tenho nenhum serviço cadastrado no meu sistema. Volte mais tarde!";
+                            sessao.setPassoAtual("MENU_INICIAL");
+                            break;
+                        }
+
+                        StringBuilder sb = new StringBuilder("Para começarmos, o que deseja agendar hoje?\n\n");
+                        for (int i = 0; i < listaServicos.size(); i++) {
+                            sb.append(i + 1).append(" - ").append(listaServicos.get(i).getNome()).append(" (R$ ").append(listaServicos.get(i).getPreco()).append(")\n");
+                        }
+                        respostaDoRobo = sb.toString();
+                        sessao.setPassoAtual("ESPERANDO_SERVICO");
+                    } else {
+                        respostaDoRobo = "Qual é o seu nome?";
+                        sessao.setPassoAtual("ESPERANDO_NOME");
+                    }
                 } else if (textoLimpo.equals("2")) {
-                    // ✨ MUDANÇA: Só puxa AGENDADO ou CONFIRMADO
+                    // ✨ MUDANÇA: Lista de Cancelamento
                     List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(telefone, Arrays.asList("AGENDADO", "CONFIRMADO"));
 
                     if (ativos.isEmpty()) {
@@ -164,17 +193,18 @@ public class ChatbotService {
                             sb.append(i + 1).append(" - ").append(ativos.get(i).getServicoEscolhido().getNome())
                                     .append(" (Dia ").append(ativos.get(i).getDataHoraInicio().format(DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm"))).append(")\n");
                         }
-                        sb.append("\n*").append(ativos.size() + 1).append("* - Voltar ao menu inicial");
+                        sb.append("\n*").append(ativos.size() + 1).append("* - Sair e voltar ao menu");
                         respostaDoRobo = sb.toString();
                         sessao.setPassoAtual("ESCOLHENDO_CANCELAMENTO_GERAL");
                     }
+                } else {
+                    respostaDoRobo = "Opção inválida. Digite 1 ou 2.";
                 }
                 break;
 
             case "ESCOLHENDO_CANCELAMENTO_GERAL":
                 try {
                     int escolha = Integer.parseInt(textoLimpo);
-                    // ✨ MUDANÇA
                     List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(telefone, Arrays.asList("AGENDADO", "CONFIRMADO"));
 
                     if (escolha == ativos.size() + 1) {
@@ -251,7 +281,6 @@ public class ChatbotService {
                     if (agendaService.atingiuLimiteDiario(sessao.getTelefone(), data)) {
                         LocalDateTime inicioDia = data.atStartOfDay();
                         LocalDateTime fimDia = data.atTime(23, 59, 59);
-                        // ✨ MUDANÇA
                         List<Agendamento> agsDoDia = agendamentoRepository.findByTelefoneClienteAndDataHoraInicioBetweenAndStatusInOrderByDataHoraInicioAsc(telefone, inicioDia, fimDia, Arrays.asList("AGENDADO", "CONFIRMADO"));
 
                         StringBuilder menuLimite = new StringBuilder("⚠️ *Limite atingido!*\nVocê já tem 2 agendamentos para o dia *" + sessao.getDataTemporaria() + "*.\n\nPara liberar vaga e agendar esse novo horário, qual você deseja cancelar?\n\n");
@@ -291,7 +320,6 @@ public class ChatbotService {
                     LocalDate data = LocalDate.parse(sessao.getDataTemporaria() + "/" + agora.getYear(), formatadorData);
                     LocalDateTime inicioDia = data.atStartOfDay();
                     LocalDateTime fimDia = data.atTime(23, 59, 59);
-                    // ✨ MUDANÇA
                     List<Agendamento> agsDoDia = agendamentoRepository.findByTelefoneClienteAndDataHoraInicioBetweenAndStatusInOrderByDataHoraInicioAsc(telefone, inicioDia, fimDia, Arrays.asList("AGENDADO", "CONFIRMADO"));
 
                     if (escolha == agsDoDia.size() + 1) {
