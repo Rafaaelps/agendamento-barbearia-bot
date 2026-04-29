@@ -3,22 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clientes - Barbearia</title>
+    <title>Clientes (CRM) - Barbearia</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; --info-color: #0EA5E9; }
+        :root {
+            --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B;
+            --text-main: #F8FAFC; --text-muted: #CBD5E1;
+            --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
+            --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
+        }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+
         .text-muted { color: var(--text-muted) !important; }
+        .text-secondary { color: var(--text-muted) !important; }
+
         .app-container { display: flex; height: 100vh; flex-direction: column; }
+
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; z-index: 1050; }
+
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; z-index: 1050;}
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
         .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
-        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; min-height: 0;}
+
         .nav-item { margin-bottom: 4px; }
         .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
         .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
@@ -26,16 +38,26 @@
         .sidebar-footer { padding: 24px; border-top: 1px solid var(--border-color); }
         .btn-logout { width: 100%; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: 0.2s; }
         .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
+
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-        .page-header-custom { margin-bottom: 24px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap;}
+        .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; }
-        .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+        .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+
+        .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
+        .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 16px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; width: 100%; white-space: nowrap;}
+        .btn-success-modern:hover { background-color: var(--success-color); color: white; }
+
         .table-modern { color: var(--text-main); margin: 0; width: 100%; }
-        .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
-        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
         .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+
+        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
 
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
@@ -43,20 +65,29 @@
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
+            .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
+
+            .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
             .table-modern thead { display: none; }
-            .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); }
+            .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); overflow: hidden; }
             .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
             .table-modern tbody td:last-child { border-bottom: none; }
-            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+
+            .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
+            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; }
+            .empty-state-row td::before { display: none !important; }
         }
     </style>
 </head>
 <body>
 
 <div class="app-container">
+
     <div class="mobile-topbar">
         <div class="fw-bold text-main fs-5"><i class="bi bi-scissors text-primary me-2"></i>Barbearia Bot</div>
-        <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1" style="color: white;"></i></button>
+        <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1"></i></button>
     </div>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
@@ -66,9 +97,10 @@
                 <div style="display: flex; align-items: center; gap: 12px;"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
                 <small class="text-muted fw-bold" style="font-size: 0.75rem; padding-left: 2px;" id="sidebar-user-name">Usuário: Carregando...</small>
             </div>
+
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
-                <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda</a></li>
+                <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
                 <li class="nav-item"><a href="financeiro.html" class="nav-link"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
             </ul>
             <div class="nav-section-title">Administração</div>
@@ -84,44 +116,55 @@
         </aside>
 
         <main class="main-content">
-            <div class="page-header-custom">
-                <h1 class="page-title fw-bold">Carteira de Clientes</h1>
+            <div class="page-header gap-3 flex-wrap">
+                <h1 class="page-title">Gestão de Clientes</h1>
+                <div class="d-flex gap-2 flex-grow-1 flex-md-grow-0 flex-wrap">
+                    <div class="d-flex align-items-center custom-card p-2 d-none flex-grow-1" id="container-filtro-barbeiro">
+                        <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-person"></i> BARBEIRO:</label>
+                        <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="carregarCRM()"></select>
+                    </div>
+
+                    <div class="d-flex align-items-center custom-card p-2 flex-grow-1">
+                        <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
+                        <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="renderizarTabela()">
+                            <option value="GASTO" style="color: black;">Quem mais gastou</option>
+                            <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
+                            <option value="FREQUENTES" style="color: black;">Mais visitas</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            <div class="custom-card p-4 mb-4">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-light small fw-bold mb-1">CONSUMO NO PERÍODO</label>
-                        <div class="input-group">
-                            <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarClientes()">
-                            <span class="input-group-text bg-body text-muted border-color">até</span>
-                            <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarClientes()">
-                        </div>
+            <div class="row mb-4 g-3">
+                <div class="col-12 col-md-6">
+                    <div class="custom-card border-start border-primary border-4 h-100 p-4">
+                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Total de Clientes Únicos</h6>
+                        <h2 class="fw-bold mb-0" style="color: var(--accent-primary);" id="total-clientes">0</h2>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-light small fw-bold mb-1">ORDENAR POR</label>
-                        <select id="filtro-ordem" class="form-select custom-select" onchange="carregarClientes()">
-                            <option value="MAIS_GASTOU">Maior Valor Gasto</option>
-                            <option value="MAIS_VISITAS">Mais Visitas (Frequência)</option>
-                            <option value="MAIS_TEMPO">Mais Tempo Sem Vir (Sumidos)</option>
-                        </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="custom-card border-start border-success border-4 h-100 p-4">
+                        <h6 class="text-light text-uppercase mb-1 small fw-bold">Ticket Médio Geral</h6>
+                        <h2 class="fw-bold mb-0" style="color: var(--success-color);" id="ticket-medio">R$ 0,00</h2>
                     </div>
                 </div>
             </div>
 
             <div class="custom-card p-0 overflow-hidden transparent-mobile">
                 <div class="table-responsive">
-                    <table class="table table-modern text-center w-100">
+                    <table class="table table-modern text-center align-middle w-100">
                         <thead>
                         <tr>
-                            <th>Nome do Cliente</th>
-                            <th>WhatsApp</th>
-                            <th>Visitas</th> <th>Total Gasto</th>
+                            <th>Nome</th>
+                            <th>Contato</th>
+                            <th>Visitas Totais</th>
+                            <th>Total Gasto (LTV)</th>
                             <th>Última Visita</th>
-                            <th>Ações</th>
+                            <th>Ação</th>
                         </tr>
                         </thead>
-                        <tbody id="tabela-clientes"></tbody>
+                        <tbody id="tabela-clientes">
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -129,92 +172,161 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    let clientesGlobal = [];
+    // ✨ VARIÁVEIS GLOBAIS
+    let perfilLogado = '';
+    let nomeLogado = '';
+
     document.addEventListener("DOMContentLoaded", async () => {
-        const btnMenu = document.getElementById('mobile-menu-btn'); const sidebar = document.querySelector('.sidebar'); const overlay = document.getElementById('sidebar-overlay');
-        if(btnMenu && sidebar && overlay) { btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); }); overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); }); }
-
-        const dataAtual = new Date();
-        const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString().split('T')[0];
-        const hoje = dataAtual.toISOString().split('T')[0];
-
-        document.getElementById('filtro-data-inicio').value = primeiroDia;
-        document.getElementById('filtro-data-fim').value = hoje;
-
-        await carregarUsuario();
-        carregarClientes();
+        const btnMenu = document.getElementById('mobile-menu-btn');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if(btnMenu && sidebar && overlay) {
+            btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
+            overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
+        }
+        await carregarFiltroBarbeiros();
+        carregarCRM();
     });
 
-    async function carregarUsuario() {
-        const res = await fetch('/api/usuario/me');
-        if (res.ok) {
-            const me = await res.json();
-            document.getElementById('sidebar-user-name').innerText = 'Usuário: ' + me.nome;
-            if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
-                document.getElementById('menu-usuarios').classList.remove('d-none');
+    async function carregarFiltroBarbeiros() {
+        try {
+            const resMe = await fetch('/api/usuario/me');
+            if (resMe.ok) {
+                const me = await resMe.json();
+                perfilLogado = me.perfil;
+                nomeLogado = me.nome;
+                idLogado = me.id;
+
+                const sideUser = document.getElementById('sidebar-user-name');
+                if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
+
+                if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
+                    document.getElementById('menu-usuarios').classList.remove('d-none');
+
+                    const resFunc = await fetch('/api/admin/funcionarios');
+                    if (resFunc.ok) {
+                        const funcs = await resFunc.json();
+                        barbeirosPermitidos = funcs.map(f => f.id);
+
+                        const select = document.getElementById('filtro-barbeiro');
+                        if (select) {
+                            select.innerHTML = '';
+
+                            // ✨ Apenas o SUPER ADMIN ganha a opção de ver Todos juntos nestas abas
+                            if (me.perfil === 'SUPER_ADMIN') {
+                                select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
+                            }
+
+                            funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+
+                            // Define onde a tela começa
+                            if (me.perfil === 'SUPER_ADMIN') {
+                                select.value = 'TODOS';
+                            } else {
+                                select.value = me.id;
+                            }
+
+                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
+                        }
+                    }
+                } else {
+                    barbeirosPermitidos = [me.id];
+                }
             }
-        }
+        } catch(e) {}
     }
 
-    async function carregarClientes() {
-        const res = await fetch('/api/agendamentos');
-        const todosAg = await res.json();
+    async function carregarCRM() {
+        try {
+            const resposta = await fetch('/api/agendamentos');
+            const todosAgendamentos = await resposta.json();
 
-        const dataInicio = document.getElementById('filtro-data-inicio').value;
-        const dataFim = document.getElementById('filtro-data-fim').value;
-        const ordemFiltro = document.getElementById('filtro-ordem').value;
+            const selectFiltro = document.getElementById('filtro-barbeiro');
+            const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
-        const clientesAgrupados = {};
+            const concluidos = todosAgendamentos.filter(ag => {
+                let ehConcluido = ag.status === 'CONCLUIDO';
+                let ehDono = (fBarbeiro === 'TODOS') || (ag.donoDoRegistro && ag.donoDoRegistro.id == fBarbeiro);
+                return ehConcluido && ehDono;
+            });
 
-        todosAg.filter(ag => {
-            const dataAg = ag.dataHoraInicio.split('T')[0];
-            return dataAg >= dataInicio && dataAg <= dataFim && ag.status === 'CONCLUIDO';
-        }).forEach(ag => {
-            const tel = ag.telefoneCliente;
-            if (!clientesAgrupados[tel]) {
-                clientesAgrupados[tel] = {
-                    nome: ag.nomeCliente, telefone: tel,
-                    totalGasto: 0, ultimaVisita: ag.dataHoraInicio,
-                    visitas: 0 // ✨ MUDANÇA: Iniciando o contador de visitas
-                };
-            }
-            clientesAgrupados[tel].totalGasto += (ag.valorFinal || ag.servicoEscolhido.preco);
-            clientesAgrupados[tel].visitas++; // ✨ MUDANÇA: Incrementa a visita a cada agendamento concluído
+            const mapaClientes = {};
+            let faturamentoGeral = 0; let visitasGerais = 0;
 
-            if (new Date(ag.dataHoraInicio) > new Date(clientesAgrupados[tel].ultimaVisita)) {
-                clientesAgrupados[tel].ultimaVisita = ag.dataHoraInicio;
-            }
-        });
+            concluidos.forEach(ag => {
+                const tel = ag.telefoneCliente; const valorLivre = Number(ag.faturamentoBarbeiro || 0);
+                const precoCheio = ag.valorFinal ? Number(ag.valorFinal) : valorLivre;
+                const dataAgendamento = new Date(ag.dataHoraInicio);
 
-        let listaClientes = Object.values(clientesAgrupados);
+                if (!mapaClientes[tel]) mapaClientes[tel] = { telefone: tel, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento, donoDoRegistro: ag.donoDoRegistro };
+                mapaClientes[tel].totalVisitas += 1; mapaClientes[tel].gastoTotal += precoCheio;
+                faturamentoGeral += precoCheio; visitasGerais += 1;
 
-        // ✨ MUDANÇA: Lógica de Ordenação
-        if (ordemFiltro === 'MAIS_GASTOU') {
-            listaClientes.sort((a, b) => b.totalGasto - a.totalGasto);
-        } else if (ordemFiltro === 'MAIS_VISITAS') {
-            listaClientes.sort((a, b) => b.visitas - a.visitas);
-        } else if (ordemFiltro === 'MAIS_TEMPO') {
-            // Ordena pela data mais antiga primeiro (menor data)
-            listaClientes.sort((a, b) => new Date(a.ultimaVisita) - new Date(b.ultimaVisita));
-        }
+                if (dataAgendamento > mapaClientes[tel].ultimaVisita) { mapaClientes[tel].ultimaVisita = dataAgendamento; mapaClientes[tel].nome = ag.nomeCliente; }
+            });
 
-        const corpo = document.getElementById('tabela-clientes'); corpo.innerHTML = '';
-        if (listaClientes.length === 0) return corpo.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Nenhum cliente atendeu neste período.</td></tr>';
+            clientesGlobal = Object.values(mapaClientes);
+            document.getElementById('total-clientes').innerText = clientesGlobal.length;
+            document.getElementById('ticket-medio').innerText = (visitasGerais > 0 ? (faturamentoGeral / visitasGerais) : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            renderizarTabela();
+        } catch (erro) { console.error("Erro CRM:", erro); }
+    }
 
-        listaClientes.forEach(c => {
-            const dataBonita = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(c.ultimaVisita));
-            let zapLimpo = c.telefone.replace(/\D/g, '');
-            let linkZap = `https://wa.me/55${zapLimpo}`;
+    function renderizarTabela() {
+        const ordem = document.getElementById('filtro-ordem').value; const hoje = new Date();
+        if (ordem === 'GASTO') clientesGlobal.sort((a, b) => b.gastoTotal - a.gastoTotal);
+        else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
+        else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
 
-            corpo.innerHTML += `<tr>
-                <td data-label="Cliente" class="fw-bold text-white">${c.nome}</td>
-                <td data-label="WhatsApp" class="text-light opacity-75">${c.telefone}</td>
-                <td data-label="Visitas" class="fw-bold" style="color: var(--info-color);">${c.visitas}x</td>
-                <td data-label="Total Gasto" class="text-success fw-bold">R$ ${c.totalGasto.toFixed(2).replace('.', ',')}</td>
-                <td data-label="Última Visita" class="text-light opacity-75">${dataBonita}</td>
-                <td data-label="Ações"><a href="${linkZap}" target="_blank" class="btn btn-sm" style="background-color: rgba(16, 185, 129, 0.2); color: var(--success-color); border: 1px solid var(--success-color);"><i class="bi bi-whatsapp"></i> Chamar</a></td>
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
+        let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
+
+        const corpoTabela = document.getElementById('tabela-clientes');
+        corpoTabela.innerHTML = '';
+
+        if (clientesGlobal.length === 0) return corpoTabela.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Ainda não há clientes concluídos neste filtro.</td></tr>';
+
+        clientesGlobal.forEach(c => {
+            const dFmt = c.ultimaVisita.toLocaleDateString('pt-BR');
+            const diasSumido = Math.ceil(Math.abs(hoje - c.ultimaVisita) / (1000 * 60 * 60 * 24)) - 1;
+            let corDias = 'text-success', txtSumido = `${diasSumido} dias atrás`;
+
+            if (diasSumido === 0) txtSumido = 'Veio hoje!';
+            else if (diasSumido > 30) { corDias = 'text-danger fw-bold'; txtSumido += ' (Sumido)'; }
+            else if (diasSumido >= 15) { corDias = 'text-warning fw-bold'; }
+
+            let numLimpo = c.telefone.replace(/\D/g, '');
+            if (!numLimpo.startsWith('55')) numLimpo = '55' + numLimpo;
+
+            const btnWhats = `<button onclick="dispararMensagem('${numLimpo}', '${c.nome}', ${diasSumido})" class="btn-success-modern border-0"><i class="bi bi-whatsapp"></i> Lembrete</button>`;
+
+            // ✨ SELO INVISÍVEL PARA FUNCIONÁRIO
+            let seloBarbeiro = (c.donoDoRegistro && isAdmin) ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${c.donoDoRegistro.nome}</span>` : '';
+
+            corpoTabela.innerHTML += `
+            <tr>
+                <td data-label="Nome"><strong class="text-white">${c.nome}</strong>${seloBarbeiro}</td>
+                <td data-label="Contato" class="text-light fw-bold">${c.telefone}</td>
+                <td data-label="Visitas Totais"><span class="badge-modern">${c.totalVisitas}x</span></td>
+                <td data-label="Total Gasto" style="color: var(--accent-primary);" class="fw-bold">${c.gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                <td data-label="Última Visita"><span class="text-light">${dFmt}</span> <br> <small style="color: var(--${corDias.split('-')[1]}-color, #10B981);">${txtSumido}</small></td>
+                <td data-label="Ação">${btnWhats}</td>
             </tr>`;
         });
+    }
+
+    async function dispararMensagem(tel, nome, dias) {
+        let msg = `Fala *${nome}*, tudo bem? 💈\n\nVi aqui no nosso sistema que já faz um tempinho que você não dá um talento no visual.\n\nBora agendar um horário? É só me mandar um *Oi* aqui para começarmos!`;
+        if(confirm(`Deseja enviar lembrete para ${nome}?`)) {
+            try {
+                const res = await fetch('/api/crm/lembrete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telefone: tel, mensagem: msg }) });
+                if(res.ok) alert('✅ Disparado com sucesso!'); else alert('⚠️ Erro na Evolution API.');
+            } catch (e) { alert('⚠️ Erro de conexão.'); }
+        }
     }
 </script>
 </body>

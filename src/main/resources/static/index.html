@@ -82,12 +82,21 @@
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
+
             .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
             .action-bar-custom { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
+
             .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
             .table-modern thead { display: none; }
-            .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); overflow: hidden; }
-            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
+            .table-modern tbody tr {
+                display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color);
+                border-radius: 12px; background-color: var(--bg-card); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); overflow: hidden;
+            }
+            .table-modern tbody td {
+                display: flex; justify-content: space-between; align-items: center; text-align: right;
+                border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px;
+            }
             .table-modern tbody td:last-child { border-bottom: none; }
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
         }
@@ -112,7 +121,7 @@
 
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
-                <li class="nav-item"><a href="index.html" class="nav-link active"><i class="bi bi-calendar-event"></i> Agenda</a></li>
+                <li class="nav-item"><a href="index.html" class="nav-link active"><i class="bi bi-calendar-event"></i> Agenda do Dia</a></li>
                 <li class="nav-item"><a href="financeiro.html" class="nav-link"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
             </ul>
             <div class="nav-section-title">Administração</div>
@@ -129,7 +138,7 @@
 
         <main class="main-content">
             <div class="page-header-custom">
-                <h1 class="page-title">Agenda</h1>
+                <h1 class="page-title">Agenda de Clientes</h1>
                 <div class="action-bar-custom">
                     <button class="btn-modern btn-success-modern" data-bs-toggle="modal" data-bs-target="#modalEncaixe" onclick="carregarServicosEncaixe()"><i class="bi bi-plus-lg"></i> Encaixe</button>
                     <button class="btn-modern btn-outline-modern" data-bs-toggle="modal" data-bs-target="#modalConfigBot" onclick="carregarConfigsBot()"><i class="bi bi-robot"></i> Robô</button>
@@ -139,19 +148,15 @@
             </div>
 
             <div class="custom-card p-4 mb-4">
-                <div class="row g-3 align-items-end m-0">
-                    <div class="col-12 col-md-5 ps-0">
-                        <label class="form-label text-light small fw-bold mb-1">PERÍODO DA AGENDA</label>
-                        <div class="input-group">
-                            <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarAgendamentos()">
-                            <span class="input-group-text bg-body text-muted" style="border: 1px solid var(--border-color);">até</span>
-                            <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarAgendamentos()">
-                        </div>
+                <div class="row g-3 align-items-center m-0">
+                    <div class="col-12 col-md-4 ps-0">
+                        <label class="form-label text-light small fw-bold mb-1">DATA DO AGENDAMENTO</label>
+                        <input type="date" id="filtro-data" class="form-control custom-input" onchange="carregarAgendamentos()">
                     </div>
-                    <div class="col-12 col-md-3">
-                        <label class="form-label text-light small fw-bold mb-1">STATUS</label>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-light small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
                         <select id="filtro-status" class="form-select custom-select" onchange="carregarAgendamentos()">
-                            <option value="TODOS" selected>Todos do Período</option>
+                            <option value="TODOS" selected>Todos da Data</option>
                             <option value="PADRAO">Pendentes / Bloqueios</option>
                             <option value="CONCLUIDO">Concluídos</option>
                             <option value="CANCELADO">Cancelados</option>
@@ -170,7 +175,6 @@
                     <table class="table table-modern text-center w-100">
                         <thead>
                         <tr>
-                            <th>Data</th>
                             <th>Cliente / Detalhe</th>
                             <th>Contato</th>
                             <th>Serviço</th>
@@ -188,7 +192,7 @@
 </div>
 
 <div class="modal fade" id="modalEncaixe" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-success me-2"></i> Realizar Encaixe</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">NOME DO CLIENTE</label><input type="text" id="nome-encaixe" class="form-control custom-input" placeholder="Digite o nome..."></div><div class="mb-3"><label class="form-label fw-bold text-light small">TELEFONE (OPCIONAL)</label><input type="text" id="tel-encaixe" class="form-control custom-input" placeholder="(00) 00000-0000"></div><div class="mb-3"><label class="form-label fw-bold text-light small">SERVIÇO</label><select id="servico-encaixe" class="form-select custom-select"></select></div><div class="row mb-3 g-2"><div class="col-6"><label class="form-label fw-bold text-light small">DATA</label><input type="date" id="data-encaixe" class="form-control custom-input"></div><div class="col-6"><label class="form-label fw-bold text-light small">HORÁRIO</label><input type="time" id="hora-encaixe" class="form-control custom-input"></div></div></div><div class="modal-footer border-0"><button class="btn-modern btn-success-modern w-100 justify-content-center" onclick="salvarEncaixe()">Finalizar Encaixe</button></div></div></div></div>
-<div class="modal fade" id="modalConfigBot" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-robot text-primary me-2"></i> Robô de Lembrete</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="form-check form-switch mb-4"><input class="form-check-input" type="checkbox" role="switch" id="switch-bot-ativo" style="width: 2.5em; height: 1.25em;"><label class="form-check-label fw-bold ms-2 text-light" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label></div><div id="campos-bot-config"><label class="form-label fw-bold text-light small">AVISAR QUANTO TEMPO ANTES?</label><div class="input-group"><input type="number" id="minutos-bot" class="form-control custom-input text-center" min="25" step="5"><span class="input-group-text bg-body border-color text-light">min</span></div></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarConfigsBot()">Salvar Preferências</button></div></div></div></div>
+<div class="modal fade" id="modalConfigBot" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-robot text-primary me-2"></i> Robô de Lembrete</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="form-check form-switch mb-4"><input class="form-check-input" type="checkbox" role="switch" id="switch-bot-ativo" style="width: 2.5em; height: 1.25em;"><label class="form-check-label fw-bold ms-2 text-light" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label></div><div id="campos-bot-config"><label class="form-label fw-bold text-light small">AVISAR QUANTO TEMPO ANTES?</label><div class="input-group"><input type="number" id="minutos-bot" class="form-control custom-input text-center" min="25" step="5"><span class="input-group-text bg-body border-color text-light">min</span></div><p class="text-light mt-3" style="font-size: 0.75rem;">O bot aguardará 20 min pela resposta. Sem resposta, cancela.</p></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarConfigsBot()">Salvar Preferências</button></div></div></div></div>
 <div class="modal fade" id="modalBloqueio" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-lock text-warning me-2"></i> Bloquear Agenda</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">DATA</label><input type="date" id="data-bloqueio" class="form-control custom-input"></div><div class="row mb-3 g-2"><div class="col-6"><label class="form-label fw-bold text-light small">INÍCIO</label><input type="time" id="hora-inicio-bloqueio" class="form-control custom-input"></div><div class="col-6"><label class="form-label fw-bold text-light small">FIM</label><input type="time" id="hora-fim-bloqueio" class="form-control custom-input"></div></div><div class="mb-3"><label class="form-label fw-bold text-light small">MOTIVO</label><input type="text" id="motivo-bloqueio" class="form-control custom-input" placeholder="Ex: Horário de Almoço"></div></div><div class="modal-footer border-0"><button class="btn-modern btn-warning-modern w-100 justify-content-center" onclick="salvarBloqueio()">Aplicar Bloqueio</button></div></div></div></div>
 <div class="modal fade" id="modalHorarios" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-clock text-primary me-2"></i> Expediente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="corpo-modal-horarios"></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarGradeHorarios()">Salvar Expediente</button></div></div></div></div>
 <div class="modal fade" id="modalPagamento" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-wallet2 text-success me-2"></i> Finalizar</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 text-light">Como o cliente pagou?</p><input type="hidden" id="id-agendamento-pagamento"><div class="d-grid gap-2"><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button><button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarPagamento('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button></div></div></div></div></div>
@@ -209,11 +213,9 @@
             overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
         }
 
-        // ✨ Inicia os filtros com a data de hoje
         const agora = new Date();
         const hoje = agora.toISOString().split('T')[0];
-        document.getElementById('filtro-data-inicio').value = hoje;
-        document.getElementById('filtro-data-fim').value = hoje;
+        document.getElementById('filtro-data').value = hoje;
 
         await carregarFiltroBarbeiros();
         carregarAgendamentos();
@@ -241,11 +243,15 @@
                         const select = document.getElementById('filtro-barbeiro');
                         if (select) {
                             select.innerHTML = '';
+
+                            // ✨ MUDANÇA: "Todos os Barbeiros" agora é exclusivo do SUPER_ADMIN
                             if (me.perfil === 'SUPER_ADMIN') {
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
                             }
+
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
-                            select.value = me.id;
+
+                            select.value = me.id; // O Admin Socio começa na agenda dele
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
@@ -266,10 +272,7 @@
         try {
             const [resAg, resBq] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/agendamentos/bloqueios')]);
             const todosAg = await resAg.json(); const todosBq = await resBq.json();
-
-            // ✨ Obtém o intervalo de datas
-            const dataInicio = document.getElementById('filtro-data-inicio').value;
-            const dataFim = document.getElementById('filtro-data-fim').value;
+            const dataEscolhida = document.getElementById('filtro-data').value;
             const filtroStatus = document.getElementById('filtro-status').value;
 
             const selectFiltro = document.getElementById('filtro-barbeiro');
@@ -277,23 +280,13 @@
             let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
             let listaMista = [];
-
-            // ✨ Filtra agendamentos que caem dentro do período
-            todosAg.filter(ag => {
-                const dataAg = ag.dataHoraInicio.split('T')[0];
-                return dataAg >= dataInicio && dataAg <= dataFim;
-            }).forEach(ag => {
+            todosAg.filter(ag => ag.dataHoraInicio.startsWith(dataEscolhida)).forEach(ag => {
                 let exibir = (filtroStatus === 'TODOS') || (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) || (filtroStatus === ag.status);
                 let donoValido = checkDonoValido(ag.donoDoRegistro, filtroBarbeiro);
                 if(exibir && donoValido) listaMista.push({ tipo: 'AGENDAMENTO', dado: ag });
             });
 
-            // ✨ Filtra bloqueios que caem dentro do período
-            todosBq.filter(bq => {
-                if (!bq.dataHoraInicio) return false;
-                const dataBq = bq.dataHoraInicio.split('T')[0];
-                return dataBq >= dataInicio && dataBq <= dataFim;
-            }).forEach(bq => {
+            todosBq.filter(bq => bq.dataHoraInicio && bq.dataHoraInicio.startsWith(dataEscolhida)).forEach(bq => {
                 let donoValido = checkDonoValido(bq.donoDoRegistro, filtroBarbeiro);
                 if ((filtroStatus === 'PADRAO' || filtroStatus === 'TODOS') && donoValido) listaMista.push({ tipo: 'BLOQUEIO', dado: bq });
             });
@@ -301,14 +294,11 @@
             listaMista.sort((a, b) => new Date(a.dado.dataHoraInicio) - new Date(b.dado.dataHoraInicio));
             const corpo = document.getElementById('tabela-agendamentos'); corpo.innerHTML = '';
 
-            if (listaMista.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="7" class="text-light py-4 text-center">Nenhum registro encontrado para este filtro e data.</td></tr>';
+            if (listaMista.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum registro encontrado para este filtro e data.</td></tr>';
 
             listaMista.forEach(item => {
-                const formatadorData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' });
-
                 if (item.tipo === 'AGENDAMENTO') {
                     const ag = item.dado;
-                    const dataBonita = formatadorData.format(new Date(ag.dataHoraInicio));
                     const hi = new Date(ag.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(ag.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
@@ -316,37 +306,76 @@
 
                     let seloBarbeiro = (ag.donoDoRegistro && isAdmin && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${ag.donoDoRegistro.nome}</span>` : '';
 
-                    corpo.innerHTML += `<tr><td data-label="Data" class="fw-bold text-muted">${dataBonita}</td><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong>${seloBarbeiro}</td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
+                    corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong>${seloBarbeiro}</td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
                 } else {
                     const bq = item.dado;
-                    const dataBonita = formatadorData.format(new Date(bq.dataHoraInicio));
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
                     let seloBarbeiroBq = (bq.donoDoRegistro && isAdmin && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${bq.donoDoRegistro.nome}</span>` : '';
                     let btnExcluirBq = `<button class="btn btn-sm btn-outline-danger border-0" onclick="excluirBloqueio(${bq.id})" title="Remover Bloqueio"><i class="bi bi-trash3 fs-6"></i></button>`;
 
-                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Data" class="fw-bold text-muted">${dataBonita}</td><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span>${seloBarbeiroBq}</td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações">${btnExcluirBq}</td></tr>`;
+                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span>${seloBarbeiroBq}</td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações">${btnExcluirBq}</td></tr>`;
                 }
             });
         } catch (e) { console.error(e); }
     }
 
-    async function excluirBloqueio(id) { if(confirm("Remover este bloqueio da agenda?")) { await fetch(`/api/agendamentos/bloqueios/${id}`, { method: 'DELETE' }); carregarAgendamentos(); } }
+    async function excluirBloqueio(id) {
+        if(confirm("Remover este bloqueio da agenda?")) {
+            await fetch(`/api/agendamentos/bloqueios/${id}`, { method: 'DELETE' });
+            carregarAgendamentos();
+        }
+    }
+
     async function carregarServicosEncaixe() { const res = await fetch('/api/servicos'); const servicos = await res.json(); const select = document.getElementById('servico-encaixe'); select.innerHTML = ''; servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`); }
     async function salvarEncaixe() { const dados = { nomeCliente: document.getElementById('nome-encaixe').value, telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000", servicoEscolhido: { id: document.getElementById('servico-encaixe').value }, dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00` }; if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!"); await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide(); carregarAgendamentos(); }
     async function carregarConfigsBot() { const res = await fetch('/api/configuracoes/geral'); const data = await res.json(); document.getElementById('switch-bot-ativo').checked = data.botAtivo; document.getElementById('minutos-bot').value = data.minutosConfirmacao; atualizarLabelBot(data.botAtivo); }
     function atualizarLabelBot(ativo) { const lbl = document.getElementById('label-bot-status'); const cmp = document.getElementById('campos-bot-config'); if(ativo) { lbl.innerText="Robô Ligado"; lbl.classList.add('text-success'); cmp.style.opacity="1"; cmp.style.pointerEvents="auto"; } else { lbl.innerText="Robô Desligado"; lbl.classList.remove('text-success'); cmp.style.opacity="0.5"; cmp.style.pointerEvents="none"; } }
     async function salvarConfigsBot() { await fetch('/api/configuracoes/geral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ botAtivo: document.getElementById('switch-bot-ativo').checked, minutosConfirmacao: parseInt(document.getElementById('minutos-bot').value) }) }); bootstrap.Modal.getInstance(document.getElementById('modalConfigBot')).hide(); }
-
     let gradeHorariosGlobal = [];
-    async function carregarGradeHorarios() { const selectBarbeiro = document.getElementById('filtro-barbeiro'); let url = '/api/horarios'; if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') { url += '?barbeiroId=' + selectBarbeiro.value; } const res = await fetch(url); if (res.ok) { gradeHorariosGlobal = await res.json(); gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana); renderizarGradeHorarios(); } }
+    async function carregarGradeHorarios() {
+        const selectBarbeiro = document.getElementById('filtro-barbeiro');
+        let url = '/api/horarios';
+
+        // Se houver um barbeiro selecionado no filtro, pedimos os horários DELE
+        if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
+            url += '?barbeiroId=' + selectBarbeiro.value;
+        }
+
+        const res = await fetch(url);
+        if (res.ok) {
+            gradeHorariosGlobal = await res.json();
+            gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana);
+            renderizarGradeHorarios();
+        }
+    }
     function renderizarGradeHorarios() { const corpo = document.getElementById('corpo-modal-horarios'); corpo.innerHTML = ''; gradeHorariosGlobal.forEach((dia, index) => { const chk = dia.fechado ? '' : 'checked', dis = dia.fechado ? 'disabled' : ''; corpo.innerHTML += `<div class="custom-card mb-3 p-3"><div class="d-flex justify-content-between mb-3"><span class="badge-modern ${dia.fechado ? 'badge-danger' : 'badge-primary'}">${dia.nomeDia}</span><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" ${chk} onchange="toggleDia(${index})"></div></div><div class="row g-2"><div class="col-6"><label class="form-label text-light small fw-bold">Abertura</label><input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})"></div><div class="col-6"><label class="form-label text-light small fw-bold">Fechamento</label><input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})"></div></div></div>`; }); }
     function toggleDia(idx) { gradeHorariosGlobal[idx].fechado = !gradeHorariosGlobal[idx].fechado; renderizarGradeHorarios(); }
     function alterarHoraAbertura(idx) { gradeHorariosGlobal[idx].horaAbertura = document.getElementById(`hora-abertura-${idx}`).value; }
     function alterarHoraFechamento(idx) { gradeHorariosGlobal[idx].horaFechamento = document.getElementById(`hora-fechamento-${idx}`).value; }
-    async function salvarGradeHorarios() { const selectBarbeiro = document.getElementById('filtro-barbeiro'); let url = '/api/horarios'; if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') { url += '?barbeiroId=' + selectBarbeiro.value; } const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gradeHorariosGlobal) }); if (res.ok) { bootstrap.Modal.getInstance(document.getElementById('modalHorarios')).hide(); alert("Expediente atualizado com sucesso!"); } }
+    async function salvarGradeHorarios() {
+        const selectBarbeiro = document.getElementById('filtro-barbeiro');
+        let url = '/api/horarios';
 
+        // Manda o ID do barbeiro na hora de salvar
+        if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
+            url += '?barbeiroId=' + selectBarbeiro.value;
+        }
+
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gradeHorariosGlobal)
+        });
+
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalHorarios')).hide();
+            alert("Expediente atualizado com sucesso!");
+        } else {
+            alert("Erro ao salvar o expediente.");
+        }
+    }
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
     async function processarPagamento(metodo) { const id = document.getElementById('id-agendamento-pagamento').value; await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' }); await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide(); carregarAgendamentos(); }
     async function salvarBloqueio() { const dados = { dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`, dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`, motivo: document.getElementById('motivo-bloqueio').value }; await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide(); carregarAgendamentos(); }
