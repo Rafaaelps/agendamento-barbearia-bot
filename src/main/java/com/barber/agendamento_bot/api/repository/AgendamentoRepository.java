@@ -31,9 +31,12 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             String status
     );
 
-    // Busca todos os agendamentos ativos de um cliente (Para o Menu de Cancelamento)
-    List<Agendamento> findByTelefoneClienteAndStatusNotOrderByDataHoraInicioAsc(String telefoneCliente, String status);
+    // Busca todos os agendamentos pendentes de um cliente
+    List<Agendamento> findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(String telefoneCliente, List<String> statuses);
 
-    // Busca os agendamentos ativos em um dia específico (Para o Menu de Limite Diário)
-    List<Agendamento> findByTelefoneClienteAndDataHoraInicioBetweenAndStatusNotOrderByDataHoraInicioAsc(String telefoneCliente, LocalDateTime inicio, LocalDateTime fim, String status);
+    // Busca os agendamentos pendentes em um dia específico
+    List<Agendamento> findByTelefoneClienteAndDataHoraInicioBetweenAndStatusInOrderByDataHoraInicioAsc(String telefoneCliente, LocalDateTime inicio, LocalDateTime fim, List<String> statuses);
+
+    // Conta quantos agendamentos pendentes existem no dia
+    long countByTelefoneClienteAndDataHoraInicioBetweenAndStatusIn(String telefone, LocalDateTime inicio, LocalDateTime fim, List<String> statuses);
 }

@@ -1,109 +1,111 @@
 package com.barber.agendamento_bot.api.service;
 
-import com.barber.agendamento_bot.api.entity.*;
-import com.barber.agendamento_bot.api.repository.*;
-import org.springframework.security.core.context.SecurityContextHolder;
+import com.barber.agendamento_bot.api.entity.Agendamento;
+import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
+import com.barber.agendamento_bot.api.entity.HorarioFuncionamento;
+import com.barber.agendamento_bot.api.entity.Servico;
+import com.barber.agendamento_bot.api.entity.Usuario;
+import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
+import com.barber.agendamento_bot.api.repository.BloqueioAgendaRepository;
+import com.barber.agendamento_bot.api.repository.HorarioRepository;
+import com.barber.agendamento_bot.api.repository.ServicoRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class AgendaService {
 
     private final AgendamentoRepository agendamentoRepository;
+    private final HorarioRepository horarioRepository;
     private final ServicoRepository servicoRepository;
     private final BloqueioAgendaRepository bloqueioAgendaRepository;
-    private final HorarioRepository horarioRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final LogService logService;
 
-    public AgendaService(AgendamentoRepository agendamentoRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository, HorarioRepository horarioRepository, UsuarioRepository usuarioRepository, LogService logService) {
+    public AgendaService(AgendamentoRepository agendamentoRepository, HorarioRepository horarioRepository, ServicoRepository servicoRepository, BloqueioAgendaRepository bloqueioAgendaRepository) {
         this.agendamentoRepository = agendamentoRepository;
+        this.horarioRepository = horarioRepository;
         this.servicoRepository = servicoRepository;
         this.bloqueioAgendaRepository = bloqueioAgendaRepository;
-        this.horarioRepository = horarioRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.logService = logService;
     }
 
-    private Usuario getUsuarioLogado() {
-        String login = SecurityContextHolder.getContext().getAuthentication().getName();
-        return usuarioRepository.findByLogin(login).orElse(null);
+    public List<Agendamento> listarTodosOsAgendamentos() {
+        return agendamentoRepository.findAll();
     }
 
+    public List<BloqueioAgenda> listarBloqueios() {
+        return bloqueioAgendaRepository.findAll();
+    }
+
+    public void forcarAgendamento(Agendamento agendamento) {
+        Servico s = servicoRepository.findById(agendamento.getServicoEscolhido().getId()).orElseThrow();
+        agendamento.setDataHoraFim(agendamento.getDataHoraInicio().plusMinutes(s.getDuracaoMinutos()));
+        agendamento.setStatus("AGENDADO");
+        agendamentoRepository.save(agendamento);
+    }
+
+    public void adicionarBloqueio(BloqueioAgenda bloqueio) {
+        bloqueioAgendaRepository.save(bloqueio);
+    }
+
+    public void removerBloqueio(Long id) {
+        bloqueioAgendaRepository.deleteById(id);
+    }
+
+    public void cancelarAgendamento(Long id) {
+        agendamentoRepository.findById(id).ifPresent(ag -> {
+            ag.setStatus("CANCELADO");
+            agendamentoRepository.save(ag);
+        });
+    }
+
+    public void concluirAgendamento(Long id) {
+        agendamentoRepository.findById(id).ifPresent(ag -> {
+            ag.setStatus("CONCLUIDO");
+            agendamentoRepository.save(ag);
+        });
+    }
+
+    public void atualizarValor(Long id, BigDecimal novoValor) {
+        agendamentoRepository.findById(id).ifPresent(ag -> {
+            ag.setValorFinal(novoValor);
+            agendamentoRepository.save(ag);
+        });
+    }
+
+    public void confirmarPresenca(Long id) {
+        agendamentoRepository.findById(id).ifPresent(ag -> {
+            ag.setStatus("CONFIRMADO");
+            agendamentoRepository.save(ag);
+        });
+    }
+
+    // ✨ REGRA 1: Verifica se o cliente já atingiu 2 agendamentos ativos no mesmo dia
     public boolean atingiuLimiteDiario(String telefone, LocalDate data) {
         LocalDateTime inicioDia = data.atStartOfDay();
         LocalDateTime fimDia = data.atTime(23, 59, 59);
 
-        // Conta quantos agendamentos ativos (não cancelados) esse número tem no dia
-        long total = agendamentoRepository.countByTelefoneClienteAndDataHoraInicioBetweenAndStatusNot(
-                telefone, inicioDia, fimDia, "CANCELADO"
+        long total = agendamentoRepository.countByTelefoneClienteAndDataHoraInicioBetweenAndStatusIn(
+                telefone, inicioDia, fimDia, Arrays.asList("AGENDADO", "CONFIRMADO")
         );
-
-        return total >= 2; // Retorna 'true' se já tiver 2 ou mais
+        return total >= 2;
     }
 
-    public boolean tentarAgendar(Agendamento novo) {
-        Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
-        novo.setServicoEscolhido(servicoCompleto);
-
-        Usuario barbeiro = novo.getDonoDoRegistro();
-        if (barbeiro == null) return false;
-
-        LocalDateTime inicio = novo.getDataHoraInicio();
-        LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos());
-
-        novo.setValorFinal(servicoCompleto.getPreco());
-        novo.setDataHoraFim(fim);
-        novo.setStatus("AGENDADO");
-
-        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
-        if (inicio.isBefore(LocalDateTime.now(fusoBR))) return false;
-
-        int diaSemanaId = inicio.getDayOfWeek().getValue();
-        HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
-
-        if (regrasDoDia == null || regrasDoDia.isFechado()) return false;
-
-        LocalTime aberturaDoDia = LocalTime.parse(regrasDoDia.getHoraAbertura());
-        LocalTime fechamentoDoDia = LocalTime.parse(regrasDoDia.getHoraFechamento());
-
-        if (inicio.toLocalTime().isBefore(aberturaDoDia) || fim.toLocalTime().isAfter(fechamentoDoDia)) return false;
-
-        List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
-        for (BloqueioAgenda bloqueio : bloqueios) {
-            if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
-            if (inicio.isBefore(bloqueio.getDataHoraFim()) && fim.isAfter(bloqueio.getDataHoraInicio())) return false;
-        }
-
-        List<Agendamento> noBanco = agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", barbeiro);
-        for (Agendamento existente : noBanco) {
-            if (inicio.isBefore(existente.getDataHoraFim()) && fim.isAfter(existente.getDataHoraInicio())) return false;
-        }
-
-        agendamentoRepository.save(novo);
-        return true;
+    // ✨ REGRA 2: Só pega agendamentos que ainda vão acontecer, ignorando concluídos
+    public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
+        List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(
+                telefone, Arrays.asList("AGENDADO", "CONFIRMADO")
+        );
+        return ativos.isEmpty() ? null : ativos.get(0);
     }
 
-    public void forcarAgendamento(Agendamento novo) {
-        Usuario logado = getUsuarioLogado();
-        if(logado == null) return;
-        Servico servicoCompleto = servicoRepository.findById(novo.getServicoEscolhido().getId()).orElseThrow();
-        novo.setServicoEscolhido(servicoCompleto);
-        novo.setDonoDoRegistro(logado);
-        LocalDateTime inicio = novo.getDataHoraInicio();
-        LocalDateTime fim = inicio.plusMinutes(servicoCompleto.getDuracaoMinutos());
-        novo.setValorFinal(servicoCompleto.getPreco()); novo.setDataHoraFim(fim); novo.setStatus("AGENDADO");
-        novo.setFaturamentoBarbeiro(java.math.BigDecimal.ZERO); novo.setFormaPagamento("PENDENTE");
-        agendamentoRepository.save(novo);
-        logService.registrarAcao("AGENDA", "ENCAIXE", "Realizou encaixe manual para: " + novo.getNomeCliente());
-    }
-
+    // ✨ REGRA 3: O Motor de Horários com a trava do "Loop Infinito" resolvida
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId, Usuario barbeiro) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
         if (barbeiro == null) return horariosDisponiveis;
@@ -111,7 +113,6 @@ public class AgendaService {
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
-        // Se não tiver horário, cria na hora
         if (regrasDoDia == null) {
             String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
             for (int i = 1; i <= 7; i++) {
@@ -129,7 +130,6 @@ public class AgendaService {
 
         if (regrasDoDia.isFechado()) return horariosDisponiveis;
 
-        // Proteção contra horários em branco que o usuário possa ter salvo sem querer
         String horaAb = (regrasDoDia.getHoraAbertura() == null || regrasDoDia.getHoraAbertura().isEmpty()) ? "09:00" : regrasDoDia.getHoraAbertura();
         String horaFc = (regrasDoDia.getHoraFechamento() == null || regrasDoDia.getHoraFechamento().isEmpty()) ? "19:00" : regrasDoDia.getHoraFechamento();
 
@@ -147,13 +147,11 @@ public class AgendaService {
 
         LocalTime horarioTeste = aberturaDoDia;
 
-        // Loop seguro contra a meia-noite
         while (true) {
             LocalTime fimTentativaTime = horarioTeste.plusMinutes(duracao);
 
-            // ✨ TRAVA 1: Se o fim do serviço for ANTES do início (passou da meia-noite) ou APÓS o fechamento -> PARA O LOOP!
+            // Trava de Segurança contra a meia-noite (Evita o loop infinito)
             if (fimTentativaTime.isBefore(horarioTeste) || fimTentativaTime.isAfter(fechamentoDoDia)) {
-                // Exceção: Se o fechamento for exatamente 00:00, permitimos até 23:59
                 if (!fechamentoDoDia.equals(LocalTime.MIDNIGHT)) {
                     break;
                 }
@@ -162,10 +160,9 @@ public class AgendaService {
             LocalDateTime inicioTentativaCompleto = LocalDateTime.of(dataBuscada, horarioTeste);
             LocalDateTime fimTentativaCompleta = inicioTentativaCompleto.plusMinutes(duracao);
 
-            // ✨ TRAVA 2: Ignora horários no passado usando Data + Hora completas (sem bugar à noite)
             if (inicioTentativaCompleto.isBefore(momentoAtual.plusMinutes(15))) {
                 LocalTime proximo = horarioTeste.plusMinutes(30);
-                if (proximo.isBefore(horarioTeste)) break; // Se o pulo passou da meia-noite, para
+                if (proximo.isBefore(horarioTeste)) break;
                 horarioTeste = proximo;
                 continue;
             }
@@ -194,82 +191,27 @@ public class AgendaService {
             if (!temConflito) horariosDisponiveis.add(horarioTeste);
 
             LocalTime proximo = horarioTeste.plusMinutes(30);
-            if (proximo.isBefore(horarioTeste)) break; // Impede Loop Infinito ao chegar perto de 23:59
+            if (proximo.isBefore(horarioTeste)) break;
             horarioTeste = proximo;
         }
 
         return horariosDisponiveis;
     }
 
-    public void confirmarPresenca(Long id) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setStatus("CONFIRMADO"); agendamentoRepository.save(ag); }
-    public void concluirAgendamento(Long id) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setStatus("CONCLUIDO"); agendamentoRepository.save(ag); }
-    public void cancelarAgendamento(Long id) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setStatus("CANCELADO"); agendamentoRepository.save(ag); logService.registrarAcao("AGENDA", "CANCELAMENTO", "Cancelou o agendamento de: " + ag.getNomeCliente()); }
-    public void atualizarValor(Long id, java.math.BigDecimal novoValor) { Agendamento ag = agendamentoRepository.findById(id).orElseThrow(); ag.setValorFinal(novoValor); agendamentoRepository.save(ag); }
+    public boolean tentarAgendar(Agendamento agendamento) {
+        List<LocalTime> livres = buscarHorariosLivres(
+                agendamento.getDataHoraInicio().toLocalDate(),
+                agendamento.getServicoEscolhido().getId(),
+                agendamento.getDonoDoRegistro()
+        );
 
-    public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
-        List<Agendamento> lista = agendamentoRepository.findByTelefoneClienteAndStatusNot(telefone, "CANCELADO");
-        ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
-        LocalDateTime agora = LocalDateTime.now(fusoBR);
-        Agendamento proximoAgendamento = null;
-        for (Agendamento ag : lista) {
-            if (ag.getDataHoraInicio().isAfter(agora) && ("CONFIRMADO".equals(ag.getStatus()) || "AGENDADO".equals(ag.getStatus()))) {
-                if (proximoAgendamento == null || ag.getDataHoraInicio().isBefore(proximoAgendamento.getDataHoraInicio())) proximoAgendamento = ag;
-            }
+        if (livres.contains(agendamento.getDataHoraInicio().toLocalTime())) {
+            agendamento.setStatus("AGENDADO");
+            Servico s = servicoRepository.findById(agendamento.getServicoEscolhido().getId()).orElseThrow();
+            agendamento.setDataHoraFim(agendamento.getDataHoraInicio().plusMinutes(s.getDuracaoMinutos()));
+            agendamentoRepository.save(agendamento);
+            return true;
         }
-        return proximoAgendamento;
-    }
-
-    public BloqueioAgenda adicionarBloqueio(BloqueioAgenda novoBloqueio) {
-        Usuario logado = getUsuarioLogado();
-        if(logado != null) novoBloqueio.setDonoDoRegistro(logado);
-        logService.registrarAcao("AGENDA", "BLOQUEIO", "Bloqueou agenda. Motivo: " + novoBloqueio.getMotivo());
-        return bloqueioAgendaRepository.save(novoBloqueio);
-    }
-
-    public void removerBloqueio(Long id) {
-        bloqueioAgendaRepository.deleteById(id);
-    }
-
-    // ✨ ISOLAMENTO DA AGENDA E DO FINANCEIRO
-    public List<Agendamento> listarTodosOsAgendamentos() {
-        Usuario logado = getUsuarioLogado();
-        if (logado == null) return new ArrayList<>();
-
-        // O Desenvolvedor (SUPER) vê todos os agendamentos do salão inteiro
-        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
-            return agendamentoRepository.findByStatusNot("CANCELADO");
-        }
-
-        // Os Donos da barbearia veem a si mesmos + os barbeiros contratados
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
-            return agendamentoRepository.findByStatusNot("CANCELADO").stream()
-                    .filter(ag -> ag.getDonoDoRegistro() == null ||
-                            ag.getDonoDoRegistro().getId().equals(logado.getId()) ||
-                            "BARBEIRO".equals(ag.getDonoDoRegistro().getPerfil()))
-                    .toList();
-        }
-
-        // Barbeiro comum
-        return agendamentoRepository.findByStatusNotAndDonoDoRegistro("CANCELADO", logado);
-    }
-
-    // ✨ ISOLAMENTO DOS BLOQUEIOS
-    public List<BloqueioAgenda> listarBloqueios() {
-        Usuario logado = getUsuarioLogado();
-        if (logado == null) return new ArrayList<>();
-
-        if ("SUPER_ADMIN".equals(logado.getPerfil())) {
-            return bloqueioAgendaRepository.findAll();
-        }
-
-        if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
-            return bloqueioAgendaRepository.findAll().stream()
-                    .filter(bq -> bq.getDonoDoRegistro() == null ||
-                            bq.getDonoDoRegistro().getId().equals(logado.getId()) ||
-                            "BARBEIRO".equals(bq.getDonoDoRegistro().getPerfil()))
-                    .toList();
-        }
-
-        return bloqueioAgendaRepository.findAllByDonoDoRegistro(logado);
+        return false;
     }
 }
