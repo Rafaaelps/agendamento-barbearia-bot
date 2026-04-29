@@ -149,11 +149,15 @@
 
             <div class="custom-card p-4 mb-4">
                 <div class="row g-3 align-items-center m-0">
-                    <div class="col-12 col-md-4 ps-0">
-                        <label class="form-label text-light small fw-bold mb-1">DATA DO AGENDAMENTO</label>
-                        <input type="date" id="filtro-data" class="form-control custom-input" onchange="carregarAgendamentos()">
+                    <div class="col-12 col-md-5 ps-0">
+                        <label class="form-label text-light small fw-bold mb-1">PERÍODO DA AGENDA</label>
+                        <div class="input-group">
+                            <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarAgendamentos()">
+                            <span class="input-group-text bg-body text-muted" style="border: 1px solid var(--border-color);">até</span>
+                            <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarAgendamentos()">
+                        </div>
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                         <label class="form-label text-light small fw-bold mb-1">FILTRAR EXIBIÇÃO</label>
                         <select id="filtro-status" class="form-select custom-select" onchange="carregarAgendamentos()">
                             <option value="TODOS" selected>Todos da Data</option>
@@ -215,7 +219,8 @@
 
         const agora = new Date();
         const hoje = agora.toISOString().split('T')[0];
-        document.getElementById('filtro-data').value = hoje;
+        document.getElementById('filtro-data-inicio').value = hoje;
+        document.getElementById('filtro-data-fim').value = hoje;
 
         await carregarFiltroBarbeiros();
         carregarAgendamentos();
@@ -244,14 +249,13 @@
                         if (select) {
                             select.innerHTML = '';
 
-                            // ✨ MUDANÇA: "Todos os Barbeiros" agora é exclusivo do SUPER_ADMIN
                             if (me.perfil === 'SUPER_ADMIN') {
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
                             }
 
                             funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
 
-                            select.value = me.id; // O Admin Socio começa na agenda dele
+                            select.value = me.id;
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
@@ -272,7 +276,9 @@
         try {
             const [resAg, resBq] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/agendamentos/bloqueios')]);
             const todosAg = await resAg.json(); const todosBq = await resBq.json();
-            const dataEscolhida = document.getElementById('filtro-data').value;
+
+            const dataInicio = document.getElementById('filtro-data-inicio').value;
+            const dataFim = document.getElementById('filtro-data-fim').value;
             const filtroStatus = document.getElementById('filtro-status').value;
 
             const selectFiltro = document.getElementById('filtro-barbeiro');
@@ -280,13 +286,21 @@
             let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
             let listaMista = [];
-            todosAg.filter(ag => ag.dataHoraInicio.startsWith(dataEscolhida)).forEach(ag => {
+
+            todosAg.filter(ag => {
+                const dataAg = ag.dataHoraInicio.split('T')[0];
+                return dataAg >= dataInicio && dataAg <= dataFim;
+            }).forEach(ag => {
                 let exibir = (filtroStatus === 'TODOS') || (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) || (filtroStatus === ag.status);
                 let donoValido = checkDonoValido(ag.donoDoRegistro, filtroBarbeiro);
                 if(exibir && donoValido) listaMista.push({ tipo: 'AGENDAMENTO', dado: ag });
             });
 
-            todosBq.filter(bq => bq.dataHoraInicio && bq.dataHoraInicio.startsWith(dataEscolhida)).forEach(bq => {
+            todosBq.filter(bq => {
+                if (!bq.dataHoraInicio) return false;
+                const dataBq = bq.dataHoraInicio.split('T')[0];
+                return dataBq >= dataInicio && dataBq <= dataFim;
+            }).forEach(bq => {
                 let donoValido = checkDonoValido(bq.donoDoRegistro, filtroBarbeiro);
                 if ((filtroStatus === 'PADRAO' || filtroStatus === 'TODOS') && donoValido) listaMista.push({ tipo: 'BLOQUEIO', dado: bq });
             });
@@ -338,7 +352,6 @@
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
         let url = '/api/horarios';
 
-        // Se houver um barbeiro selecionado no filtro, pedimos os horários DELE
         if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
             url += '?barbeiroId=' + selectBarbeiro.value;
         }
@@ -358,7 +371,6 @@
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
         let url = '/api/horarios';
 
-        // Manda o ID do barbeiro na hora de salvar
         if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
             url += '?barbeiroId=' + selectBarbeiro.value;
         }
