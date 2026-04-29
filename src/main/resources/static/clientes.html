@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; }
+        :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; --info-color: #0EA5E9; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
         .text-muted { color: var(--text-muted) !important; }
         .app-container { display: flex; height: 100vh; flex-direction: column; }
@@ -30,8 +30,8 @@
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
         .page-header-custom { margin-bottom: 24px; }
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-input { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; }
-        .custom-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; }
+        .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
         .table-modern { color: var(--text-main); margin: 0; width: 100%; }
         .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; }
@@ -94,9 +94,17 @@
                         <label class="form-label text-light small fw-bold mb-1">CONSUMO NO PERÍODO</label>
                         <div class="input-group">
                             <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarClientes()">
-                            <span class="input-group-text bg-body text-muted" style="border: 1px solid var(--border-color);">até</span>
+                            <span class="input-group-text bg-body text-muted border-color">até</span>
                             <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarClientes()">
                         </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-light small fw-bold mb-1">ORDENAR POR</label>
+                        <select id="filtro-ordem" class="form-select custom-select" onchange="carregarClientes()">
+                            <option value="MAIS_GASTOU">Maior Valor Gasto</option>
+                            <option value="MAIS_VISITAS">Mais Visitas (Frequência)</option>
+                            <option value="MAIS_TEMPO">Mais Tempo Sem Vir (Sumidos)</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -108,8 +116,8 @@
                         <tr>
                             <th>Nome do Cliente</th>
                             <th>WhatsApp</th>
-                            <th>Total Gasto (Período)</th>
-                            <th>Última Visita (Período)</th>
+                            <th>Visitas</th> <th>Total Gasto</th>
+                            <th>Última Visita</th>
                             <th>Ações</th>
                         </tr>
                         </thead>
@@ -154,6 +162,7 @@
 
         const dataInicio = document.getElementById('filtro-data-inicio').value;
         const dataFim = document.getElementById('filtro-data-fim').value;
+        const ordemFiltro = document.getElementById('filtro-ordem').value;
 
         const clientesAgrupados = {};
 
@@ -165,27 +174,46 @@
             if (!clientesAgrupados[tel]) {
                 clientesAgrupados[tel] = {
                     nome: ag.nomeCliente, telefone: tel,
-                    totalGasto: 0, ultimaVisita: ag.dataHoraInicio
+                    totalGasto: 0, ultimaVisita: ag.dataHoraInicio,
+                    visitas: 0 // ✨ MUDANÇA: Iniciando o contador de visitas
                 };
             }
             clientesAgrupados[tel].totalGasto += (ag.valorFinal || ag.servicoEscolhido.preco);
+            clientesAgrupados[tel].visitas++; // ✨ MUDANÇA: Incrementa a visita a cada agendamento concluído
+
             if (new Date(ag.dataHoraInicio) > new Date(clientesAgrupados[tel].ultimaVisita)) {
                 clientesAgrupados[tel].ultimaVisita = ag.dataHoraInicio;
             }
         });
 
-        const listaClientes = Object.values(clientesAgrupados).sort((a, b) => b.totalGasto - a.totalGasto);
+        let listaClientes = Object.values(clientesAgrupados);
+
+        // ✨ MUDANÇA: Lógica de Ordenação
+        if (ordemFiltro === 'MAIS_GASTOU') {
+            listaClientes.sort((a, b) => b.totalGasto - a.totalGasto);
+        } else if (ordemFiltro === 'MAIS_VISITAS') {
+            listaClientes.sort((a, b) => b.visitas - a.visitas);
+        } else if (ordemFiltro === 'MAIS_TEMPO') {
+            // Ordena pela data mais antiga primeiro (menor data)
+            listaClientes.sort((a, b) => new Date(a.ultimaVisita) - new Date(b.ultimaVisita));
+        }
 
         const corpo = document.getElementById('tabela-clientes'); corpo.innerHTML = '';
-        if (listaClientes.length === 0) return corpo.innerHTML = '<tr><td colspan="5" class="text-light py-4 text-center">Nenhum cliente atendeu neste período.</td></tr>';
+        if (listaClientes.length === 0) return corpo.innerHTML = '<tr><td colspan="6" class="text-light py-4 text-center">Nenhum cliente atendeu neste período.</td></tr>';
 
         listaClientes.forEach(c => {
             const dataBonita = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(c.ultimaVisita));
             let zapLimpo = c.telefone.replace(/\D/g, '');
             let linkZap = `https://wa.me/55${zapLimpo}`;
 
-            // ✨ MUDANÇA: A classe text-light opacity-75 melhora a legibilidade no fundo escuro
-            corpo.innerHTML += `<tr><td data-label="Cliente" class="fw-bold text-white">${c.nome}</td><td data-label="WhatsApp" class="text-light opacity-75">${c.telefone}</td><td data-label="Total Gasto" class="text-success fw-bold">R$ ${c.totalGasto.toFixed(2).replace('.', ',')}</td><td data-label="Última Visita" class="text-light opacity-75">${dataBonita}</td><td data-label="Ações"><a href="${linkZap}" target="_blank" class="btn btn-sm" style="background-color: rgba(16, 185, 129, 0.2); color: var(--success-color); border: 1px solid var(--success-color);"><i class="bi bi-whatsapp"></i> Chamar</a></td></tr>`;
+            corpo.innerHTML += `<tr>
+                <td data-label="Cliente" class="fw-bold text-white">${c.nome}</td>
+                <td data-label="WhatsApp" class="text-light opacity-75">${c.telefone}</td>
+                <td data-label="Visitas" class="fw-bold" style="color: var(--info-color);">${c.visitas}x</td>
+                <td data-label="Total Gasto" class="text-success fw-bold">R$ ${c.totalGasto.toFixed(2).replace('.', ',')}</td>
+                <td data-label="Última Visita" class="text-light opacity-75">${dataBonita}</td>
+                <td data-label="Ações"><a href="${linkZap}" target="_blank" class="btn btn-sm" style="background-color: rgba(16, 185, 129, 0.2); color: var(--success-color); border: 1px solid var(--success-color);"><i class="bi bi-whatsapp"></i> Chamar</a></td>
+            </tr>`;
         });
     }
 </script>
