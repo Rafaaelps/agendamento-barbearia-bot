@@ -10,120 +10,237 @@
   <style>
     :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B; --info-color: #0EA5E9; }
     body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+    .text-muted { color: var(--text-muted) !important; }
     .app-container { display: flex; height: 100vh; flex-direction: column; }
-    .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100vh; z-index: 1050; }
-    .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); }
+    .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
+    .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
+    .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; z-index: 1050; }
+    .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
     .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
-    .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; }
-    .nav-link.active { color: #fff; background-color: var(--accent-primary); }
+    .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
+    .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    .nav-item { margin-bottom: 4px; }
+    .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
+    .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
+    .nav-link.active { color: #fff; background-color: var(--accent-primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+    .sidebar-footer { padding: 24px; border-top: 1px solid var(--border-color); }
+    .btn-logout { width: 100%; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: 0.2s; }
+    .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
+    .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
     .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
+    .page-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px; }
+    .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
+    .action-bar-custom { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-    .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; }
-    .stat-card { padding: 24px; display: flex; flex-direction: column; justify-content: space-between; }
-    .stat-title { font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-    .stat-value { font-size: 1.8rem; font-weight: 800; color: white; }
-    .table-modern th { background-color: var(--bg-body); color: var(--text-main); padding: 16px; text-transform: uppercase; font-size: 0.8rem; }
-    .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; color: var(--text-main); }
-    @media print { .sidebar, .action-bar-custom, #container-filtro-barbeiro, .col-acoes { display: none !important; } }
+    .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+    .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+    .btn-modern { padding: 10px 16px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; white-space: nowrap; }
+    .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+    .btn-outline-modern:hover { border-color: var(--text-muted); color: white; }
+    .table-modern { color: var(--text-main); margin: 0; width: 100%; }
+    .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
+    .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
+    .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+    .stat-card { padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+    .stat-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+    .stat-value { font-size: 2rem; font-weight: 800; color: white; }
+    .stat-icon { font-size: 2rem; opacity: 0.8; }
+    .comparativo-badge { font-size: 0.8rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; }
+
+    @media (max-width: 991.98px) {
+        .mobile-topbar { display: flex; }
+        .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
+        .sidebar.open { left: 0; }
+        .sidebar-overlay.show { display: block; }
+        .main-content { padding: 16px; }
+        .table-modern thead { display: none; }
+        .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); }
+        .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
+        .table-modern tbody td:last-child { border-bottom: none; }
+        .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+    }
+
+    /* Estilo para Impressão de PDF */
+    @media print {
+        .sidebar, .mobile-topbar, .action-bar-custom, .custom-card select, .custom-card input, .btn-logout, label, #container-filtro-barbeiro, .col-acoes { display: none !important; }
+        .main-wrapper { margin: 0; padding: 0; }
+        .main-content { padding: 0; }
+        body { background-color: #fff; color: #000; }
+        .custom-card { border: 1px solid #ccc; box-shadow: none; background-color: #fff; break-inside: avoid; }
+        .text-white, .text-light, .text-muted, .text-success, .text-danger, .text-warning, .text-info { color: #000 !important; }
+        .table-modern td, .table-modern th { border: 1px solid #ccc; background-color: #fff; color: #000; }
+        .badge-modern { border: 1px solid #000; color: #000; background: transparent; }
+    }
   </style>
 </head>
 <body>
 
 <div class="app-container">
-  <div class="main-wrapper d-flex">
+  <div class="mobile-topbar">
+    <div class="fw-bold text-main fs-5"><i class="bi bi-scissors text-primary me-2"></i>Barbearia Bot</div>
+    <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1" style="color: white;"></i></button>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="main-wrapper">
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="d-flex align-items-center gap-2"><i class="bi bi-scissors"></i><span class="fw-bold">Barbearia Bot</span></div>
-        <small class="text-muted" id="sidebar-user-name">Usuário: ...</small>
+      <div class="sidebar-header" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+        <div style="display: flex; align-items: center; gap: 12px;"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
+        <small class="text-muted fw-bold" style="font-size: 0.75rem; padding-left: 2px;" id="sidebar-user-name">Usuário: Carregando...</small>
       </div>
-      <ul class="sidebar-nav list-unstyled p-2">
+      <div class="nav-section-title">Geral</div>
+      <ul class="sidebar-nav">
         <li class="nav-item"><a href="index.html" class="nav-link"><i class="bi bi-calendar-event"></i> Agenda</a></li>
         <li class="nav-item"><a href="financeiro.html" class="nav-link active"><i class="bi bi-pie-chart"></i> Visão Financeira</a></li>
+      </ul>
+      <div class="nav-section-title">Administração</div>
+      <ul class="sidebar-nav">
         <li class="nav-item"><a href="servicos.html" class="nav-link"><i class="bi bi-list-check"></i> Serviços</a></li>
+        <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="bi bi-box-seam"></i> Estoque</a></li>
         <li class="nav-item"><a href="clientes.html" class="nav-link"><i class="bi bi-people"></i> Clientes</a></li>
         <li class="nav-item d-none" id="menu-usuarios"><a href="usuarios.html" class="nav-link"><i class="bi bi-person-badge"></i> Equipe</a></li>
       </ul>
-      <div class="mt-auto p-3 border-top border-secondary">
-        <form action="/sair" method="POST"><button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-box-arrow-left"></i> Sair</button></form>
+      <div class="sidebar-footer">
+        <form action="/sair" method="POST" class="m-0"><button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button></form>
       </div>
     </aside>
 
     <main class="main-content">
-      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <h1 class="h3 fw-bold m-0">Gestão Financeira</h1>
-        <div class="action-bar-custom d-flex gap-2">
-          <button class="btn btn-outline-light btn-sm" onclick="window.print()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
-          <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalTaxas"><i class="bi bi-percent"></i> Taxas</button>
-          <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalDespesa"><i class="bi bi-dash-circle"></i> Nova Despesa</button>
+      <div class="page-header-custom">
+        <h1 class="page-title">Gestão Financeira</h1>
+        <div class="action-bar-custom">
+          <button class="btn-modern btn-outline-modern" onclick="window.print()"><i class="bi bi-file-earmark-pdf text-danger"></i> Gerar PDF</button>
+          <button class="btn-modern btn-outline-modern" data-bs-toggle="modal" data-bs-target="#modalTaxas" onclick="carregarTaxas()"><i class="bi bi-percent text-warning"></i> Taxas da Máquina</button>
+          <button class="btn-modern" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger-color); border: 1px solid rgba(239, 68, 68, 0.2);" data-bs-toggle="modal" data-bs-target="#modalDespesa"><i class="bi bi-dash-circle"></i> Acrescentar Custos</button>
         </div>
       </div>
 
       <div class="custom-card p-4 mb-4">
-        <div class="row g-3 align-items-end">
-          <div class="col-md-6">
-            <label class="small fw-bold text-muted mb-1">PERÍODO</label>
+        <div class="row g-3 align-items-end m-0">
+          <div class="col-12 col-md-6 ps-0">
+            <label class="form-label text-light small fw-bold mb-1">PERÍODO DE ANÁLISE</label>
             <div class="input-group">
               <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarFinanceiro()">
-              <span class="input-group-text bg-transparent border-secondary text-muted">até</span>
+              <span class="input-group-text bg-body text-muted" style="border: 1px solid var(--border-color);">até</span>
               <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarFinanceiro()">
             </div>
           </div>
-          <div class="col-md-6 d-none" id="container-filtro-barbeiro">
-            <label class="small fw-bold text-primary mb-1">VISÃO DE CAIXA / BARBEIRO</label>
-            <select id="filtro-barbeiro" class="form-select custom-select" onchange="carregarFinanceiro()"></select>
+          <div class="col-12 col-md-6 pe-0 d-none" id="container-filtro-barbeiro">
+            <label class="form-label text-primary small fw-bold mb-1"><i class="bi bi-person"></i> CAIXA / BARBEIRO</label>
+            <select id="filtro-barbeiro" class="form-select custom-select" style="border-color: var(--accent-primary);" onchange="carregarFinanceiro()">
+            </select>
           </div>
         </div>
       </div>
 
       <div class="row g-4 mb-4">
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="custom-card stat-card">
-            <span class="stat-title" id="label-bruto">Bruto Recebido</span>
-            <div class="stat-value" id="card-faturamento">R$ 0,00</div>
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title">Faturamento Bruto</span>
+                <i class="bi bi-cash-coin stat-icon text-muted"></i>
+              </div>
+              <div class="stat-value text-muted" id="card-faturamento">R$ 0,00</div>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Soma total das entradas no período.</div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="custom-card stat-card" style="border-left: 4px solid var(--success-color);">
-            <span class="stat-title text-success" id="label-lucro">Lucro Real</span>
-            <div class="stat-value text-success" id="card-lucro">R$ 0,00</div>
+        <div class="col-12 col-md-4">
+          <div class="custom-card stat-card" style="border-color: rgba(16, 185, 129, 0.4);">
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title text-success" id="label-lucro">Lucro no Bolso</span>
+                <i class="bi bi-graph-up-arrow stat-icon text-success"></i>
+              </div>
+              <div class="stat-value text-success" id="card-lucro">R$ 0,00</div>
+            </div>
+            <div id="badge-comparacao" class="comparativo-badge mt-2" style="display: none;"></div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="custom-card stat-card">
-            <span class="stat-title text-danger" id="label-custo">Comissões / Gastos</span>
-            <div class="stat-value text-danger" id="card-gastos">R$ 0,00</div>
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title text-danger" id="label-gastos">Gastos / Comissões</span>
+                <i class="bi bi-cart-dash stat-icon text-danger"></i>
+              </div>
+              <div class="stat-value text-danger" id="card-gastos">R$ 0,00</div>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">O que saiu do seu caixa.</div>
           </div>
         </div>
       </div>
 
-      <div class="custom-card overflow-hidden">
-        <table class="table table-modern m-0">
-          <thead>
-          <tr>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Valor Bruto</th>
-            <th>Comissão Casa</th>
-            <th>Líquido</th>
-            <th class="col-acoes">Ações</th>
-          </tr>
-          </thead>
-          <tbody id="tabela-financeiro"></tbody>
-        </table>
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6">
+          <div class="custom-card stat-card" style="border-color: rgba(14, 165, 233, 0.4);">
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title text-info">Ticket Médio</span>
+                <i class="bi bi-receipt stat-icon" style="color: var(--info-color);"></i>
+              </div>
+              <div class="stat-value" style="color: var(--info-color);" id="card-ticket">R$ 0,00</div>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Valor médio gasto por cliente no período.</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="custom-card stat-card" style="border-color: rgba(245, 158, 11, 0.4);">
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title text-warning">Previsão (Clientes Fiéis)</span>
+                <i class="bi bi-calendar-check stat-icon text-warning"></i>
+              </div>
+              <div class="stat-value text-warning" id="card-previsao">R$ 0,00</div>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno baseada no histórico de clientes recorrentes.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-card p-0 overflow-hidden transparent-mobile">
+        <div class="table-responsive">
+          <table class="table table-modern text-center w-100">
+            <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Tipo</th>
+              <th>Forma de Pgto</th>
+              <th>Valor Líquido</th>
+              <th class="col-acoes">Ações</th>
+            </tr>
+            </thead>
+            <tbody id="tabela-financeiro"></tbody>
+          </table>
+        </div>
       </div>
     </main>
   </div>
 </div>
+
+<div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-dash-circle text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">O QUE FOI COMPRADO/PAGO?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz, Gilette..."></div><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR R$</label><input type="number" id="valor-despesa" class="form-control custom-input" placeholder="0.00" step="0.01"></div></div><div class="modal-footer border-0"><button class="btn-modern w-100 justify-content-center" style="background-color: var(--danger-color); color: white;" onclick="salvarDespesa()">Adicionar Custo</button></div></div></div></div>
+
+<div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-percent text-warning me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO CRÉDITO (%)</label><input type="number" id="taxa-credito" class="form-control custom-input" step="0.1"></div><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA DO DÉBITO (%)</label><input type="number" id="taxa-debito" class="form-control custom-input" step="0.1"></div><p class="text-muted small">O sistema descontará automaticamente essa porcentagem na hora de calcular seu Lucro no Bolso.</p></div><div class="modal-footer border-0"><button class="btn-modern btn-warning-modern w-100 justify-content-center" style="background-color: var(--warning-color); color: white;" onclick="salvarTaxas()">Salvar Taxas</button></div></div></div></div>
+
+<div class="modal fade" id="modalEditarTransacao" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Transação</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR BRUTO COBRADO (R$)</label><input type="number" id="edit-valor" class="form-control custom-input" step="0.01"></div><div class="mb-3"><label class="form-label fw-bold text-light small">MÉTODO DE PAGAMENTO</label><select id="edit-metodo" class="form-select custom-select"><option value="PIX_DINHEIRO">PIX / Dinheiro</option><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option></select></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoTransacao()">Atualizar Valores</button></div></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   let perfilLogado = ''; let idLogado = null; let barbeirosPermitidos = [];
 
   document.addEventListener("DOMContentLoaded", async () => {
-      const agora = new Date();
-      const hoje = agora.toISOString().split('T')[0];
-      document.getElementById('filtro-data-inicio').value = hoje;
+      const btnMenu = document.getElementById('mobile-menu-btn'); const sidebar = document.querySelector('.sidebar'); const overlay = document.getElementById('sidebar-overlay');
+      if(btnMenu && sidebar && overlay) { btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); }); overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); }); }
+
+      const dataAtual = new Date();
+      const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString().split('T')[0];
+      const hoje = dataAtual.toISOString().split('T')[0];
+
+      document.getElementById('filtro-data-inicio').value = primeiroDia;
       document.getElementById('filtro-data-fim').value = hoje;
+
       await carregarUsuario();
       carregarFinanceiro();
   });
@@ -135,105 +252,254 @@
           perfilLogado = me.perfil; idLogado = me.id;
           document.getElementById('sidebar-user-name').innerText = 'Usuário: ' + me.nome;
 
-          if (me.perfil !== 'USER') {
+          if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
               document.getElementById('menu-usuarios').classList.remove('d-none');
               const resFunc = await fetch('/api/admin/funcionarios');
-              const funcs = await resFunc.json();
-              barbeirosPermitidos = funcs.map(f => f.id);
+              if (resFunc.ok) {
+                  const funcs = await resFunc.json();
+                  barbeirosPermitidos = funcs.map(f => f.id);
 
-              const select = document.getElementById('filtro-barbeiro');
-              select.innerHTML = '';
+                  const select = document.getElementById('filtro-barbeiro');
+                  select.innerHTML = '';
 
-              // ✨ REGRA: Só SUPER_ADMIN vê "Visão Geral"
-              if (me.perfil === 'SUPER_ADMIN') {
-                  select.innerHTML += '<option value="TODOS">Visão Geral (Todos)</option>';
+                  if (me.perfil === 'SUPER_ADMIN') {
+                      select.innerHTML += '<option value="TODOS">Visão Geral (Todos)</option>';
+                  }
+
+                  select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
+                  funcs.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
+
+                  select.value = me.perfil === 'SUPER_ADMIN' ? 'TODOS' : 'CAIXA';
+                  document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
               }
-
-              // ✨ ADMIN e SUPER_ADMIN veem o Caixa
-              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
-              funcs.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
-
-              select.value = 'CAIXA';
-              document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
+          } else {
+              barbeirosPermitidos = [me.id];
           }
       }
+  }
+
+  async function carregarTaxas() {
+      const res = await fetch('/api/configuracoes/geral');
+      if(res.ok) {
+          const data = await res.json();
+          document.getElementById('taxa-credito').value = data.taxaCredito;
+          document.getElementById('taxa-debito').value = data.taxaDebito;
+      }
+  }
+
+  async function salvarTaxas() {
+      await fetch('/api/configuracoes/geral', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taxaCredito: parseFloat(document.getElementById('taxa-credito').value), taxaDebito: parseFloat(document.getElementById('taxa-debito').value) })
+      });
+      bootstrap.Modal.getInstance(document.getElementById('modalTaxas')).hide();
+      carregarFinanceiro();
+  }
+
+  async function salvarDespesa() {
+      const desc = document.getElementById('desc-despesa').value;
+      const valor = document.getElementById('valor-despesa').value;
+      if(!desc || !valor) return alert("Preencha a descrição e o valor.");
+      await fetch('/api/despesas', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ descricao: desc, valor: parseFloat(valor) })
+      });
+      bootstrap.Modal.getInstance(document.getElementById('modalDespesa')).hide();
+      document.getElementById('desc-despesa').value = ''; document.getElementById('valor-despesa').value = '';
+      carregarFinanceiro();
+  }
+
+  async function deletarDespesa(id) {
+      if(confirm("Remover esta despesa?")) {
+          await fetch(`/api/despesas/${id}`, { method: 'DELETE' });
+          carregarFinanceiro();
+      }
+  }
+
+  function abrirEdicao(id, valor, metodo) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-valor').value = valor;
+      document.getElementById('edit-metodo').value = metodo === 'PIX_DINHEIRO' || metodo === 'DINHEIRO' ? 'PIX_DINHEIRO' : metodo;
+      new bootstrap.Modal(document.getElementById('modalEditarTransacao')).show();
+  }
+
+  async function salvarEdicaoTransacao() {
+      const id = document.getElementById('edit-id').value;
+      const valor = document.getElementById('edit-valor').value;
+      const metodo = document.getElementById('edit-metodo').value;
+      await fetch(`/api/agendamentos/${id}/valor?novoValor=${valor}`, { method: 'PUT' });
+      await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' });
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarTransacao')).hide();
+      carregarFinanceiro();
   }
 
   async function carregarFinanceiro() {
       const [resAg, resDesp] = await Promise.all([fetch('/api/agendamentos'), fetch('/api/despesas')]);
       const todosAg = await resAg.json();
-      const todasDesp = await resDesp.json();
-      const filtro = document.getElementById('filtro-barbeiro').value;
-      const dIni = document.getElementById('filtro-data-inicio').value;
-      const dFim = document.getElementById('filtro-data-fim').value;
+      const todasDesp = resDesp.ok ? await resDesp.json() : [];
 
-      let totalBruto = 0, totalLucro = 0, totalGastos = 0;
-      const corpo = document.getElementById('tabela-financeiro');
-      corpo.innerHTML = '';
+      const dataInicio = document.getElementById('filtro-data-inicio').value;
+      const dataFim = document.getElementById('filtro-data-fim').value;
+      const selectFiltro = document.getElementById('filtro-barbeiro');
+      const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
-      // Labels dinâmicos
-      if (filtro === 'CAIXA') {
-          document.getElementById('label-lucro').innerText = 'Lucro da Casa (Comissões)';
-          document.getElementById('label-custo').innerText = 'Despesas da Loja';
-      } else {
+      // Atualização Dinâmica dos Rótulos dos Cards
+      if (filtroBarbeiro === 'CAIXA') {
+          document.getElementById('label-lucro').innerText = 'Lucro do Caixa (Comissões)';
+          document.getElementById('label-gastos').innerText = 'Despesas da Loja';
+      } else if (filtroBarbeiro !== 'TODOS') {
           document.getElementById('label-lucro').innerText = 'Seu Lucro Líquido';
-          document.getElementById('label-custo').innerText = 'Comissão paga à Casa';
+          document.getElementById('label-gastos').innerText = 'Comissão paga à Casa';
+      } else {
+          document.getElementById('label-lucro').innerText = 'Lucro no Bolso';
+          document.getElementById('label-gastos').innerText = 'Gastos / Comissões';
       }
 
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && ag.dataHoraInicio.split('T')[0] >= dIni && ag.dataHoraInicio.split('T')[0] <= dFim)
-      .forEach(ag => {
+      let transacoes = [];
+      let totalBruto = 0; let totalLucro = 0; let totalGastos = 0; let qtdAgendamentosPeriodo = 0;
+
+      // Variáveis para Inteligência (Comparação Mensal e Previsão)
+      const dataAtual = new Date();
+      const mesAtual = dataAtual.getMonth(); const anoAtual = dataAtual.getFullYear();
+      const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1; const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+      let lucroAtual = 0; let lucroAnterior = 0; let historicoClientes = {};
+
+      todosAg.forEach(ag => {
+          if (ag.status !== 'CONCLUIDO') return;
+
+          const dataAg = ag.dataHoraInicio.split('T')[0];
+          const dentroDoPeriodo = (dataAg >= dataInicio && dataAg <= dataFim);
+
+          let donoValido = false;
+          if (filtroBarbeiro === 'TODOS' || filtroBarbeiro === 'CAIXA') {
+              donoValido = true;
+          } else {
+              donoValido = (ag.donoDoRegistro && ag.donoDoRegistro.id == filtroBarbeiro);
+          }
+
+          if (!donoValido) return;
+
           const valorBruto = ag.valorFinal || ag.servicoEscolhido.preco;
           const comissaoCasa = valorBruto - ag.faturamentoBarbeiro;
           const liquidoBarbeiro = ag.faturamentoBarbeiro;
 
-          let exibir = false;
-          if (filtro === 'TODOS') exibir = true;
-          else if (filtro === 'CAIXA') exibir = true; // No caixa somamos as comissões de todos
-          else if (ag.donoDoRegistro && ag.donoDoRegistro.id == filtro) exibir = true;
+          let lucroDaTransacao = 0;
+          let gastoDaTransacao = 0;
 
-          if (exibir) {
-              if (filtro === 'CAIXA') {
-                  totalBruto += valorBruto;
-                  totalLucro += comissaoCasa; // O lucro da casa é a comissão
-              } else if (filtro === 'TODOS') {
-                  totalBruto += valorBruto;
-                  totalLucro += valorBruto;
-              } else {
-                  totalBruto += valorBruto;
-                  totalLucro += liquidoBarbeiro;
-                  totalGastos += comissaoCasa;
+          if (filtroBarbeiro === 'CAIXA') {
+              lucroDaTransacao = comissaoCasa;
+              gastoDaTransacao = 0; // Despesas somadas abaixo
+          } else if (filtroBarbeiro === 'TODOS') {
+              lucroDaTransacao = valorBruto;
+              gastoDaTransacao = 0;
+          } else {
+              lucroDaTransacao = liquidoBarbeiro;
+              gastoDaTransacao = comissaoCasa;
+          }
+
+          // Alimentando a inteligência (independente do filtro de data)
+          const dataObj = new Date(ag.dataHoraInicio);
+          if (dataObj.getMonth() === mesAtual && dataObj.getFullYear() === anoAtual) { lucroAtual += lucroDaTransacao; }
+          else if (dataObj.getMonth() === mesAnterior && dataObj.getFullYear() === anoAnterior) { lucroAnterior += lucroDaTransacao; }
+
+          if (!historicoClientes[ag.telefoneCliente]) historicoClientes[ag.telefoneCliente] = { visitas: 0, gastoTotal: 0 };
+          historicoClientes[ag.telefoneCliente].visitas++;
+          historicoClientes[ag.telefoneCliente].gastoTotal += valorBruto;
+
+          // Se estiver no período, alimenta a tabela
+          if (dentroDoPeriodo) {
+              totalBruto += valorBruto;
+              totalLucro += lucroDaTransacao;
+              totalGastos += gastoDaTransacao;
+              qtdAgendamentosPeriodo++;
+
+              let descHTML = `Corte: ${ag.nomeCliente} (${ag.servicoEscolhido.nome})`;
+              if (filtroBarbeiro === 'CAIXA') {
+                  descHTML += `<br><small class="text-success opacity-75">Comissão Recebida: R$ ${comissaoCasa.toFixed(2).replace('.', ',')}</small>`;
+              } else if (filtroBarbeiro !== 'TODOS') {
+                  descHTML += `<br><small class="text-danger opacity-75">Comissão Paga: R$ ${comissaoCasa.toFixed(2).replace('.', ',')}</small>`;
               }
 
-              corpo.innerHTML += `<tr>
-                  <td>${new Date(ag.dataHoraInicio).toLocaleDateString()}</td>
-                  <td>Corte: ${ag.nomeCliente}</td>
-                  <td>R$ ${valorBruto.toFixed(2)}</td>
-                  <td class="text-warning">R$ ${comissaoCasa.toFixed(2)}</td>
-                  <td class="text-success fw-bold">R$ ${(filtro === 'CAIXA' ? comissaoCasa : liquidoBarbeiro).toFixed(2)}</td>
-                  <td class="col-acoes">...</td>
-              </tr>`;
+              transacoes.push({
+                  id: ag.id, dataStr: ag.dataHoraInicio,
+                  dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(ag.dataHoraInicio)),
+                  descricao: descHTML, tipo: 'ENTRADA', pagamento: ag.formaPagamento,
+                  valor: lucroDaTransacao, valorCheio: valorBruto
+              });
           }
       });
 
-      // ✨ Processa Despesas (Custos da Barbearia)
-      todasDesp.filter(d => d.dataHora.split('T')[0] >= dIni && d.dataHora.split('T')[0] <= dFim)
-      .forEach(d => {
-          if (filtro === 'CAIXA' || filtro === 'TODOS') {
+      todasDesp.forEach(d => {
+          if(!d.dataHora) return;
+          const dataD = d.dataHora.split('T')[0];
+          const dentroDoPeriodo = (dataD >= dataInicio && dataD <= dataFim);
+
+          // Só exibe as despesas da barbearia no CAIXA ou TODOS
+          if (filtroBarbeiro !== 'CAIXA' && filtroBarbeiro !== 'TODOS') return;
+
+          const dataObj = new Date(d.dataHora);
+          if (dataObj.getMonth() === mesAtual && dataObj.getFullYear() === anoAtual) { lucroAtual -= d.valor; }
+          else if (dataObj.getMonth() === mesAnterior && dataObj.getFullYear() === anoAnterior) { lucroAnterior -= d.valor; }
+
+          if (dentroDoPeriodo) {
+              transacoes.push({
+                  id: d.id, dataStr: d.dataHora,
+                  dataBonita: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(d.dataHora)),
+                  descricao: d.descricao, tipo: 'SAIDA', pagamento: '-',
+                  valor: d.valor, valorCheio: d.valor
+              });
               totalGastos += d.valor;
               totalLucro -= d.valor;
-              corpo.innerHTML += `<tr class="table-dark">
-                  <td>${new Date(d.dataHora).toLocaleDateString()}</td>
-                  <td class="text-danger">DESPESA: ${d.descricao}</td>
-                  <td>-</td><td>-</td>
-                  <td class="text-danger">- R$ ${d.valor.toFixed(2)}</td>
-                  <td>...</td>
-              </tr>`;
           }
       });
 
-      document.getElementById('card-faturamento').innerText = `R$ ${totalBruto.toFixed(2)}`;
-      document.getElementById('card-lucro').innerText = `R$ ${totalLucro.toFixed(2)}`;
-      document.getElementById('card-gastos').innerText = `R$ ${totalGastos.toFixed(2)}`;
+      // Montagem do Badge de Comparação
+      const badge = document.getElementById('badge-comparacao');
+      if (lucroAnterior === 0 && lucroAtual === 0) { badge.style.display = 'none'; }
+      else {
+          let percentual = lucroAnterior > 0 ? ((lucroAtual - lucroAnterior) / lucroAnterior) * 100 : 100;
+          badge.style.display = 'inline-block';
+          if (percentual >= 0) { badge.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'; badge.style.color = 'var(--success-color)'; badge.innerHTML = `<i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}% vs Mês Passado`; }
+          else { badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)'; badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`; }
+      }
+
+      // Montagem do Ticket Médio e Previsão
+      let previsaoProximoMes = 0;
+      Object.values(historicoClientes).forEach(c => {
+          if (c.visitas > 1) previsaoProximoMes += (c.gastoTotal / c.visitas);
+      });
+      let ticketMedio = qtdAgendamentosPeriodo > 0 ? (totalBruto / qtdAgendamentosPeriodo) : 0;
+
+      document.getElementById('card-ticket').innerText = `R$ ${ticketMedio.toFixed(2).replace('.', ',')}`;
+      document.getElementById('card-previsao').innerText = `R$ ${previsaoProximoMes.toFixed(2).replace('.', ',')}`;
+
+      // Fechamento e Tabela
+      transacoes.sort((a, b) => new Date(b.dataStr) - new Date(a.dataStr));
+
+      document.getElementById('card-faturamento').innerText = `R$ ${totalBruto.toFixed(2).replace('.', ',')}`;
+      document.getElementById('card-lucro').innerText = `R$ ${totalLucro.toFixed(2).replace('.', ',')}`;
+      document.getElementById('card-gastos').innerText = `R$ ${totalGastos.toFixed(2).replace('.', ',')}`;
+
+      const corpo = document.getElementById('tabela-financeiro'); corpo.innerHTML = '';
+      if (transacoes.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro neste período.</td></tr>';
+
+      transacoes.forEach(t => {
+          let color = t.tipo === 'ENTRADA' ? 'text-success' : 'text-danger';
+          let icon = t.tipo === 'ENTRADA' ? '<i class="bi bi-arrow-down-left-circle-fill"></i> Entrada' : '<i class="bi bi-arrow-up-right-circle-fill"></i> Saída';
+
+          let actionBtn = t.tipo === 'ENTRADA'
+              ? `<button class="btn btn-sm btn-outline-modern border-0 text-primary" onclick="abrirEdicao(${t.id}, ${t.valorCheio}, '${t.pagamento}')" title="Editar Pagamento"><i class="bi bi-pencil-square fs-6"></i></button>`
+              : `<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${t.id})" title="Excluir Despesa"><i class="bi bi-trash3 fs-6"></i></button>`;
+
+          corpo.innerHTML += `<tr>
+              <td data-label="Data" class="fw-bold text-muted">${t.dataBonita}</td>
+              <td data-label="Descrição" class="text-light text-start">${t.descricao}</td>
+              <td data-label="Tipo" class="${color} fw-bold">${icon}</td>
+              <td data-label="Pgto" class="text-muted">${t.pagamento}</td>
+              <td data-label="Valor Líquido" class="fw-bold text-white">R$ ${t.valor.toFixed(2).replace('.', ',')}</td>
+              <td data-label="Ações" class="col-acoes">${actionBtn}</td>
+          </tr>`;
+      });
   }
 </script>
 </body>
