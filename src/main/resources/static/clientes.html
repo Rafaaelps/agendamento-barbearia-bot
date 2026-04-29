@@ -10,15 +10,22 @@
     <style>
         :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
+        .text-muted { color: var(--text-muted) !important; }
         .app-container { display: flex; height: 100vh; flex-direction: column; }
         .mobile-topbar { display: none; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 20px; align-items: center; justify-content: space-between; }
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100vh; z-index: 1050; }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1040; backdrop-filter: blur(2px); }
+        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: left 0.3s ease; height: 100vh; z-index: 1050; }
         .sidebar-header { padding: 24px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
         .sidebar-header i { color: var(--accent-primary); font-size: 1.5rem; }
-        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
-        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; }
-        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; }
-        .nav-link:hover, .nav-link.active { color: #fff; background-color: var(--accent-primary); }
+        .nav-section-title { padding: 24px 24px 8px 24px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
+        .sidebar-nav { list-style: none; padding: 0 12px; margin: 0; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+        .nav-item { margin-bottom: 4px; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
+        .nav-link:hover { color: var(--text-main); background-color: rgba(99, 102, 241, 0.1); }
+        .nav-link.active { color: #fff; background-color: var(--accent-primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .sidebar-footer { padding: 24px; border-top: 1px solid var(--border-color); }
+        .btn-logout { width: 100%; background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: 0.2s; }
+        .btn-logout:hover { color: var(--danger-color); border-color: var(--danger-color); background-color: rgba(239, 68, 68, 0.1); }
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
         .page-header-custom { margin-bottom: 24px; }
@@ -28,16 +35,36 @@
         .table-modern { color: var(--text-main); margin: 0; width: 100%; }
         .table-modern th { background-color: var(--bg-body); color: var(--text-main); font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; }
         .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; }
+        .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+
+        @media (max-width: 991.98px) {
+            .mobile-topbar { display: flex; }
+            .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
+            .sidebar.open { left: 0; }
+            .sidebar-overlay.show { display: block; }
+            .main-content { padding: 16px; }
+            .table-modern thead { display: none; }
+            .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
+            .table-modern tbody td:last-child { border-bottom: none; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+        }
     </style>
 </head>
 <body>
 
 <div class="app-container">
+    <div class="mobile-topbar">
+        <div class="fw-bold text-main fs-5"><i class="bi bi-scissors text-primary me-2"></i>Barbearia Bot</div>
+        <button class="btn btn-outline-modern border-0 py-1 px-2" id="mobile-menu-btn"><i class="bi bi-list fs-1" style="color: white;"></i></button>
+    </div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <div class="main-wrapper">
         <aside class="sidebar">
             <div class="sidebar-header" style="flex-direction: column; align-items: flex-start; gap: 5px;">
                 <div style="display: flex; align-items: center; gap: 12px;"><i class="bi bi-scissors"></i><span>Barbearia Bot</span></div>
-                <small class="text-muted fw-bold" style="font-size: 0.75rem;" id="sidebar-user-name">Usuário: Carregando...</small>
+                <small class="text-muted fw-bold" style="font-size: 0.75rem; padding-left: 2px;" id="sidebar-user-name">Usuário: Carregando...</small>
             </div>
             <div class="nav-section-title">Geral</div>
             <ul class="sidebar-nav">
@@ -49,7 +76,11 @@
                 <li class="nav-item"><a href="servicos.html" class="nav-link"><i class="bi bi-list-check"></i> Serviços</a></li>
                 <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="bi bi-box-seam"></i> Estoque</a></li>
                 <li class="nav-item"><a href="clientes.html" class="nav-link active"><i class="bi bi-people"></i> Clientes</a></li>
+                <li class="nav-item d-none" id="menu-usuarios"><a href="usuarios.html" class="nav-link"><i class="bi bi-person-badge"></i> Equipe</a></li>
             </ul>
+            <div class="sidebar-footer">
+                <form action="/sair" method="POST" class="m-0"><button type="submit" class="btn-logout"><i class="bi bi-box-arrow-left"></i> Sair do Sistema</button></form>
+            </div>
         </aside>
 
         <main class="main-content">
@@ -63,14 +94,14 @@
                         <label class="form-label text-light small fw-bold mb-1">CONSUMO NO PERÍODO</label>
                         <div class="input-group">
                             <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarClientes()">
-                            <span class="input-group-text bg-body text-muted border-color">até</span>
+                            <span class="input-group-text bg-body text-muted" style="border: 1px solid var(--border-color);">até</span>
                             <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarClientes()">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="custom-card p-0 overflow-hidden">
+            <div class="custom-card p-0 overflow-hidden transparent-mobile">
                 <div class="table-responsive">
                     <table class="table table-modern text-center w-100">
                         <thead>
@@ -92,14 +123,30 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", async () => {
+        const btnMenu = document.getElementById('mobile-menu-btn'); const sidebar = document.querySelector('.sidebar'); const overlay = document.getElementById('sidebar-overlay');
+        if(btnMenu && sidebar && overlay) { btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); }); overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); }); }
+
         const dataAtual = new Date();
         const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString().split('T')[0];
         const hoje = dataAtual.toISOString().split('T')[0];
 
         document.getElementById('filtro-data-inicio').value = primeiroDia;
         document.getElementById('filtro-data-fim').value = hoje;
+
+        await carregarUsuario();
         carregarClientes();
     });
+
+    async function carregarUsuario() {
+        const res = await fetch('/api/usuario/me');
+        if (res.ok) {
+            const me = await res.json();
+            document.getElementById('sidebar-user-name').innerText = 'Usuário: ' + me.nome;
+            if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
+                document.getElementById('menu-usuarios').classList.remove('d-none');
+            }
+        }
+    }
 
     async function carregarClientes() {
         const res = await fetch('/api/agendamentos');
@@ -108,7 +155,6 @@
         const dataInicio = document.getElementById('filtro-data-inicio').value;
         const dataFim = document.getElementById('filtro-data-fim').value;
 
-        // Agrupa os agendamentos do período pelo Telefone do Cliente
         const clientesAgrupados = {};
 
         todosAg.filter(ag => {
@@ -122,15 +168,12 @@
                     totalGasto: 0, ultimaVisita: ag.dataHoraInicio
                 };
             }
-            // Soma o dinheiro que ele gastou no período
             clientesAgrupados[tel].totalGasto += (ag.valorFinal || ag.servicoEscolhido.preco);
-            // Atualiza a última visita
             if (new Date(ag.dataHoraInicio) > new Date(clientesAgrupados[tel].ultimaVisita)) {
                 clientesAgrupados[tel].ultimaVisita = ag.dataHoraInicio;
             }
         });
 
-        // Transforma o objeto num Array e ordena quem gastou mais
         const listaClientes = Object.values(clientesAgrupados).sort((a, b) => b.totalGasto - a.totalGasto);
 
         const corpo = document.getElementById('tabela-clientes'); corpo.innerHTML = '';
@@ -141,7 +184,8 @@
             let zapLimpo = c.telefone.replace(/\D/g, '');
             let linkZap = `https://wa.me/55${zapLimpo}`;
 
-            corpo.innerHTML += `<tr><td class="fw-bold text-white">${c.nome}</td><td class="text-muted">${c.telefone}</td><td class="text-success fw-bold">R$ ${c.totalGasto.toFixed(2).replace('.', ',')}</td><td class="text-muted">${dataBonita}</td><td><a href="${linkZap}" target="_blank" class="btn btn-sm" style="background-color: rgba(16, 185, 129, 0.2); color: var(--success-color); border: 1px solid var(--success-color);"><i class="bi bi-whatsapp"></i> Chamar</a></td></tr>`;
+            // ✨ MUDANÇA: A classe text-light opacity-75 melhora a legibilidade no fundo escuro
+            corpo.innerHTML += `<tr><td data-label="Cliente" class="fw-bold text-white">${c.nome}</td><td data-label="WhatsApp" class="text-light opacity-75">${c.telefone}</td><td data-label="Total Gasto" class="text-success fw-bold">R$ ${c.totalGasto.toFixed(2).replace('.', ',')}</td><td data-label="Última Visita" class="text-light opacity-75">${dataBonita}</td><td data-label="Ações"><a href="${linkZap}" target="_blank" class="btn btn-sm" style="background-color: rgba(16, 185, 129, 0.2); color: var(--success-color); border: 1px solid var(--success-color);"><i class="bi bi-whatsapp"></i> Chamar</a></td></tr>`;
         });
     }
 </script>

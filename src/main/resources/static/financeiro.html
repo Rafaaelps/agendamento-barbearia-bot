@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B; }
+    :root { --bg-body: #0B0E14; --bg-sidebar: #11151C; --bg-card: #1A1F2B; --text-main: #F8FAFC; --text-muted: #CBD5E1; --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155; --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B; --info-color: #0EA5E9; }
     body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
     .text-muted { color: var(--text-muted) !important; }
     .app-container { display: flex; height: 100vh; flex-direction: column; }
@@ -40,7 +40,7 @@
     .stat-card { padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
     .stat-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
     .stat-value { font-size: 2rem; font-weight: 800; color: white; }
-    .stat-icon { font-size: 2rem; color: var(--accent-primary); opacity: 0.8; }
+    .stat-icon { font-size: 2rem; opacity: 0.8; }
     .comparativo-badge { font-size: 0.8rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; }
 
     @media (max-width: 991.98px) {
@@ -151,6 +151,33 @@
         </div>
       </div>
 
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6">
+          <div class="custom-card stat-card" style="border-color: rgba(14, 165, 233, 0.4);">
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title text-info">Ticket Médio</span>
+                <i class="bi bi-receipt stat-icon" style="color: var(--info-color);"></i>
+              </div>
+              <div class="stat-value" style="color: var(--info-color);" id="card-ticket">R$ 0,00</div>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Valor médio gasto por cliente no período.</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="custom-card stat-card" style="border-color: rgba(245, 158, 11, 0.4);">
+            <div>
+              <div class="d-flex justify-content-between">
+                <span class="stat-title text-warning">Previsão (Clientes Fiéis)</span>
+                <i class="bi bi-calendar-check stat-icon text-warning"></i>
+              </div>
+              <div class="stat-value text-warning" id="card-previsao">R$ 0,00</div>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 0.8rem;">Estimativa de retorno para o próximo mês baseada no histórico de clientes recorrentes.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="custom-card p-0 overflow-hidden transparent-mobile">
         <div class="table-responsive">
           <table class="table table-modern text-center w-100">
@@ -179,7 +206,6 @@
       if(btnMenu && sidebar && overlay) { btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); }); overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); }); }
 
       const dataAtual = new Date();
-      // Filtro padrão: Início do Mês até Hoje
       const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString().split('T')[0];
       const hoje = dataAtual.toISOString().split('T')[0];
 
@@ -214,8 +240,7 @@
       }
   }
 
-  // ✨ A Inteligência da Comparação Mensal
-  function calcularComparacaoMensal(agendamentosTotaisBanco, filtroBarbeiro, isAdmin) {
+  function calcularEstatisticasExtras(agendamentosTotaisBanco, filtroBarbeiro, isAdmin) {
       const dataAtual = new Date();
       const mesAtual = dataAtual.getMonth();
       const anoAtual = dataAtual.getFullYear();
@@ -223,40 +248,59 @@
       const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
 
       let lucroAtual = 0; let lucroAnterior = 0;
+      let historicoClientes = {}; // Para calcular a previsão
 
       agendamentosTotaisBanco.forEach(ag => {
           if (ag.status === 'CONCLUIDO') {
               let donoValido = (!ag.donoDoRegistro && isAdmin) || (ag.donoDoRegistro && (filtroBarbeiro === 'TODOS' || ag.donoDoRegistro.id == filtroBarbeiro || barbeirosPermitidos.includes(ag.donoDoRegistro.id)));
               if (!donoValido) return;
 
+              // 1. Lógica de Comparação Mensal
               const dataAg = new Date(ag.dataHoraInicio);
               if (dataAg.getMonth() === mesAtual && dataAg.getFullYear() === anoAtual) {
                   lucroAtual += ag.faturamentoBarbeiro;
               } else if (dataAg.getMonth() === mesAnterior && dataAg.getFullYear() === anoAnterior) {
                   lucroAnterior += ag.faturamentoBarbeiro;
               }
+
+              // 2. Lógica de Previsão de Clientes Fiéis
+              if (!historicoClientes[ag.telefoneCliente]) {
+                  historicoClientes[ag.telefoneCliente] = { visitas: 0, gastoTotal: 0 };
+              }
+              historicoClientes[ag.telefoneCliente].visitas++;
+              historicoClientes[ag.telefoneCliente].gastoTotal += ag.faturamentoBarbeiro;
           }
       });
 
+      // Pintar Badge de Comparação
       const badge = document.getElementById('badge-comparacao');
       if (lucroAnterior === 0 && lucroAtual === 0) {
-          badge.style.display = 'none'; return;
-      }
-
-      let percentual = lucroAnterior > 0 ? ((lucroAtual - lucroAnterior) / lucroAnterior) * 100 : 100;
-      badge.style.display = 'inline-block';
-
-      if (percentual >= 0) {
-          badge.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'; badge.style.color = 'var(--success-color)';
-          badge.innerHTML = `<i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}% vs Mês Passado`;
+          badge.style.display = 'none';
       } else {
-          badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)';
-          badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`;
+          let percentual = lucroAnterior > 0 ? ((lucroAtual - lucroAnterior) / lucroAnterior) * 100 : 100;
+          badge.style.display = 'inline-block';
+          if (percentual >= 0) {
+              badge.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'; badge.style.color = 'var(--success-color)';
+              badge.innerHTML = `<i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}% vs Mês Passado`;
+          } else {
+              badge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; badge.style.color = 'var(--danger-color)';
+              badge.innerHTML = `<i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}% vs Mês Passado`;
+          }
       }
+
+      // Calcular e Pintar Previsão
+      let previsaoProximoMes = 0;
+      Object.values(historicoClientes).forEach(c => {
+          if (c.visitas > 1) {
+              // Se o cliente vem mais de uma vez, assumimos que ele gasta a média dele por mês
+              previsaoProximoMes += (c.gastoTotal / c.visitas);
+          }
+      });
+      document.getElementById('card-previsao').innerText = `R$ ${previsaoProximoMes.toFixed(2).replace('.', ',')}`;
   }
 
   async function carregarFinanceiro() {
-      const [resAg] = await Promise.all([fetch('/api/agendamentos')]); // Adicione fetch despesas aqui se tiver
+      const [resAg] = await Promise.all([fetch('/api/agendamentos')]);
       const todosAg = await resAg.json();
 
       const dataInicio = document.getElementById('filtro-data-inicio').value;
@@ -265,11 +309,11 @@
       const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
       let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
-      // Calcula a comparação mensal independente da data filtrada
-      calcularComparacaoMensal(todosAg, filtroBarbeiro, isAdmin);
+      // Chama a função das estatísticas globais (Comparação e Previsão)
+      calcularEstatisticasExtras(todosAg, filtroBarbeiro, isAdmin);
 
       let transacoes = [];
-      let totalBruto = 0; let totalLucro = 0; let totalGastos = 0;
+      let totalBruto = 0; let totalLucro = 0; let totalGastos = 0; let qtdAgendamentosPeriodo = 0;
 
       todosAg.filter(ag => {
           const dataAg = ag.dataHoraInicio.split('T')[0];
@@ -286,14 +330,20 @@
               totalBruto += (ag.valorFinal || ag.servicoEscolhido.preco);
               totalLucro += ag.faturamentoBarbeiro;
               totalGastos += ((ag.valorFinal || ag.servicoEscolhido.preco) - ag.faturamentoBarbeiro);
+              qtdAgendamentosPeriodo++;
           }
       });
 
       transacoes.sort((a, b) => new Date(b.dataStr) - new Date(a.dataStr));
 
+      // Pinta os cartões principais
       document.getElementById('card-faturamento').innerText = `R$ ${totalBruto.toFixed(2).replace('.', ',')}`;
       document.getElementById('card-lucro').innerText = `R$ ${totalLucro.toFixed(2).replace('.', ',')}`;
       document.getElementById('card-gastos').innerText = `R$ ${totalGastos.toFixed(2).replace('.', ',')}`;
+
+      // Pinta o Ticket Médio
+      let ticketMedio = qtdAgendamentosPeriodo > 0 ? (totalLucro / qtdAgendamentosPeriodo) : 0;
+      document.getElementById('card-ticket').innerText = `R$ ${ticketMedio.toFixed(2).replace('.', ',')}`;
 
       const corpo = document.getElementById('tabela-financeiro'); corpo.innerHTML = '';
       if (transacoes.length === 0) return corpo.innerHTML = '<tr class="empty-state-row"><td colspan="5" class="text-light py-4 text-center">Nenhum movimento financeiro neste período.</td></tr>';
