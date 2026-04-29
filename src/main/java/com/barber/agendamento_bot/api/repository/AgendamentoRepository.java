@@ -5,14 +5,20 @@ import com.barber.agendamento_bot.api.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
+@Repository
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
 
+    // =========================================================
+    // 1. MÉTODOS DE CONSULTA PARA O PAINEL E LEMBRETES
+    // =========================================================
+
     List<Agendamento> findByStatusNot(String status);
-    List<Agendamento> findByTelefoneClienteAndStatusNot(String telefoneCliente, String status);
 
     @Query("SELECT a FROM Agendamento a WHERE a.status = :status AND (a.lembreteEnviado = false OR a.lembreteEnviado IS NULL) AND a.dataHoraInicio BETWEEN :agora AND :daquiA30Min")
     List<Agendamento> buscarAgendamentosParaLembrar(@Param("status") String status, @Param("agora") LocalDateTime agora, @Param("daquiA30Min") LocalDateTime daquiA30Min);
@@ -20,29 +26,28 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     @Query("SELECT a FROM Agendamento a WHERE a.status = :status AND a.lembreteEnviado = true AND a.dataHoraInicio BETWEEN :agora AND :limite")
     List<Agendamento> buscarNaoConfirmados(@Param("status") String status, @Param("agora") LocalDateTime agora, @Param("limite") LocalDateTime limite);
 
-    // ✨ NOVOS MÉTODOS PARA O SISTEMA DE MULTI-USUÁRIOS
+    // =========================================================
+    // 2. MÉTODOS PARA SISTEMA MULTI-USUÁRIO (SÓCIOS/BARBEIROS)
+    // =========================================================
+
     List<Agendamento> findByStatusNotAndDonoDoRegistro(String status, Usuario dono);
-    List<Agendamento> findByTelefoneClienteAndStatusNotAndDonoDoRegistro(String telefoneCliente, String status, Usuario dono);
 
-    long countByTelefoneClienteAndDataHoraInicioBetweenAndStatusNot(
-            String telefone,
-            LocalDateTime inicio,
-            LocalDateTime fim,
-            String status
-    );
+    // ✨ Busca a agenda do barbeiro filtrando apenas os status ocupados (AGENDADO/CONFIRMADO)
+    List<Agendamento> findByDonoDoRegistroAndStatusIn(Usuario dono, Collection<String> statuses);
 
-    // Busca todos os agendamentos pendentes de um cliente
-    List<Agendamento> findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(String telefoneCliente, List<String> statuses);
+    // =========================================================
+    // 3. MÉTODOS PARA O CHATBOT (INTELIGÊNCIA E REGRAS)
+    // =========================================================
 
-    // Busca os agendamentos pendentes em um dia específico
-    List<Agendamento> findByTelefoneClienteAndDataHoraInicioBetweenAndStatusInOrderByDataHoraInicioAsc(String telefoneCliente, LocalDateTime inicio, LocalDateTime fim, List<String> statuses);
-
-    // Conta quantos agendamentos pendentes existem no dia
-    long countByTelefoneClienteAndDataHoraInicioBetweenAndStatusIn(String telefone, LocalDateTime inicio, LocalDateTime fim, List<String> statuses);
-
-    // Descobre o nome do cliente baseado na última vez que ele agendou
+    // ✨ Reconhecimento do cliente: Busca o último registro para saudar pelo nome
     Agendamento findFirstByTelefoneClienteOrderByDataHoraInicioDesc(String telefoneCliente);
 
-    // Busca a agenda do barbeiro filtrando apenas os status ativos
-    List<Agendamento> findByStatusInAndDonoDoRegistro(List<String> statuses, Usuario dono);
+    // ✨ Limite Diário: Conta quantos agendamentos ativos o cliente tem no dia
+    long countByTelefoneClienteAndDataHoraInicioBetweenAndStatusIn(String telefone, LocalDateTime inicio, LocalDateTime fim, Collection<String> statuses);
+
+    // ✨ Cancelamento Geral: Lista todos os horários pendentes do cliente
+    List<Agendamento> findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(String telefoneCliente, Collection<String> statuses);
+
+    // ✨ Cancelamento por Limite: Lista os horários específicos de um dia para liberar vaga
+    List<Agendamento> findByTelefoneClienteAndDataHoraInicioBetweenAndStatusInOrderByDataHoraInicioAsc(String telefoneCliente, LocalDateTime inicio, LocalDateTime fim, Collection<String> statuses);
 }

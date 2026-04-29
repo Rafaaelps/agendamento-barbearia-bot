@@ -1,24 +1,11 @@
 package com.barber.agendamento_bot.api.service;
 
-import com.barber.agendamento_bot.api.entity.Agendamento;
-import com.barber.agendamento_bot.api.entity.BloqueioAgenda;
-import com.barber.agendamento_bot.api.entity.HorarioFuncionamento;
-import com.barber.agendamento_bot.api.entity.Servico;
-import com.barber.agendamento_bot.api.entity.Usuario;
-import com.barber.agendamento_bot.api.repository.AgendamentoRepository;
-import com.barber.agendamento_bot.api.repository.BloqueioAgendaRepository;
-import com.barber.agendamento_bot.api.repository.HorarioRepository;
-import com.barber.agendamento_bot.api.repository.ServicoRepository;
+import com.barber.agendamento_bot.api.entity.*;
+import com.barber.agendamento_bot.api.repository.*;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.time.*;
+import java.util.*;
 
 @Service
 public class AgendaService {
@@ -86,18 +73,15 @@ public class AgendaService {
         });
     }
 
-    // ✨ REGRA: Verifica se o cliente já atingiu 2 agendamentos pendentes no dia
     public boolean atingiuLimiteDiario(String telefone, LocalDate data) {
         LocalDateTime inicioDia = data.atStartOfDay();
         LocalDateTime fimDia = data.atTime(23, 59, 59);
-
         long total = agendamentoRepository.countByTelefoneClienteAndDataHoraInicioBetweenAndStatusIn(
                 telefone, inicioDia, fimDia, Arrays.asList("AGENDADO", "CONFIRMADO")
         );
         return total >= 2;
     }
 
-    // ✨ REGRA: Busca apenas agendamentos pendentes, ignorando os já concluídos
     public Agendamento buscarAgendamentoAtivoPorTelefone(String telefone) {
         List<Agendamento> ativos = agendamentoRepository.findByTelefoneClienteAndStatusInOrderByDataHoraInicioAsc(
                 telefone, Arrays.asList("AGENDADO", "CONFIRMADO")
@@ -105,7 +89,6 @@ public class AgendaService {
         return ativos.isEmpty() ? null : ativos.get(0);
     }
 
-    // ✨ REGRA: Motor de Horários com proteção de meia-noite e liberação de vagas para serviços CONCLUÍDOS
     public List<LocalTime> buscarHorariosLivres(LocalDate dataBuscada, Long servicoId, Usuario barbeiro) {
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
         if (barbeiro == null) return horariosDisponiveis;
@@ -113,88 +96,59 @@ public class AgendaService {
         int diaSemanaId = dataBuscada.getDayOfWeek().getValue();
         HorarioFuncionamento regrasDoDia = horarioRepository.findByDiaDaSemanaAndDonoDoRegistro(diaSemanaId, barbeiro).orElse(null);
 
-        if (regrasDoDia == null) {
-            String[] dias = {"", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"};
-            for (int i = 1; i <= 7; i++) {
-                HorarioFuncionamento h = new HorarioFuncionamento();
-                h.setDiaDaSemana(i);
-                h.setNomeDia(dias[i]);
-                h.setHoraAbertura("09:00");
-                h.setHoraFechamento("19:00");
-                h.setFechado(i == 7);
-                h.setDonoDoRegistro(barbeiro);
-                horarioRepository.save(h);
-                if (i == diaSemanaId) regrasDoDia = h;
-            }
-        }
+        if (regrasDoDia == null || regrasDoDia.isFechado()) return horariosDisponiveis;
 
-        if (regrasDoDia.isFechado()) return horariosDisponiveis;
+        LocalTime abertura = LocalTime.parse(regrasDoDia.getHoraAbertura());
+        LocalTime fechamento = LocalTime.parse(regrasDoDia.getHoraFechamento());
 
-        String horaAb = (regrasDoDia.getHoraAbertura() == null || regrasDoDia.getHoraAbertura().isEmpty()) ? "09:00" : regrasDoDia.getHoraAbertura();
-        String horaFc = (regrasDoDia.getHoraFechamento() == null || regrasDoDia.getHoraFechamento().isEmpty()) ? "19:00" : regrasDoDia.getHoraFechamento();
+        Servico servico = servicoRepository.findById(servicoId).orElseThrow();
+        int duracao = servico.getDuracaoMinutos();
 
-        LocalTime aberturaDoDia = LocalTime.parse(horaAb);
-        LocalTime fechamentoDoDia = LocalTime.parse(horaFc);
-
-        Servico servicoEscolhido = servicoRepository.findById(servicoId).orElseThrow();
-        int duracao = servicoEscolhido.getDuracaoMinutos();
-
-        // ✨ IMPORTANTE: Aqui ele ignora CONCLUÍDO e CANCELADO para liberar a agenda
-        List<Agendamento> todosNoBanco = agendamentoRepository.findByStatusInAndDonoDoRegistro(Arrays.asList("AGENDADO", "CONFIRMADO"), barbeiro);
-        List<BloqueioAgenda> todosBloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
+        // ✨ CORREÇÃO CRÍTICA: Agora ele busca APENAS o que está ocupado de verdade.
+        // Se o status for CONCLUIDO ou CANCELADO, ele não entra nessa lista e o horário fica LIVRE.
+        List<Agendamento> ocupados = agendamentoRepository.findByDonoDoRegistroAndStatusIn(barbeiro, Arrays.asList("AGENDADO", "CONFIRMADO"));
+        List<BloqueioAgenda> bloqueios = bloqueioAgendaRepository.findAllByDonoDoRegistro(barbeiro);
 
         ZoneId fusoBR = ZoneId.of("America/Sao_Paulo");
-        LocalDateTime momentoAtual = LocalDateTime.now(fusoBR);
-
-        LocalTime horarioTeste = aberturaDoDia;
+        LocalDateTime agora = LocalDateTime.now(fusoBR);
+        LocalTime horarioTeste = abertura;
 
         while (true) {
-            LocalTime fimTentativaTime = horarioTeste.plusMinutes(duracao);
+            LocalTime fimTeste = horarioTeste.plusMinutes(duracao);
+            if (fimTeste.isBefore(horarioTeste) || fimTeste.isAfter(fechamento)) break;
 
-            // Trava de segurança contra o loop da meia-noite
-            if (fimTentativaTime.isBefore(horarioTeste) || fimTentativaTime.isAfter(fechamentoDoDia)) {
-                if (!fechamentoDoDia.equals(LocalTime.MIDNIGHT)) {
-                    break;
-                }
-            }
+            LocalDateTime inicioCompleto = LocalDateTime.of(dataBuscada, horarioTeste);
+            LocalDateTime fimCompleto = inicioCompleto.plusMinutes(duracao);
 
-            LocalDateTime inicioTentativaCompleto = LocalDateTime.of(dataBuscada, horarioTeste);
-            LocalDateTime fimTentativaCompleta = inicioTentativaCompleto.plusMinutes(duracao);
-
-            // Evita agendar no passado
-            if (inicioTentativaCompleto.isBefore(momentoAtual.plusMinutes(15))) {
-                LocalTime proximo = horarioTeste.plusMinutes(30);
-                if (proximo.isBefore(horarioTeste)) break;
-                horarioTeste = proximo;
+            // Bloqueia horários no passado
+            if (inicioCompleto.isBefore(agora.plusMinutes(10))) {
+                horarioTeste = horarioTeste.plusMinutes(30);
                 continue;
             }
 
-            boolean temConflito = false;
-
-            for (Agendamento existente : todosNoBanco) {
-                if (existente.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
-                    if (inicioTentativaCompleto.isBefore(existente.getDataHoraFim()) && fimTentativaCompleta.isAfter(existente.getDataHoraInicio())) {
-                        temConflito = true; break;
+            boolean conflito = false;
+            for (Agendamento ag : ocupados) {
+                if (ag.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
+                    if (inicioCompleto.isBefore(ag.getDataHoraFim()) && fimCompleto.isAfter(ag.getDataHoraInicio())) {
+                        conflito = true; break;
                     }
                 }
             }
 
-            if (!temConflito) {
-                for (BloqueioAgenda bloqueio : todosBloqueios) {
-                    if (bloqueio.getDataHoraInicio() == null || bloqueio.getDataHoraFim() == null) continue;
-                    if (bloqueio.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
-                        if (inicioTentativaCompleto.isBefore(bloqueio.getDataHoraFim()) && fimTentativaCompleta.isAfter(bloqueio.getDataHoraInicio())) {
-                            temConflito = true; break;
+            if (!conflito) {
+                for (BloqueioAgenda bq : bloqueios) {
+                    if (bq.getDataHoraInicio().toLocalDate().equals(dataBuscada)) {
+                        if (inicioCompleto.isBefore(bq.getDataHoraFim()) && fimCompleto.isAfter(bq.getDataHoraInicio())) {
+                            conflito = true; break;
                         }
                     }
                 }
             }
 
-            if (!temConflito) horariosDisponiveis.add(horarioTeste);
+            if (!conflito) horariosDisponiveis.add(horarioTeste);
 
-            LocalTime proximo = horarioTeste.plusMinutes(30);
-            if (proximo.isBefore(horarioTeste)) break;
-            horarioTeste = proximo;
+            horarioTeste = horarioTeste.plusMinutes(30);
+            if (horarioTeste.equals(LocalTime.MIDNIGHT)) break;
         }
 
         return horariosDisponiveis;
