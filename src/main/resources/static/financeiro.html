@@ -250,7 +250,8 @@
   </div>
 </div>
 
-<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option><option value="PIX_DINHEIRO">Dinheiro / PIX</option><option value="LANCAMENTO_FUTURO">Lançamento Futuro</option><option value="PENDENTE">Pendente</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
+<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="PIX_DINHEIRO">Dinheiro / PIX</option><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
+
 <div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-gear text-light me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="text-light small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA CRÉDITO (%):</label><input type="number" id="taxa-credito" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">TAXA DÉBITO (%):</label><input type="number" id="taxa-debito" class="form-control custom-input fw-bold" step="0.01"></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarTaxas()">Salvar Novas Taxas</button></div></div></div></div>
 <div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-receipt text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">DO QUE SE TRATA?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz..."></div><div class="mb-4"><label class="form-label fw-bold text-light small">VALOR GASTO (R$):</label><input type="number" id="valor-despesa" class="form-control custom-input fw-bold text-danger" step="0.01"></div><button class="btn-modern btn-danger-modern w-100 justify-content-center" onclick="salvarDespesa()">Registrar Saída</button></div></div></div></div>
 
@@ -380,34 +381,29 @@
       const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
       let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
-      // ✨ CORREÇÃO: Garante que os encaixes criados sem barbeiro apareçam para o Admin!
       const checkDono = (donoObj) => {
           if (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA') return true;
           let idD = donoObj ? donoObj.id : idLogado;
           return (idD == fBarbeiro);
       };
 
+      // --- CORTES DE CABELO ---
       todosAg.filter(ag => ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dataInicio, dataFim)).forEach(ag => {
         if (!checkDono(ag.donoDoRegistro)) return;
 
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let pNorm = (ag.formaPagamento || '').toUpperCase();
 
-        // ✨ CORREÇÃO: Fiados do banco de dados agora são interceptados perfeitamente
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
-        // ✨ CORREÇÃO: O JS agora pega os cálculos que o Back-end já fez!
         let fatBarbeiro = Number(ag.faturamentoBarbeiro || 0);
         let comissaoSalao = Number(ag.comissaoDoAdmin || 0);
 
-        // Descobre a taxa baseando-se no que sumiu entre o Bruto, o Barbeiro e o Salão.
         let valTaxa = Math.max(0, precoCheio - fatBarbeiro - comissaoSalao);
 
-        // Se por acaso vier zerado do back-end (dados muito antigos ou fiado pendente),
-        // simulamos a lógica exata do seu CaixaController para não quebrar a tela.
         if (ehFuturo || (fatBarbeiro === 0 && comissaoSalao === 0 && precoCheio > 0)) {
             let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
-            valTaxa = 0; // Fiado não tem taxa de cartão antecipada
+            valTaxa = 0;
             comissaoSalao = precoCheio * txSalao;
             fatBarbeiro = precoCheio - comissaoSalao;
         }
@@ -473,15 +469,20 @@
         if (!checkDono(donoVenda)) return;
 
         let precoCheio = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
-        let valorPosCartao = Number(v.valorTotal || 0);
-        let valTaxa = Math.max(0, precoCheio - valorPosCartao);
 
         let pNorm = (v.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
-        let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
-        let comissaoSalao = valorPosCartao * txSalaoProd;
-        let fatBarbeiro = valorPosCartao - comissaoSalao;
+        let fatBarbeiro = Number(v.faturamentoBarbeiro || 0);
+        let comissaoSalao = Number(v.comissaoDoAdmin || 0);
+        let valTaxa = Math.max(0, precoCheio - fatBarbeiro - comissaoSalao);
+
+        if (ehFuturo || (fatBarbeiro === 0 && comissaoSalao === 0 && precoCheio > 0)) {
+            let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
+            valTaxa = 0;
+            comissaoSalao = precoCheio * txSalaoProd;
+            fatBarbeiro = precoCheio - comissaoSalao;
+        }
 
         let valorLiquidoExibicao = 0;
         let idDonoDestaVenda = donoVenda ? donoVenda.id : idLogado;
@@ -541,6 +542,11 @@
       });
 
       // --- DESPESAS ---
+      const dataHoje = new Date();
+      const mesAt = dataHoje.getMonth(), anoAt = dataHoje.getFullYear();
+      const mesAn = mesAt === 0 ? 11 : mesAt - 1, anoAn = mesAt === 0 ? anoAt - 1 : anoAt;
+      let lucroMesAt = 0, lucroMesAn = 0;
+
       todasD.filter(d => estaNoPeriodo(d.dataHora, dataInicio, dataFim)).forEach(d => {
         if (!checkDono(d.donoDoRegistro)) return;
         despesasTotal += Number(d.valor || 0);
@@ -602,6 +608,10 @@
           textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
       }
 
+      let hist = {}, totalCts = 0, fatGlobal = 0;
+      todosAg.filter(ag => ag.status === 'CONCLUIDO' && checkDono(ag.donoDoRegistro)).forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
+      let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
+
       document.getElementById('valor-pendente').innerText = totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-lucro-liquido').innerText = lucroNoBolso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('indicador-crescimento').innerHTML = `<span class="text-light">Líquido em Conta</span>`;
@@ -616,6 +626,8 @@
 
       let quebraSaidas = `Despesas: R$ ${despesasTotal.toFixed(2)} | Taxas: R$ ${taxasTotal.toFixed(2)}`;
       document.getElementById('detalhe-saidas').innerHTML = textoSaidasExtras ? `${quebraSaidas}<br>${textoSaidasExtras}` : quebraSaidas;
+
+      document.getElementById('valor-previsao').innerText = previsao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
       const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
       if (meuGrafico) meuGrafico.destroy();
@@ -657,6 +669,7 @@
 
   async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/'); const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
 
+  // ✨ MUDANÇA: Modal Edit modificado para apresentar apenas Dinheiro, Crédito e Débito
   function abrirModalEditarFinanceiro(id, valorFinal, pgto) {
       document.getElementById('edit-fin-id').value = id;
       document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2);
@@ -664,8 +677,7 @@
       let selectPgto = document.getElementById('edit-fin-pgto');
       if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO';
       else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO';
-      else if (pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE') || pNorm === '' || pNorm === 'NULL') selectPgto.value = 'LANCAMENTO_FUTURO';
-      else selectPgto.value = 'PIX_DINHEIRO';
+      else selectPgto.value = 'PIX_DINHEIRO'; // Se era fiado e tá recebendo agora, default é PIX
       new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show();
   }
 
@@ -675,7 +687,6 @@
       const novoPgto = document.getElementById('edit-fin-pgto').value;
       try {
           await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' });
-          // ✨ O BACK-END RECALCULA TAXAS E COMISSÕES AQUI E TIRA DO FIADO
           await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' });
 
           bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide();
