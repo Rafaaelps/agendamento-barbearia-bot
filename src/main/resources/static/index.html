@@ -288,6 +288,7 @@
             let listaMista = [];
 
             todosAg.filter(ag => {
+                if (!ag.dataHoraInicio) return false;
                 const dataAg = ag.dataHoraInicio.split('T')[0];
                 return dataAg >= dataInicio && dataAg <= dataFim;
             }).forEach(ag => {
@@ -313,23 +314,30 @@
             listaMista.forEach(item => {
                 if (item.tipo === 'AGENDAMENTO') {
                     const ag = item.dado;
+
+                    // ✨ MUDANÇA: Formata a data para exibir junto com a hora na tabela
+                    const dataBonita = new Date(ag.dataHoraInicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                     const hi = new Date(ag.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(ag.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
                     let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
                     let botoes = (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO') ? `<button class="btn btn-sm btn-success-modern me-2" onclick="abrirModalPagamento(${ag.id})"><i class="bi bi-check-lg"></i> Receber</button><button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` : `<span class="text-light fw-bold">${ag.status}</span>`;
 
                     let seloBarbeiro = (ag.donoDoRegistro && isAdmin && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${ag.donoDoRegistro.nome}</span>` : '';
 
-                    corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong>${seloBarbeiro}</td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
+                    corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong>${seloBarbeiro}</td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${dataBonita}<br><small class="text-muted">${hi} - ${hf}</small></td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
                 } else {
                     const bq = item.dado;
+
+                    // ✨ MUDANÇA: Formata a data do bloqueio
+                    const dataBonita = new Date(bq.dataHoraInicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
                     let seloBarbeiroBq = (bq.donoDoRegistro && isAdmin && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${bq.donoDoRegistro.nome}</span>` : '';
                     let btnExcluirBq = `<button class="btn btn-sm btn-outline-danger border-0" onclick="excluirBloqueio(${bq.id})" title="Remover Bloqueio"><i class="bi bi-trash3 fs-6"></i></button>`;
 
-                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span>${seloBarbeiroBq}</td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${hi} - ${hf}</td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações">${btnExcluirBq}</td></tr>`;
+                    corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span>${seloBarbeiroBq}</td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${dataBonita}<br><small class="text-muted">${hi} - ${hf}</small></td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações">${btnExcluirBq}</td></tr>`;
                 }
             });
         } catch (e) { console.error(e); }
@@ -352,6 +360,7 @@
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
         let url = '/api/horarios';
 
+        // Se houver um barbeiro selecionado no filtro, pedimos os horários DELE
         if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
             url += '?barbeiroId=' + selectBarbeiro.value;
         }
@@ -371,6 +380,7 @@
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
         let url = '/api/horarios';
 
+        // Manda o ID do barbeiro na hora de salvar
         if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
             url += '?barbeiroId=' + selectBarbeiro.value;
         }
