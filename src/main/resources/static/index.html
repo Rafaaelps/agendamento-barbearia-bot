@@ -396,7 +396,18 @@
         }
     }
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
-    async function processarPagamento(metodo) { const id = document.getElementById('id-agendamento-pagamento').value; await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' }); await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide(); carregarAgendamentos(); }
+
+    // ✨ MUDANÇA: Impede o backend de travar se o método for LANCAMENTO_FUTURO
+    async function processarPagamento(metodo) {
+        const id = document.getElementById('id-agendamento-pagamento').value;
+        if (metodo !== 'LANCAMENTO_FUTURO' && metodo !== 'PENDENTE') {
+            try { await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' }); } catch(e){}
+        }
+        await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' });
+        bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide();
+        carregarAgendamentos();
+    }
+
     async function salvarBloqueio() { const dados = { dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`, dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`, motivo: document.getElementById('motivo-bloqueio').value }; await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide(); carregarAgendamentos(); }
     async function cancelar(id) { if(confirm("Cancelar agendamento?")) { await fetch(`/api/agendamentos/${id}/cancelar`, { method: 'PUT' }); carregarAgendamentos(); } }
 </script>
