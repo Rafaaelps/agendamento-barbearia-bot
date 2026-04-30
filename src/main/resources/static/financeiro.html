@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
     :root {
@@ -160,7 +161,16 @@
           </div>
 
           <div class="buttons-grid">
-            <button class="btn-modern btn-outline-modern" onclick="exportarPDF()"><i class="bi bi-printer"></i> PDF</button>
+            <div class="dropdown">
+              <button class="btn-modern btn-outline-modern dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-files"></i> Documento
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark custom-card" style="border: 1px solid var(--border-color);">
+                <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarPDF()"><i class="bi bi-file-earmark-pdf text-danger fs-5"></i> Gerar em PDF</a></li>
+                <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarExcel()"><i class="bi bi-file-earmark-excel text-success fs-5"></i> Gerar em Excel</a></li>
+              </ul>
+            </div>
+
             <button class="btn-modern btn-danger-modern d-none" id="btn-custo" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
             <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
           </div>
@@ -250,8 +260,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="PIX_DINHEIRO">Dinheiro / PIX</option><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
-
+<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option><option value="PIX_DINHEIRO">Dinheiro / PIX</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
 <div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-gear text-light me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="text-light small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA CRÉDITO (%):</label><input type="number" id="taxa-credito" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">TAXA DÉBITO (%):</label><input type="number" id="taxa-debito" class="form-control custom-input fw-bold" step="0.01"></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarTaxas()">Salvar Novas Taxas</button></div></div></div></div>
 <div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-receipt text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">DO QUE SE TRATA?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz..."></div><div class="mb-4"><label class="form-label fw-bold text-light small">VALOR GASTO (R$):</label><input type="number" id="valor-despesa" class="form-control custom-input fw-bold text-danger" step="0.01"></div><button class="btn-modern btn-danger-modern w-100 justify-content-center" onclick="salvarDespesa()">Registrar Saída</button></div></div></div></div>
 
@@ -469,7 +478,6 @@
         if (!checkDono(donoVenda)) return;
 
         let precoCheio = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
-
         let pNorm = (v.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
@@ -667,9 +675,38 @@
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 
+  // ✨ FUNÇÃO NOVA PARA EXPORTAR EXCEL
+  async function exportarExcel() {
+      const corpoTb = document.getElementById('tabela-extrato');
+      const linhas = corpoTb.querySelectorAll('tr');
+      const dados = [['Data', 'Origem/Destino', 'Descrição', 'Pagamento', 'Valor Líquido']];
+
+      linhas.forEach(linha => {
+          if (linha.classList.contains('empty-state-row')) return;
+          const colunas = linha.querySelectorAll('td');
+          if (colunas.length >= 5) {
+              dados.push([
+                  colunas[0].innerText.trim(),
+                  colunas[1].innerText.trim(),
+                  colunas[2].innerText.trim().replace(/\n/g, ' - '),
+                  colunas[3].innerText.trim(),
+                  colunas[4].innerText.trim()
+              ]);
+          }
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(dados);
+      ws['!cols'] = [{wch: 15}, {wch: 20}, {wch: 45}, {wch: 15}, {wch: 15}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Extrato");
+
+      const dIni = document.getElementById('filtro-data-inicio').value;
+      const dFim = document.getElementById('filtro-data-fim').value;
+      XLSX.writeFile(wb, `Extrato_${dIni}_a_${dFim}.xlsx`);
+  }
+
   async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/'); const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
 
-  // ✨ MUDANÇA: Modal Edit modificado para apresentar apenas Dinheiro, Crédito e Débito
   function abrirModalEditarFinanceiro(id, valorFinal, pgto) {
       document.getElementById('edit-fin-id').value = id;
       document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2);
@@ -677,7 +714,7 @@
       let selectPgto = document.getElementById('edit-fin-pgto');
       if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO';
       else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO';
-      else selectPgto.value = 'PIX_DINHEIRO'; // Se era fiado e tá recebendo agora, default é PIX
+      else selectPgto.value = 'PIX_DINHEIRO';
       new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show();
   }
 
