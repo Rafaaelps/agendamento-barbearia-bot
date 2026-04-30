@@ -350,7 +350,25 @@
     }
 
     async function carregarServicosEncaixe() { const res = await fetch('/api/servicos'); const servicos = await res.json(); const select = document.getElementById('servico-encaixe'); select.innerHTML = ''; servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`); }
-    async function salvarEncaixe() { const dados = { nomeCliente: document.getElementById('nome-encaixe').value, telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000", servicoEscolhido: { id: document.getElementById('servico-encaixe').value }, dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00` }; if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!"); await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide(); carregarAgendamentos(); }
+
+    // ✨ CORREÇÃO APLICADA: Envia o Barbeiro selecionado para o Banco de Dados.
+    async function salvarEncaixe() {
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
+
+        const dados = {
+            nomeCliente: document.getElementById('nome-encaixe').value,
+            telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000",
+            servicoEscolhido: { id: document.getElementById('servico-encaixe').value },
+            dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00`,
+            donoDoRegistro: { id: idBarbeiroSelecionado }
+        };
+        if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!");
+        await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+        bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide();
+        carregarAgendamentos();
+    }
+
     async function carregarConfigsBot() { const res = await fetch('/api/configuracoes/geral'); const data = await res.json(); document.getElementById('switch-bot-ativo').checked = data.botAtivo; document.getElementById('minutos-bot').value = data.minutosConfirmacao; atualizarLabelBot(data.botAtivo); }
     function atualizarLabelBot(ativo) { const lbl = document.getElementById('label-bot-status'); const cmp = document.getElementById('campos-bot-config'); if(ativo) { lbl.innerText="Robô Ligado"; lbl.classList.add('text-success'); cmp.style.opacity="1"; cmp.style.pointerEvents="auto"; } else { lbl.innerText="Robô Desligado"; lbl.classList.remove('text-success'); cmp.style.opacity="0.5"; cmp.style.pointerEvents="none"; } }
     async function salvarConfigsBot() { await fetch('/api/configuracoes/geral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ botAtivo: document.getElementById('switch-bot-ativo').checked, minutosConfirmacao: parseInt(document.getElementById('minutos-bot').value) }) }); bootstrap.Modal.getInstance(document.getElementById('modalConfigBot')).hide(); }
@@ -397,7 +415,6 @@
     }
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
 
-    // ✨ CORREÇÃO APLICADA AQUI: Sempre avisa o CaixaController, mesmo sendo Fiado, para o backend calcular os valores base!
     async function processarPagamento(metodo) {
         const id = document.getElementById('id-agendamento-pagamento').value;
         try {

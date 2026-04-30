@@ -185,6 +185,7 @@
     let clientesGlobal = [];
     let perfilLogado = '';
     let nomeLogado = '';
+    let idLogado = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
         const btnMenu = document.getElementById('mobile-menu-btn');
@@ -195,7 +196,6 @@
             overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
         }
 
-        // ✨ Inicializa o Filtro de Período (Primeiro dia do mês até hoje)
         const dataAtual = new Date();
         const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString().split('T')[0];
         const hoje = dataAtual.toISOString().split('T')[0];
@@ -252,6 +252,13 @@
         } catch(e) {}
     }
 
+    // ✨ CORREÇÃO 1: Função Inteligente para recuperar donos "Nulos" de agendamentos antigos criados por Encaixe
+    const checkDono = (donoObj, fBarbeiro) => {
+        if (fBarbeiro === 'TODOS') return true;
+        let idD = donoObj ? donoObj.id : idLogado;
+        return (idD == fBarbeiro);
+    };
+
     async function carregarCRM() {
         try {
             const resposta = await fetch('/api/agendamentos');
@@ -260,19 +267,18 @@
             const selectFiltro = document.getElementById('filtro-barbeiro');
             const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
-            // ✨ Captura os valores do filtro de data
             const dataInicio = document.getElementById('filtro-data-inicio').value;
             const dataFim = document.getElementById('filtro-data-fim').value;
 
             const concluidos = todosAgendamentos.filter(ag => {
                 if (!ag.dataHoraInicio) return false;
 
-                // ✨ Filtro Primário: Verifica se está no período e se está concluído
                 let dataAg = ag.dataHoraInicio.split('T')[0];
                 let estaNoPeriodo = dataAg >= dataInicio && dataAg <= dataFim;
-
                 let ehConcluido = ag.status === 'CONCLUIDO';
-                let ehDono = (fBarbeiro === 'TODOS') || (ag.donoDoRegistro && ag.donoDoRegistro.id == fBarbeiro);
+
+                // ✨ Aplica a correção inteligente de Dono aqui
+                let ehDono = checkDono(ag.donoDoRegistro, fBarbeiro);
 
                 return ehConcluido && ehDono && estaNoPeriodo;
             });
@@ -281,22 +287,33 @@
             let faturamentoGeral = 0; let visitasGerais = 0;
 
             concluidos.forEach(ag => {
-                const tel = ag.telefoneCliente; const valorLivre = Number(ag.faturamentoBarbeiro || 0);
+                // ✨ CORREÇÃO 2: Limpeza rigorosa do telefone para evitar Duplicidade de "Rafael"
+                let telRaw = ag.telefoneCliente || "(00) 00000-0000";
+                let telLimpo = telRaw.replace(/\D/g, '');
+                if (telLimpo.length === 10 || telLimpo.length === 11) telLimpo = '55' + telLimpo;
+                const tel = telLimpo !== '55' ? telLimpo : telRaw;
+
+                const valorLivre = Number(ag.faturamentoBarbeiro || 0);
                 const precoCheio = ag.valorFinal ? Number(ag.valorFinal) : valorLivre;
                 const dataAgendamento = new Date(ag.dataHoraInicio);
 
-                if (!mapaClientes[tel]) mapaClientes[tel] = { telefone: tel, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento, donoDoRegistro: ag.donoDoRegistro };
-                mapaClientes[tel].totalVisitas += 1; mapaClientes[tel].gastoTotal += precoCheio;
-                faturamentoGeral += precoCheio; visitasGerais += 1;
+                if (!mapaClientes[tel]) mapaClientes[tel] = { telefone: telRaw, nome: ag.nomeCliente, totalVisitas: 0, gastoTotal: 0, ultimaVisita: dataAgendamento, donoDoRegistro: ag.donoDoRegistro };
 
-                if (dataAgendamento > mapaClientes[tel].ultimaVisita) { mapaClientes[tel].ultimaVisita = dataAgendamento; mapaClientes[tel].nome = ag.nomeCliente; }
+                mapaClientes[tel].totalVisitas += 1;
+                mapaClientes[tel].gastoTotal += precoCheio;
+                faturamentoGeral += precoCheio;
+                visitasGerais += 1;
+
+                if (dataAgendamento > mapaClientes[tel].ultimaVisita) {
+                    mapaClientes[tel].ultimaVisita = dataAgendamento;
+                    mapaClientes[tel].nome = ag.nomeCliente;
+                }
             });
 
             clientesGlobal = Object.values(mapaClientes);
             document.getElementById('total-clientes').innerText = clientesGlobal.length;
             document.getElementById('ticket-medio').innerText = (visitasGerais > 0 ? (faturamentoGeral / visitasGerais) : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-            // Chama a ordenação (Filtro Secundário) e renderiza
             renderizarTabela();
         } catch (erro) { console.error("Erro CRM:", erro); }
     }
@@ -304,13 +321,10 @@
     function renderizarTabela() {
         const ordem = document.getElementById('filtro-ordem').value; const hoje = new Date();
 
-        // ✨ Filtro Secundário: Ordenação da lista já filtrada pelo período
         if (ordem === 'GASTO') clientesGlobal.sort((a, b) => b.gastoTotal - a.gastoTotal);
         else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
         else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
 
-        const selectFiltro = document.getElementById('filtro-barbeiro');
-        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
         let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
 
         const corpoTabela = document.getElementById('tabela-clientes');
