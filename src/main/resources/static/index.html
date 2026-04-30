@@ -397,12 +397,12 @@
     }
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
 
-    // ✨ MUDANÇA: Impede o backend de travar se o método for LANCAMENTO_FUTURO
+    // ✨ CORREÇÃO: Remove a trava que impedia o Controller de receber a info do Fiado
     async function processarPagamento(metodo) {
         const id = document.getElementById('id-agendamento-pagamento').value;
-        if (metodo !== 'LANCAMENTO_FUTURO' && metodo !== 'PENDENTE') {
-            try { await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' }); } catch(e){}
-        }
+        try {
+            await fetch(`/api/caixa/${id}/pagar?metodo=${metodo}`, { method: 'POST' });
+        } catch(e) {}
         await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' });
         bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide();
         carregarAgendamentos();

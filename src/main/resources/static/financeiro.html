@@ -203,7 +203,7 @@
           <div class="custom-card p-3 d-flex justify-content-between align-items-center" style="border-color: rgba(245, 158, 11, 0.4); cursor: pointer; transition: 0.2s;" id="card-futuro-container" onclick="toggleFiltroFuturo()">
             <div>
               <h6 class="text-warning text-uppercase mb-1 small fw-bold"><i class="bi bi-clock-history"></i> A Receber (Lançamentos Futuros)</h6>
-              <small class="text-muted" style="font-size: 0.75rem;">Clique aqui para filtrar a tabela e exibir apenas os clientes que estão devendo na modalidade Lançamento Futuro (Fiado).</small>
+              <small class="text-muted" style="font-size: 0.75rem;">Clique aqui para exibir a tabela dos clientes que estão devendo na modalidade Lançamento Futuro.</small>
             </div>
             <h3 class="fw-bold text-warning mb-0" id="valor-pendente">R$ 0,00</h3>
           </div>
@@ -260,7 +260,6 @@
   let perfilLogado = ''; let nomeLogado = ''; let idLogado = null;
   let barbeirosPermitidos = [];
 
-  // ✨ Status do Filtro do Fiado
   let modoFiltroFuturo = false;
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -283,7 +282,6 @@
     setInterval(() => { const modalAberto = document.querySelector('.modal.show'); if (!modalAberto) { carregarFinanceiro(); } }, 10000);
   });
 
-  // ✨ Alterna a exibição exclusiva da Tabela para quem deve
   function toggleFiltroFuturo() {
       modoFiltroFuturo = !modoFiltroFuturo;
       const card = document.getElementById('card-futuro-container');
@@ -394,7 +392,6 @@
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let pNorm = (ag.formaPagamento || '').toUpperCase();
 
-        // ✨ A LÓGICA DO FIADO: Se estiver vazio ou for explicitamente futuro, nós o pescamos.
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
         let txC = (ag.donoDoRegistro && ag.donoDoRegistro.taxaCredito != null) ? ag.donoDoRegistro.taxaCredito / 100.0 : taxaCredGlobal;
@@ -404,20 +401,8 @@
         if (pNorm.includes('CREDITO')) taxaDaVenda = precoCheio * txC;
         else if (pNorm.includes('DEBITO')) taxaDaVenda = precoCheio * txD;
 
-        let valorPosCartao = precoCheio - taxaDaVenda;
-
         let fatBarbeiro = Number(ag.faturamentoBarbeiro || 0);
         let comissaoSalao = Number(ag.comissaoDoAdmin || 0);
-
-        if (ehFuturo) {
-            let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
-            comissaoSalao = precoCheio * txSalao;
-            fatBarbeiro = precoCheio - comissaoSalao;
-        } else if (fatBarbeiro === 0 && comissaoSalao === 0) {
-            let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
-            comissaoSalao = valorPosCartao * txSalao;
-            fatBarbeiro = valorPosCartao - comissaoSalao;
-        }
 
         let valorLiquidoExibicao = 0;
         let idDonoDesteCorte = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
@@ -480,15 +465,21 @@
         if (!checkDono(donoVenda)) return;
 
         let precoCheio = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
-        let valorPosCartao = Number(v.valorTotal || 0);
-        let taxaDaVenda = Math.max(0, precoCheio - valorPosCartao);
 
         let pNorm = (v.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
+        let txC = (donoVenda && donoVenda.taxaCredito != null) ? donoVenda.taxaCredito / 100.0 : taxaCredGlobal;
+        let txD = (donoVenda && donoVenda.taxaDebito != null) ? donoVenda.taxaDebito / 100.0 : taxaDebGlobal;
+
+        let taxaDaVenda = 0;
+        if (pNorm.includes('CREDITO')) taxaDaVenda = precoCheio * txC;
+        else if (pNorm.includes('DEBITO')) taxaDaVenda = precoCheio * txD;
+
         let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
-        let comissaoSalao = valorPosCartao * txSalaoProd;
-        let fatBarbeiro = valorPosCartao - comissaoSalao;
+        let baseCalculo = precoCheio - taxaDaVenda;
+        let comissaoSalao = baseCalculo * txSalaoProd;
+        let fatBarbeiro = baseCalculo - comissaoSalao;
 
         let valorLiquidoExibicao = 0;
         let idDonoDestaVenda = donoVenda ? donoVenda.id : idLogado;
@@ -609,10 +600,6 @@
           textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
       }
 
-      let hist = {}, totalCts = 0, fatGlobal = 0;
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && checkDono(ag.donoDoRegistro)).forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
-      let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
-
       document.getElementById('valor-pendente').innerText = totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-lucro-liquido').innerText = lucroNoBolso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('indicador-crescimento').innerHTML = `<span class="text-light">Líquido em Conta</span>`;
@@ -627,8 +614,6 @@
 
       let quebraSaidas = `Despesas: R$ ${despesasTotal.toFixed(2)} | Taxas: R$ ${taxasTotal.toFixed(2)}`;
       document.getElementById('detalhe-saidas').innerHTML = textoSaidasExtras ? `${quebraSaidas}<br>${textoSaidasExtras}` : quebraSaidas;
-
-      document.getElementById('valor-previsao').innerText = previsao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
       const ctx = document.getElementById('graficoFinanceiro').getContext('2d');
       if (meuGrafico) meuGrafico.destroy();
@@ -681,16 +666,16 @@
       new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show();
   }
 
+  // ✨ CORREÇÃO FINAL: Garante que o Caixa Controller seja avisado na baixa
   async function salvarEdicaoFinanceira() {
       const id = document.getElementById('edit-fin-id').value;
       const novoValor = document.getElementById('edit-fin-valor').value;
       const novoPgto = document.getElementById('edit-fin-pgto').value;
       try {
           await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' });
-          // ✨ Só envia o pagamento para o banco se não for lançamento futuro
-          if (novoPgto !== 'LANCAMENTO_FUTURO' && novoPgto !== 'PENDENTE') {
-              await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' });
-          }
+          // Agora avisamos o Controller, para que as taxas e o Fiado sejam calculados no BD
+          await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' });
+
           bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide();
           carregarFinanceiro();
       } catch (e) { alert("Erro ao editar."); }
