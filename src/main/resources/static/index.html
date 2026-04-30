@@ -397,7 +397,7 @@
     }
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
 
-    // ✨ CORREÇÃO: Remove a trava que impedia o Controller de receber a info do Fiado
+    // ✨ CORREÇÃO APLICADA AQUI: Sempre avisa o CaixaController, mesmo sendo Fiado, para o backend calcular os valores base!
     async function processarPagamento(metodo) {
         const id = document.getElementById('id-agendamento-pagamento').value;
         try {
