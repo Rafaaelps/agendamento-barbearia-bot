@@ -199,7 +199,8 @@
 <div class="modal fade" id="modalConfigBot" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-robot text-primary me-2"></i> Robô de Lembrete</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="form-check form-switch mb-4"><input class="form-check-input" type="checkbox" role="switch" id="switch-bot-ativo" style="width: 2.5em; height: 1.25em;"><label class="form-check-label fw-bold ms-2 text-light" for="switch-bot-ativo" id="label-bot-status">Bot Desativado</label></div><div id="campos-bot-config"><label class="form-label fw-bold text-light small">AVISAR QUANTO TEMPO ANTES?</label><div class="input-group"><input type="number" id="minutos-bot" class="form-control custom-input text-center" min="25" step="5"><span class="input-group-text bg-body border-color text-light">min</span></div><p class="text-light mt-3" style="font-size: 0.75rem;">O bot aguardará 20 min pela resposta. Sem resposta, cancela.</p></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarConfigsBot()">Salvar Preferências</button></div></div></div></div>
 <div class="modal fade" id="modalBloqueio" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-lock text-warning me-2"></i> Bloquear Agenda</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">DATA</label><input type="date" id="data-bloqueio" class="form-control custom-input"></div><div class="row mb-3 g-2"><div class="col-6"><label class="form-label fw-bold text-light small">INÍCIO</label><input type="time" id="hora-inicio-bloqueio" class="form-control custom-input"></div><div class="col-6"><label class="form-label fw-bold text-light small">FIM</label><input type="time" id="hora-fim-bloqueio" class="form-control custom-input"></div></div><div class="mb-3"><label class="form-label fw-bold text-light small">MOTIVO</label><input type="text" id="motivo-bloqueio" class="form-control custom-input" placeholder="Ex: Horário de Almoço"></div></div><div class="modal-footer border-0"><button class="btn-modern btn-warning-modern w-100 justify-content-center" onclick="salvarBloqueio()">Aplicar Bloqueio</button></div></div></div></div>
 <div class="modal fade" id="modalHorarios" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-clock text-primary me-2"></i> Expediente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="corpo-modal-horarios"></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarGradeHorarios()">Salvar Expediente</button></div></div></div></div>
-<div class="modal fade" id="modalPagamento" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-wallet2 text-success me-2"></i> Finalizar</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 text-light">Como o cliente pagou?</p><input type="hidden" id="id-agendamento-pagamento"><div class="d-grid gap-2"><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button><button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarPagamento('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button></div></div></div></div></div>
+
+<div class="modal fade" id="modalPagamento" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-wallet2 text-success me-2"></i> Finalizar</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 text-light">Como o cliente pagou?</p><input type="hidden" id="id-agendamento-pagamento"><div class="d-grid gap-2"><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarPagamento('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button><button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarPagamento('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button><button class="btn-modern justify-content-center mt-2 border-0" style="background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color);" onclick="processarPagamento('LANCAMENTO_FUTURO')"><i class="bi bi-clock-history me-2"></i> Lançamento Futuro (Fiado)</button></div></div></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -315,7 +316,6 @@
                 if (item.tipo === 'AGENDAMENTO') {
                     const ag = item.dado;
 
-                    // ✨ MUDANÇA: Formata a data para exibir junto com a hora na tabela
                     const dataBonita = new Date(ag.dataHoraInicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                     const hi = new Date(ag.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(ag.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -329,7 +329,6 @@
                 } else {
                     const bq = item.dado;
 
-                    // ✨ MUDANÇA: Formata a data do bloqueio
                     const dataBonita = new Date(bq.dataHoraInicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -360,7 +359,6 @@
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
         let url = '/api/horarios';
 
-        // Se houver um barbeiro selecionado no filtro, pedimos os horários DELE
         if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
             url += '?barbeiroId=' + selectBarbeiro.value;
         }
@@ -380,7 +378,6 @@
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
         let url = '/api/horarios';
 
-        // Manda o ID do barbeiro na hora de salvar
         if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
             url += '?barbeiroId=' + selectBarbeiro.value;
         }

@@ -199,6 +199,18 @@
       </div>
 
       <div class="row mb-5 g-3">
+        <div class="col-12">
+          <div class="custom-card p-3 d-flex justify-content-between align-items-center" style="border-color: rgba(245, 158, 11, 0.4); cursor: pointer; transition: 0.2s;" id="card-futuro-container" onclick="toggleFiltroFuturo()">
+            <div>
+              <h6 class="text-warning text-uppercase mb-1 small fw-bold"><i class="bi bi-clock-history"></i> A Receber (Lançamentos Futuros)</h6>
+              <small class="text-muted" style="font-size: 0.75rem;">Clique aqui para exibir a tabela dos clientes que estão devendo na modalidade Lançamento Futuro.</small>
+            </div>
+            <h3 class="fw-bold text-warning mb-0" id="valor-pendente">R$ 0,00</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-5 g-3">
         <div class="col-12 col-lg-4" id="coluna-grafico">
           <div class="custom-card h-100 p-0 overflow-hidden d-flex flex-column">
             <div class="p-3 border-bottom border-color bg-card">
@@ -238,7 +250,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option><option value="PIX_DINHEIRO">Dinheiro / PIX</option><option value="PENDENTE">Pendente</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
+<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option><option value="PIX_DINHEIRO">Dinheiro / PIX</option><option value="LANCAMENTO_FUTURO">Lançamento Futuro</option><option value="PENDENTE">Pendente</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
 <div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-gear text-light me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="text-light small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA CRÉDITO (%):</label><input type="number" id="taxa-credito" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">TAXA DÉBITO (%):</label><input type="number" id="taxa-debito" class="form-control custom-input fw-bold" step="0.01"></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarTaxas()">Salvar Novas Taxas</button></div></div></div></div>
 <div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-receipt text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">DO QUE SE TRATA?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz..."></div><div class="mb-4"><label class="form-label fw-bold text-light small">VALOR GASTO (R$):</label><input type="number" id="valor-despesa" class="form-control custom-input fw-bold text-danger" step="0.01"></div><button class="btn-modern btn-danger-modern w-100 justify-content-center" onclick="salvarDespesa()">Registrar Saída</button></div></div></div></div>
 
@@ -247,6 +259,9 @@
   let meuGrafico = null; let taxaCredGlobal = 0.05; let taxaDebGlobal = 0.02;
   let perfilLogado = ''; let nomeLogado = ''; let idLogado = null;
   let barbeirosPermitidos = [];
+
+  // ✨ MUDANÇA: Status do Filtro do Lançamento Futuro
+  let modoFiltroFuturo = false;
 
   document.addEventListener("DOMContentLoaded", async () => {
     const btnMenu = document.getElementById('mobile-menu-btn');
@@ -267,6 +282,20 @@
     carregarFinanceiro();
     setInterval(() => { const modalAberto = document.querySelector('.modal.show'); if (!modalAberto) { carregarFinanceiro(); } }, 10000);
   });
+
+  // ✨ MUDANÇA: Ativa/Desativa o filtro na Tabela do Lançamento Futuro
+  function toggleFiltroFuturo() {
+      modoFiltroFuturo = !modoFiltroFuturo;
+      const card = document.getElementById('card-futuro-container');
+      if (modoFiltroFuturo) {
+          card.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+          card.style.borderWidth = '2px';
+      } else {
+          card.style.backgroundColor = 'var(--bg-card)';
+          card.style.borderWidth = '1px';
+      }
+      carregarFinanceiro();
+  }
 
   async function carregarFiltroBarbeiros() {
       try {
@@ -319,7 +348,6 @@
       } catch(e) {}
   }
 
-  // ✨ Função adaptada para verificar o período de datas ao invés de apenas o mês
   const estaNoPeriodo = (dataStringOuArray, dtInicio, dtFim) => {
       if (!dataStringOuArray) return false;
       let dataComp = "";
@@ -344,6 +372,7 @@
 
       let [receitaBruta, taxasTotal, despesasTotal, extratoMisto] = [0, 0, 0, []];
       let comissoesRetidasPeloSalao = 0;
+      let totalPendente = 0; // ✨ MUDANÇA: Guarda o Lançamento Futuro isolado
 
       const selectFiltro = document.getElementById('filtro-barbeiro');
       const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
@@ -361,6 +390,9 @@
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let pNorm = (ag.formaPagamento || '').toUpperCase();
 
+        // ✨ MUDANÇA: Identifica se é lançamento futuro
+        let ehFuturo = pNorm.includes('LANCAMENTO_FUTURO') || pNorm === 'PENDENTE';
+
         let txC = (ag.donoDoRegistro && ag.donoDoRegistro.taxaCredito != null) ? ag.donoDoRegistro.taxaCredito / 100.0 : taxaCredGlobal;
         let txD = (ag.donoDoRegistro && ag.donoDoRegistro.taxaDebito != null) ? ag.donoDoRegistro.taxaDebito / 100.0 : taxaDebGlobal;
 
@@ -373,10 +405,15 @@
         let fatBarbeiro = Number(ag.faturamentoBarbeiro || 0);
         let comissaoSalao = Number(ag.comissaoDoAdmin || 0);
 
-        if (fatBarbeiro === 0 && comissaoSalao === 0 && pNorm !== 'PENDENTE') {
+        if (fatBarbeiro === 0 && comissaoSalao === 0 && !ehFuturo) {
             let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
             comissaoSalao = valorPosCartao * txSalao;
             fatBarbeiro = valorPosCartao - comissaoSalao;
+        } else if (ehFuturo) {
+            // Se for futuro, simula o cálculo baseado no que seria a comissão padrão, sem taxa
+            let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
+            comissaoSalao = precoCheio * txSalao;
+            fatBarbeiro = precoCheio - comissaoSalao;
         }
 
         let valorLiquidoExibicao = 0;
@@ -386,11 +423,10 @@
 
         if (isAdmin && fBarbeiro === 'TODOS') {
             if (idDonoDesteCorte == idLogado) {
-                receitaBruta += precoCheio;
-                taxasTotal += taxaDaVenda;
+                if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += taxaDaVenda; }
                 valorLiquidoExibicao = precoCheio - taxaDaVenda;
             } else {
-                receitaBruta += comissaoSalao;
+                if(!ehFuturo) { receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
                 detalheComissaoHtml = `
                     <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
@@ -399,27 +435,27 @@
                         <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                     </div>`;
             }
+            if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
-            extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, precoCheio: precoCheio });
+            extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, precoCheio: precoCheio, ehFuturo: ehFuturo });
         }
         else if (fBarbeiro === 'CAIXA') {
             if (idDonoDesteCorte != idLogado && comissaoSalao > 0) {
-                receitaBruta += comissaoSalao;
+                if(!ehFuturo) { receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
                 detalheComissaoHtml = `
                     <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
                         <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado do Cliente:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
                         <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Comissão Recebida (Livre):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                     </div>`;
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
-                extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio });
+                extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio, ehFuturo: ehFuturo });
             }
         }
         else {
-            receitaBruta += precoCheio;
-            taxasTotal += taxaDaVenda;
+            if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += taxaDaVenda; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-            comissoesRetidasPeloSalao += comissaoSalao;
 
             if (isAdmin && idDonoDesteCorte != idLogado) {
                 detalheComissaoHtml = `
@@ -429,8 +465,9 @@
                     <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
                 </div>`;
             }
+            if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
-            extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, precoCheio: precoCheio });
+            extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, precoCheio: precoCheio, ehFuturo: ehFuturo });
         }
       });
 
@@ -442,6 +479,8 @@
         let precoCheio = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
         let valorPosCartao = Number(v.valorTotal || 0);
         let taxaDaVenda = Math.max(0, precoCheio - valorPosCartao);
+        let pNorm = (v.formaPagamento || '').toUpperCase();
+        let ehFuturo = pNorm.includes('LANCAMENTO_FUTURO') || pNorm === 'PENDENTE';
 
         let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
         let comissaoSalao = valorPosCartao * txSalaoProd;
@@ -454,12 +493,11 @@
 
         if (isAdmin && fBarbeiro === 'TODOS') {
             if (idDonoDestaVenda == idLogado) {
-                receitaBruta += precoCheio;
-                taxasTotal += taxaDaVenda;
+                if(!ehFuturo){ receitaBruta += precoCheio; taxasTotal += taxaDaVenda; }
                 valorLiquidoExibicao = precoCheio - taxaDaVenda;
             } else {
                 if (comissaoSalao > 0) {
-                    receitaBruta += comissaoSalao;
+                    if(!ehFuturo) { receitaBruta += comissaoSalao; }
                     valorLiquidoExibicao = comissaoSalao;
                     detalheComissaoHtml = `
                     <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
@@ -469,27 +507,27 @@
                     </div>`;
                 } else return;
             }
+            if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
-            extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda });
+            extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, ehFuturo: ehFuturo });
         }
         else if (fBarbeiro === 'CAIXA') {
             if (idDonoDestaVenda != idLogado && comissaoSalao > 0) {
-                receitaBruta += comissaoSalao;
+                if(!ehFuturo){ receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
                 detalheComissaoHtml = `
                 <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
                     <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado do Cliente:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
                     <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
                 </div>`;
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
-                extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0 });
+                extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, ehFuturo: ehFuturo });
             }
         }
         else {
-            receitaBruta += precoCheio;
-            taxasTotal += taxaDaVenda;
+            if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += taxaDaVenda; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-            comissoesRetidasPeloSalao += comissaoSalao;
 
             if (isAdmin && idDonoDestaVenda != idLogado && comissaoSalao > 0) {
                 detalheComissaoHtml = `
@@ -499,8 +537,9 @@
                     <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
                 </div>`;
             }
+            if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
-            extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda });
+            extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: taxaDaVenda, ehFuturo: ehFuturo });
         }
       });
 
@@ -509,33 +548,53 @@
         if (!checkDono(d.donoDoRegistro)) return;
         despesasTotal += Number(d.valor || 0);
         let dataString = Array.isArray(d.dataHora) ? `${d.dataHora[0]}-${String(d.dataHora[1]).padStart(2,'0')}-${String(d.dataHora[2]).padStart(2,'0')}T${String(d.dataHora[3]).padStart(2,'0')}:${String(d.dataHora[4]).padStart(2,'0')}` : d.dataHora;
-        extratoMisto.push({ data: dataString, tipo: 'DESPESA', obj: d });
+        extratoMisto.push({ data: dataString, tipo: 'DESPESA', obj: d, ehFuturo: false });
       });
 
       extratoMisto.sort((a, b) => new Date(b.data) - new Date(a.data));
       const corpoTb = document.getElementById('tabela-extrato'); corpoTb.innerHTML = '';
 
-      if (extratoMisto.length === 0) corpoTb.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro encontrado.</td></tr>';
-      else {
-        extratoMisto.forEach(item => {
+      let teveResultado = false;
+
+      extratoMisto.forEach(item => {
+          // ✨ MUDANÇA: Aplica a lógica do FILTRO de A Receber na exibição
+          if (modoFiltroFuturo && !item.ehFuturo) return;
+          if (!modoFiltroFuturo && item.ehFuturo) return;
+
+          teveResultado = true;
+
           if (item.tipo === 'CORTE') {
-              let btnEdit = `<button class="btn btn-sm btn-outline-primary border-0" onclick="abrirModalEditarFinanceiro(${item.obj.id}, ${item.precoCheio}, '${item.obj.formaPagamento}')" title="Editar"><i class="bi bi-pencil-square fs-6"></i></button>`;
+              let btnEdit = item.ehFuturo
+                  ? `<button class="btn btn-sm btn-success border-0 w-100 text-nowrap shadow-sm" onclick="abrirModalEditarFinanceiro(${item.obj.id}, ${item.precoCheio}, '${item.obj.formaPagamento}')" title="Dar Baixa"><i class="bi bi-check-circle"></i> Receber</button>`
+                  : `<button class="btn btn-sm btn-outline-primary border-0" onclick="abrirModalEditarFinanceiro(${item.obj.id}, ${item.precoCheio}, '${item.obj.formaPagamento}')" title="Editar"><i class="bi bi-pencil-square fs-6"></i></button>`;
+
               let descricaoFinal = `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}${item.obj.detalheHtml || ''}`;
-              corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, descricaoFinal, item.obj.formaPagamento, item.lucroLivre, item.obj.donoDoRegistro, btnEdit, isAdmin, fBarbeiro);
+              let displayPgto = item.ehFuturo ? '<span class="text-warning fw-bold"><i class="bi bi-clock-history"></i> Lançamento Futuro</span>' : item.obj.formaPagamento;
+
+              corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, descricaoFinal, displayPgto, item.lucroLivre, item.obj.donoDoRegistro, btnEdit, isAdmin, fBarbeiro);
           }
           else if (item.tipo === 'VENDA') {
               let donoVenda = item.obj.produto ? item.obj.produto.donoDoRegistro : null;
               let descricaoFinal = `<i class="bi bi-box-seam"></i> ${item.obj.quantidade}x ${item.obj.produto.nome}${item.obj.detalheHtml || ''}`;
-              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", descricaoFinal, item.obj.formaPagamento, item.lucroLivre, donoVenda, '<span class="text-light">-</span>', isAdmin, fBarbeiro);
+
+              let btnEdit = item.ehFuturo
+                  ? `<button class="btn btn-sm btn-success border-0 w-100 text-nowrap shadow-sm" onclick="abrirModalEditarFinanceiro(${item.obj.id}, ${item.precoCheio}, '${item.obj.formaPagamento}')" title="Dar Baixa"><i class="bi bi-check-circle"></i> Receber</button>`
+                  : `<span class="text-light">-</span>`;
+
+              let displayPgto = item.ehFuturo ? '<span class="text-warning fw-bold"><i class="bi bi-clock-history"></i> Lançamento Futuro</span>' : item.obj.formaPagamento;
+
+              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", descricaoFinal, displayPgto, item.lucroLivre, donoVenda, btnEdit, isAdmin, fBarbeiro);
           }
           else if (item.tipo === 'DESPESA') {
-            const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-            let seloDonoDespesa = (item.obj.donoDoRegistro && isAdmin && (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA')) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${item.obj.donoDoRegistro.nome}</span>` : '';
-            corpoTb.innerHTML += `<tr style="background-color: rgba(239, 68, 68, 0.05);"><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-white">Caixa (Barbearia)</strong></td><td data-label="Descrição"><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small>${seloDonoDespesa}</td><td data-label="Pagamento" class="fw-bold text-light">-</td><td data-label="Valor Líquido" class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})" title="Apagar"><i class="bi bi-trash3 fs-6"></i></button></td></tr>`;
+              const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+              let seloDonoDespesa = (item.obj.donoDoRegistro && isAdmin && (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA')) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${item.obj.donoDoRegistro.nome}</span>` : '';
+              corpoTb.innerHTML += `<tr style="background-color: rgba(239, 68, 68, 0.05);"><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-white">Caixa (Barbearia)</strong></td><td data-label="Descrição"><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small>${seloDonoDespesa}</td><td data-label="Pagamento" class="fw-bold text-light">-</td><td data-label="Valor Líquido" class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})" title="Apagar"><i class="bi bi-trash3 fs-6"></i></button></td></tr>`;
           }
-        });
-      }
+      });
 
+      if (!teveResultado) corpoTb.innerHTML = '<tr class="empty-state-row"><td colspan="6" class="text-light py-4 text-center">Nenhum movimento financeiro para este filtro.</td></tr>';
+
+      // ✨ FECHAMENTO DE CAIXA INTELIGENTE (Somente o que REALMENTE foi pago)
       let lucroNoBolso = 0;
       let textoSaidasExtras = "";
 
@@ -550,10 +609,13 @@
           textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
       }
 
+      // Previsão de Clientes
       let hist = {}, totalCts = 0, fatGlobal = 0;
       todosAg.filter(ag => ag.status === 'CONCLUIDO' && checkDono(ag.donoDoRegistro)).forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
 
+      // Atualiza Valores
+      document.getElementById('valor-pendente').innerText = totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-lucro-liquido').innerText = lucroNoBolso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('indicador-crescimento').innerHTML = `<span class="text-light">Líquido em Conta</span>`;
       document.getElementById('valor-entradas').innerText = receitaBruta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -598,6 +660,8 @@
     const dFmt = new Date(data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     let p = pgto || '', pNorm = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     let cor = 'text-light', nPgto = p;
+
+    // Tratamento estético do pagamento
     if (pNorm.includes('CREDITO')) { cor = 'text-primary'; nPgto = '<i class="bi bi-credit-card"></i> Crédito'; }
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
@@ -607,53 +671,21 @@
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 
-  async function exportarPDF() {
-      const el = document.getElementById('area-relatorio');
-      const botoes = document.getElementById('botoes-acao');
-      const tituloPag = document.getElementById('titulo-pagina');
-      const tituloPDF = document.getElementById('titulo-pdf');
-      const containerTabela = document.getElementById('container-tabela-extrato');
-      const cGrafico = document.getElementById('coluna-grafico');
-      const cTabela = document.getElementById('coluna-tabela');
-      const mobileTop = document.getElementById('mobile-topbar-print');
+  async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/'); const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
 
-      if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important');
-      botoes.style.setProperty('display', 'none', 'important');
-      tituloPag.style.display = 'none';
-
-      const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/');
-      const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/');
-      tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`;
-      tituloPDF.classList.remove('d-none');
-
-      document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none');
-      cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4');
-      cTabela.classList.replace('col-lg-8', 'w-100');
-
-      const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color };
-      document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF";
-      document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333');
-      document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333');
-      document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666');
-
-      await html2pdf().set({
-          margin: [10, 10, 10, 10],
-          filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, backgroundColor: '#FFFFFF' },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      }).from(el).save();
-
-      document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = "";
-      document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = '');
-      botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none');
-      if(mobileTop) mobileTop.style.display = '';
-      cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4');
-      cTabela.classList.replace('w-100', 'col-lg-8');
-      document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = '');
+  // ✨ MUDANÇA: Modal Editor reconhece Lançamento Futuro
+  function abrirModalEditarFinanceiro(id, valorFinal, pgto) {
+      document.getElementById('edit-fin-id').value = id;
+      document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2);
+      let pNorm = (pgto || '').toUpperCase();
+      let selectPgto = document.getElementById('edit-fin-pgto');
+      if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO';
+      else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO';
+      else if (pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE')) selectPgto.value = 'LANCAMENTO_FUTURO';
+      else selectPgto.value = 'PIX_DINHEIRO';
+      new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show();
   }
-  function abrirModalEditarFinanceiro(id, valorFinal, pgto) { document.getElementById('edit-fin-id').value = id; document.getElementById('edit-fin-valor').value = Number(valorFinal).toFixed(2); let pNorm = (pgto || '').toUpperCase(); let selectPgto = document.getElementById('edit-fin-pgto'); if (pNorm.includes('CREDITO')) selectPgto.value = 'CREDITO'; else if (pNorm.includes('DEBITO')) selectPgto.value = 'DEBITO'; else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) selectPgto.value = 'PIX_DINHEIRO'; else selectPgto.value = 'PENDENTE'; new bootstrap.Modal(document.getElementById('modalEditarFinanceiro')).show(); }
+
   async function salvarEdicaoFinanceira() { const id = document.getElementById('edit-fin-id').value, novoValor = document.getElementById('edit-fin-valor').value, novoPgto = document.getElementById('edit-fin-pgto').value; try { await fetch(`/api/agendamentos/${id}/valor?novoValor=${novoValor}`, { method: 'PUT' }); await fetch(`/api/caixa/${id}/pagar?metodo=${novoPgto}`, { method: 'POST' }); bootstrap.Modal.getInstance(document.getElementById('modalEditarFinanceiro')).hide(); carregarFinanceiro(); } catch (e) { alert("Erro ao editar."); } }
   async function abrirModalTaxas() { const res = await fetch('/api/configuracoes/geral'); const config = await res.json(); document.getElementById('taxa-credito').value = config.taxaCredito || 5; document.getElementById('taxa-debito').value = config.taxaDebito || 2; new bootstrap.Modal(document.getElementById('modalTaxas')).show(); }
   async function salvarTaxas() { await fetch('/api/configuracoes/geral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taxaCredito: parseFloat(document.getElementById('taxa-credito').value.replace(',','.')) || 0, taxaDebito: parseFloat(document.getElementById('taxa-debito').value.replace(',','.')) || 0 }) }); bootstrap.Modal.getInstance(document.getElementById('modalTaxas')).hide(); }
