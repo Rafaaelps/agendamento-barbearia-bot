@@ -1,12 +1,15 @@
 package com.barber.agendamento_bot.api.controller;
 
+import com.barber.agendamento_bot.api.entity.LogAtividade;
 import com.barber.agendamento_bot.api.entity.Produto;
 import com.barber.agendamento_bot.api.entity.Usuario;
 import com.barber.agendamento_bot.api.entity.Venda;
 import com.barber.agendamento_bot.api.repository.ConfiguracaoRepository;
+import com.barber.agendamento_bot.api.repository.LogAtividadeRepository;
 import com.barber.agendamento_bot.api.repository.ProdutoRepository;
 import com.barber.agendamento_bot.api.repository.UsuarioRepository;
 import com.barber.agendamento_bot.api.repository.VendaRepository;
+import com.barber.agendamento_bot.api.service.LogService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +18,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,11 +33,17 @@ public class EstoqueController {
     private final ConfiguracaoRepository configuracaoRepository;
     private final UsuarioRepository usuarioRepository;
 
-    public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository, ConfiguracaoRepository configuracaoRepository, UsuarioRepository usuarioRepository) {
+    // ✨ NOVO: Injetando os serviços de Log de Auditoria
+    private final LogService logService;
+    private final LogAtividadeRepository logRepository;
+
+    public EstoqueController(ProdutoRepository produtoRepository, VendaRepository vendaRepository, ConfiguracaoRepository configuracaoRepository, UsuarioRepository usuarioRepository, LogService logService, LogAtividadeRepository logRepository) {
         this.produtoRepository = produtoRepository;
         this.vendaRepository = vendaRepository;
         this.configuracaoRepository = configuracaoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.logService = logService;
+        this.logRepository = logRepository;
     }
 
     private Usuario getUsuarioLogado() {
@@ -72,7 +84,13 @@ public class EstoqueController {
 
         produto.setNome(produto.getNome().trim());
         produto.setAtivo(true);
-        return produtoRepository.save(produto);
+
+        Produto salvo = produtoRepository.save(produto);
+
+        // ✨ REGISTRO DE LOG
+        logService.registrarAcao("ESTOQUE", "CADASTRAR", "Cadastrou o produto: " + salvo.getNome() + " (" + salvo.getQuantidadeEstoque() + " un)");
+
+        return salvo;
     }
 
     @PutMapping("/produtos/{id}")
@@ -82,6 +100,10 @@ public class EstoqueController {
         produto.setPreco(dadosAtualizados.getPreco());
         produto.setQuantidadeEstoque(dadosAtualizados.getQuantidadeEstoque());
         produtoRepository.save(produto);
+
+        // ✨ REGISTRO DE LOG
+        logService.registrarAcao("ESTOQUE", "EDITAR", "Ajustou manualmente o produto: " + produto.getNome() + " (Nova Qtd: " + produto.getQuantidadeEstoque() + ")");
+
         return ResponseEntity.ok(produto);
     }
 
@@ -90,6 +112,10 @@ public class EstoqueController {
         Produto produto = produtoRepository.findById(id).orElseThrow();
         produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() + quantidade);
         produtoRepository.save(produto);
+
+        // ✨ REGISTRO DE LOG
+        logService.registrarAcao("ESTOQUE", "REPOSICAO", "Adicionou +" + quantidade + " unidades de " + produto.getNome());
+
         return ResponseEntity.ok(produto);
     }
 
@@ -98,6 +124,10 @@ public class EstoqueController {
         Produto produto = produtoRepository.findById(id).orElseThrow();
         produto.setAtivo(false);
         produtoRepository.save(produto);
+
+        // ✨ REGISTRO DE LOG
+        logService.registrarAcao("ESTOQUE", "EXCLUSAO", "Excluiu/Desativou o produto: " + produto.getNome());
+
         return ResponseEntity.ok().build();
     }
 
@@ -135,6 +165,10 @@ public class EstoqueController {
         venda.setDataHoraVenda(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")));
 
         vendaRepository.save(venda);
+
+        // ✨ REGISTRO DE LOG
+        logService.registrarAcao("ESTOQUE", "VENDA", "Vendeu " + quantidade + "x " + produto.getNome() + " (" + pagamento + ")");
+
         return ResponseEntity.ok(venda);
     }
 
@@ -161,5 +195,22 @@ public class EstoqueController {
                     return donoProd.getId().equals(logado.getId());
                 })
                 .collect(Collectors.toList());
+    }
+
+    // ✨ ROTA QUE O FRONT-END CHAMA PARA MONTAR A TABELA DO HISTÓRICO
+    @GetMapping("/movimentacoes")
+    public List<Map<String, Object>> listarHistorico() {
+        return logRepository.findAll().stream()
+                .filter(log -> "ESTOQUE".equals(log.getModulo()))
+                .sorted(Comparator.comparing(LogAtividade::getDataHora).reversed())
+                .map(log -> {
+                    Map<String, Object> dto = new HashMap<>();
+                    dto.put("dataHora", log.getDataHora());
+                    dto.put("nomeUsuario", log.getUsuarioResponsavel() != null ? log.getUsuarioResponsavel().getNome() : "Sistema");
+                    dto.put("acao", log.getAcao());
+                    dto.put("produtoNome", "-"); // Fica um traço, pois a descrição completa está nos detalhes
+                    dto.put("detalhes", log.getDetalhes());
+                    return dto;
+                }).collect(Collectors.toList());
     }
 }
