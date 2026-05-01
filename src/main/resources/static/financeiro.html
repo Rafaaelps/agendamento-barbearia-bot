@@ -335,15 +335,14 @@
                               funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                               select.value = 'TODOS';
                           } else {
-                              // ✨ ADMIN: Remove visão geral e coloca o próprio nome
                               barbeirosPermitidos = [me.id];
                               const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
                               subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
-                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
                               select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
+                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
                               subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
-                              select.value = me.id; // Padrão é a própria conta
+                              select.value = me.id;
                           }
                           document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                       }
@@ -391,10 +390,14 @@
           return (idD == fBarbeiro);
       };
 
-      // --- CORTES DE CABELO ---
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dataInicio, dataFim)).forEach(ag => {
-        if (!checkDono(ag.donoDoRegistro)) return;
+      const agendamentosFiltrados = todosAg.filter(ag => {
+          const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dataInicio, dataFim);
+      });
 
+      agendamentosFiltrados.forEach(ag => {
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let pNorm = (ag.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
@@ -419,20 +422,8 @@
             if (perfilLogado === 'SUPER_ADMIN') {
                 if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; }
                 valorLiquidoExibicao = precoCheio - valTaxa;
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...ag, detalheHtml: '' };
-                if(ehFuturo) totalPendente += valorLiquidoExibicao;
-                extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
-            } else {
-                if (idDonoDesteCorte == idLogado) {
-                    if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; }
-                    valorLiquidoExibicao = precoCheio - valTaxa;
-                } else {
-                    if(!ehFuturo) { receitaBruta += comissaoSalao; }
-                    valorLiquidoExibicao = comissaoSalao;
-                    detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
-                }
-                if(ehFuturo) totalPendente += valorLiquidoExibicao;
-                let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
                 extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
             }
         }
@@ -458,7 +449,6 @@
         }
       });
 
-      // --- PRODUTOS DO ESTOQUE ---
       const vendasFiltradas = todasV.filter(v => {
           let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
           let idDono = donoVenda ? donoVenda.id : idLogado;
@@ -496,20 +486,6 @@
                 if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...v, detalheHtml: '' };
                 extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
-            } else {
-                if (idDonoDestaVenda == idLogado) {
-                    if(!ehFuturo){ receitaBruta += precoCheio; taxasTotal += valTaxa; }
-                    valorLiquidoExibicao = precoCheio - valTaxa;
-                } else {
-                    if (comissaoSalao > 0) {
-                        if(!ehFuturo) { receitaBruta += comissaoSalao; }
-                        valorLiquidoExibicao = comissaoSalao;
-                        detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
-                    } else return;
-                }
-                if(ehFuturo) totalPendente += valorLiquidoExibicao;
-                let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
-                extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
             }
         }
         else if (fBarbeiro === 'CAIXA') {
@@ -534,7 +510,6 @@
         }
       });
 
-      // --- DESPESAS ---
       todasD.filter(d => {
           let idDono = d.donoDoRegistro ? d.donoDoRegistro.id : idLogado;
           if (!barbeirosPermitidos.includes(idDono)) return false;
@@ -596,8 +571,10 @@
       } else if (fBarbeiro === 'CAIXA') {
           lucroNoBolso = receitaBruta - despesasTotal;
       } else {
-          lucroNoBolso = (receitaBruta - taxasTotal - comissoesRetidasPeloSalao) - despesasTotal;
-          textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
+          lucroNoBolso = receitaBruta - taxasTotal - comissoesRetidasPeloSalao - despesasTotal;
+          if (comissoesRetidasPeloSalao > 0) {
+             textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
+          }
       }
 
       let hist = {}, totalCts = 0, fatGlobal = 0;
