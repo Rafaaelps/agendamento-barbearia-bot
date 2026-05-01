@@ -405,6 +405,22 @@
         }
     }
 
+    // ✨ CORREÇÃO AQUI: Enviando o dono do bloqueio para não ficar órfão e visível para todos os Admins
+    async function salvarBloqueio() {
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
+
+        const dados = {
+            dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`,
+            dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`,
+            motivo: document.getElementById('motivo-bloqueio').value,
+            donoDoRegistro: { id: idBarbeiroSelecionado }
+        };
+        await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+        bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide();
+        carregarAgendamentos();
+    }
+
     async function salvarEncaixe() {
         const selectFiltro = document.getElementById('filtro-barbeiro');
         const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
@@ -478,7 +494,6 @@
         carregarAgendamentos();
     }
 
-    async function salvarBloqueio() { const dados = { dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`, dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`, motivo: document.getElementById('motivo-bloqueio').value }; await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide(); carregarAgendamentos(); }
     async function cancelar(id) { if(confirm("Cancelar agendamento?")) { await fetch(`/api/agendamentos/${id}/cancelar`, { method: 'PUT' }); carregarAgendamentos(); } }
 </script>
 </body>
