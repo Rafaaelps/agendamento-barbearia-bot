@@ -142,7 +142,7 @@
                         <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="carregarProdutos()"></select>
                     </div>
                     <button class="btn-modern btn-outline-info d-none" id="btn-historico" onclick="abrirModalHistorico()"><i class="bi bi-clock-history"></i> Histórico</button>
-                    <button class="btn-modern btn-primary-modern d-none" id="btn-novo-produto" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
+                    <button class="btn-modern btn-primary-modern" id="btn-novo-produto" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
                 </div>
             </div>
 
@@ -170,7 +170,7 @@
                         <thead>
                         <tr>
                             <th>Data / Hora</th>
-                            <th>Usuário (Quem fez)</th>
+                            <th>Usuário</th>
                             <th>Ação</th>
                             <th>Produto</th>
                             <th>Detalhe / Alteração</th>
@@ -220,7 +220,6 @@
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
                     document.getElementById('btn-historico').classList.remove('d-none');
-                    document.getElementById('btn-novo-produto').classList.remove('d-none');
 
                     const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                     if (resFunc.ok) {
@@ -255,12 +254,15 @@
         } catch(e) {}
     }
 
+    // ✨ CORREÇÃO RIGOROSA DO FILTRO: Acaba com a mistura de produtos do admin com o do barbeiro.
     const checkDonoValido = (donoObj, fBarbeiro) => {
         if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') return true;
-        if (!donoObj) return (perfilLogado === 'ADMIN' || perfilLogado === 'SUPER_ADMIN' || perfilLogado === 'ROLE_ADMIN');
-        if (fBarbeiro !== 'TODOS' && String(donoObj.id) !== String(fBarbeiro)) return false;
 
-        return barbeirosPermitidos.includes(String(donoObj.id));
+        let idD = donoObj ? String(donoObj.id) : String(idLogado);
+
+        if (fBarbeiro !== 'TODOS' && idD !== String(fBarbeiro)) return false;
+
+        return barbeirosPermitidos.includes(idD);
     };
 
     async function carregarProdutos() {
@@ -291,7 +293,7 @@
                                   </div>`;
             }
 
-            // ✨ BLOQUEIO VISUAL DOS BOTÕES EDITAR/EXCLUIR
+            // ✨ BLOQUEIO VISUAL: Somente Admin vê Editar e Excluir
             let botoesAdminHtml = '';
             if (isAdmin) {
                 botoesAdminHtml = `
@@ -322,7 +324,26 @@
     }
 
     function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
-    async function salvarProduto() { const id = document.getElementById('id-produto').value; const selectFiltro = document.getElementById('filtro-barbeiro'); const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS') ? parseInt(selectFiltro.value) : idLogado; const d = { nome: document.getElementById('nome-produto').value, preco: parseFloat(document.getElementById('preco-produto').value), quantidadeEstoque: parseInt(document.getElementById('qtd-produto').value), donoDoRegistro: { id: idBarbeiroSelecionado } }; if(!d.nome || isNaN(d.preco) || isNaN(d.quantidadeEstoque)) return alert("Preencha tudo corretamente!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
+
+    // Vincula o produto ao barbeiro selecionado
+    async function salvarProduto() {
+        const id = document.getElementById('id-produto').value;
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS') ? parseInt(selectFiltro.value) : idLogado;
+
+        const d = {
+            nome: document.getElementById('nome-produto').value,
+            preco: parseFloat(document.getElementById('preco-produto').value),
+            quantidadeEstoque: parseInt(document.getElementById('qtd-produto').value),
+            donoDoRegistro: { id: idBarbeiroSelecionado }
+        };
+
+        if(!d.nome || isNaN(d.preco) || isNaN(d.quantidadeEstoque)) return alert("Preencha tudo corretamente!");
+        await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+        carregarProdutos();
+    }
+
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }
     async function processarReposicao() { await fetch(`/api/estoque/produtos/${document.getElementById('id-produto-repor').value}/repor?quantidade=${document.getElementById('qtd-repor').value}`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalRepor')).hide(); carregarProdutos(); }
     async function excluirProduto(id) { if(confirm("Tem certeza que deseja excluir permanentemente este produto?")) { await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' }); carregarProdutos(); } }
