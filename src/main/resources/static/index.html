@@ -76,6 +76,13 @@
         .modal-header, .modal-footer { border-color: var(--border-color); }
         .btn-close { filter: invert(1) brightness(200%); }
 
+        /* ✨ ALTERAÇÃO: Força o ícone de calendário ficar branco no modo escuro */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(100%);
+            cursor: pointer;
+        }
+
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
             .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
@@ -153,7 +160,7 @@
                         <label class="form-label text-light small fw-bold mb-1">PERÍODO DA AGENDA</label>
                         <div class="input-group">
                             <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarAgendamentos()">
-                            <span class="input-group-text bg-body text-muted" style="border: 1px solid var(--border-color);">até</span>
+                            <span class="input-group-text" style="background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);">até</span>
                             <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarAgendamentos()">
                         </div>
                     </div>
@@ -306,7 +313,6 @@
                 const dataAg = ag.dataHoraInicio.split('T')[0];
                 let estaNoPeriodo = dataAg >= dataInicio && dataAg <= dataFim;
 
-                // Isolamento
                 const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
                 if (!barbeirosPermitidos.includes(idDono)) return false;
 
@@ -373,7 +379,27 @@
         }
     }
 
-    async function carregarServicosEncaixe() { const res = await fetch('/api/servicos'); const servicos = await res.json(); const select = document.getElementById('servico-encaixe'); select.innerHTML = ''; servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`); }
+    // ✨ ALTERAÇÃO: Filtra os serviços no modal de Encaixe com base na seleção do filtro principal de barbeiros
+    async function carregarServicosEncaixe() {
+        const res = await fetch('/api/servicos');
+        const servicos = await res.json();
+        const select = document.getElementById('servico-encaixe');
+        select.innerHTML = '';
+
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
+
+        const servicosFiltrados = servicos.filter(s => {
+            const idDonoServico = s.donoDoRegistro ? s.donoDoRegistro.id : idLogado;
+            return idDonoServico === idBarbeiroSelecionado;
+        });
+
+        if (servicosFiltrados.length === 0) {
+            select.innerHTML = '<option value="">Nenhum serviço cadastrado...</option>';
+        } else {
+            servicosFiltrados.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`);
+        }
+    }
 
     async function salvarEncaixe() {
         const selectFiltro = document.getElementById('filtro-barbeiro');
