@@ -295,11 +295,17 @@
     const overlay = document.getElementById('sidebar-overlay');
     if(btnMenu && sidebar && overlay) { btnMenu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); }); overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); }); }
 
+    // ✨ CORREÇÃO: Constrói a data localmente à prova de fuso horário, definindo o MÊS INTEIRO
     const dataHoje = new Date();
-    const primeiroDia = new Date(dataHoje.getFullYear(), dataHoje.getMonth(), 1).toISOString().split('T')[0];
-    const hoje = dataHoje.toISOString().split('T')[0];
-    document.getElementById('filtro-data-inicio').value = primeiroDia;
-    document.getElementById('filtro-data-fim').value = hoje;
+    const ano = dataHoje.getFullYear();
+    const mes = dataHoje.getMonth();
+
+    const dataInicioStr = `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+    const dataFimStr = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
+
+    document.getElementById('filtro-data-inicio').value = dataInicioStr;
+    document.getElementById('filtro-data-fim').value = dataFimStr;
 
     try { const res = await fetch('/api/configuracoes/geral'); const taxas = await res.json(); taxaCredGlobal = (taxas.credito || 5) / 100; taxaDebGlobal = (taxas.debito || 2) / 100; } catch(e) {}
 
@@ -625,14 +631,19 @@
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
 
       // ✨ CÁLCULO DO PERÍODO ANTERIOR (Para o Indicador de Crescimento)
-      let dIni = new Date(dataInicio + 'T00:00:00');
-      let dFim = new Date(dataFim + 'T23:59:59');
-      let diffDays = Math.round((dFim - dIni) / (1000 * 60 * 60 * 24)) + 1;
+      let [anoIni, mesIni, diaIni] = dataInicio.split('-');
+      let [anoFim, mesFim, diaFim] = dataFim.split('-');
 
-      let dFimAnt = new Date(dIni);
-      dFimAnt.setDate(dFimAnt.getDate() - 1);
-      let dIniAnt = new Date(dFimAnt);
-      dIniAnt.setDate(dIniAnt.getDate() - diffDays + 1);
+      let dIniAnt = new Date(anoIni, mesIni - 2, diaIni);
+      let dFimAnt = new Date(anoFim, mesFim - 2, diaFim);
+
+      let ultimoDiaOriginal = new Date(anoFim, mesFim, 0).getDate();
+      if (parseInt(diaFim) === ultimoDiaOriginal) {
+          dFimAnt = new Date(anoFim, mesFim - 1, 0); // Força para o último dia do mês anterior
+      }
+
+      dIniAnt.setMinutes(dIniAnt.getMinutes() - dIniAnt.getTimezoneOffset());
+      dFimAnt.setMinutes(dFimAnt.getMinutes() - dFimAnt.getTimezoneOffset());
 
       let dtIniAntStr = dIniAnt.toISOString().split('T')[0];
       let dtFimAntStr = dFimAnt.toISOString().split('T')[0];
