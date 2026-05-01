@@ -254,16 +254,14 @@
                                 funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                                 select.value = 'TODOS';
                             } else {
-                                // ADMIN
+                                // ✨ ADMIN: Remove visão geral e coloca o próprio nome
                                 barbeirosPermitidos = [me.id];
-                                // ✨ ALTERAÇÃO: Atualizado para BARBEIRO
                                 const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
                                 subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
-                                select.innerHTML += `<option value="TODOS">Visão Geral (Salão)</option>`;
-                                select.innerHTML += `<option value="${me.id}">Minha Agenda (Pessoal)</option>`;
+                                select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
                                 subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
-                                select.value = 'TODOS';
+                                select.value = me.id; // Padrão é a própria agenda
                             }
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
