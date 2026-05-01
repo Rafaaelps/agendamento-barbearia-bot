@@ -76,6 +76,7 @@
         .modal-header, .modal-footer { border-color: var(--border-color); }
         .btn-close { filter: invert(1) brightness(200%); }
 
+        /* ✨ ALTERAÇÃO: Força o ícone de calendário ficar branco no modo escuro */
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(1) brightness(100%);
@@ -106,6 +107,7 @@
             .table-modern tbody td:last-child { border-bottom: none; }
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
 
+            /* ✨ CORREÇÃO AQUI: Força o texto de vazio ficar centralizado na versão mobile */
             .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; }
             .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; justify-content: center !important; }
             .empty-state-row td::before { display: none !important; }
@@ -403,68 +405,71 @@
         }
     }
 
-    // ✨ CORREÇÃO AQUI: Enviando o ID com a querystring `barbeiroId` para os endpoints isolados!
-    async function carregarConfigsBot() {
+    // ✨ CORREÇÃO AQUI: Enviando o dono do bloqueio para não ficar órfão e visível para todos os Admins
+    async function salvarBloqueio() {
         const selectFiltro = document.getElementById('filtro-barbeiro');
         const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
 
-        const res = await fetch(`/api/configuracoes/geral?barbeiroId=${idBarbeiroSelecionado}`);
-        if (res.ok) {
-            const data = await res.json();
-            document.getElementById('switch-bot-ativo').checked = data.botAtivo;
-            document.getElementById('minutos-bot').value = data.minutosConfirmacao || 30;
-            atualizarLabelBot(data.botAtivo);
-        }
+        const dados = {
+            dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`,
+            dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`,
+            motivo: document.getElementById('motivo-bloqueio').value,
+            donoDoRegistro: { id: idBarbeiroSelecionado }
+        };
+        await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+        bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide();
+        carregarAgendamentos();
     }
 
-    function atualizarLabelBot(ativo) {
-        const lbl = document.getElementById('label-bot-status');
-        const cmp = document.getElementById('campos-bot-config');
-        if(ativo) { lbl.innerText="Robô Ligado"; lbl.classList.add('text-success'); cmp.style.opacity="1"; cmp.style.pointerEvents="auto"; } else { lbl.innerText="Robô Desligado"; lbl.classList.remove('text-success'); cmp.style.opacity="0.5"; cmp.style.pointerEvents="none"; }
-    }
-
-    // ✨ CORREÇÃO AQUI: Salvando isolado usando o filtro!
-    async function salvarConfigsBot() {
+    async function salvarEncaixe() {
         const selectFiltro = document.getElementById('filtro-barbeiro');
         const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
 
-        await fetch(`/api/configuracoes/geral?barbeiroId=${idBarbeiroSelecionado}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                botAtivo: document.getElementById('switch-bot-ativo').checked,
-                minutosConfirmacao: parseInt(document.getElementById('minutos-bot').value)
-            })
-        });
-        bootstrap.Modal.getInstance(document.getElementById('modalConfigBot')).hide();
+        const dados = {
+            nomeCliente: document.getElementById('nome-encaixe').value,
+            telefoneCliente: document.getElementById('tel-encaixe').value || "(00) 00000-0000",
+            servicoEscolhido: { id: document.getElementById('servico-encaixe').value },
+            dataHoraInicio: `${document.getElementById('data-encaixe').value}T${document.getElementById('hora-encaixe').value}:00`,
+            donoDoRegistro: { id: idBarbeiroSelecionado }
+        };
+        if(!dados.nomeCliente || !document.getElementById('hora-encaixe').value) return alert("Preencha nome e horário!");
+        await fetch('/api/agendamentos/encaixe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+        bootstrap.Modal.getInstance(document.getElementById('modalEncaixe')).hide();
+        carregarAgendamentos();
     }
 
+    async function carregarConfigsBot() { const res = await fetch('/api/configuracoes/geral'); const data = await res.json(); document.getElementById('switch-bot-ativo').checked = data.botAtivo; document.getElementById('minutos-bot').value = data.minutosConfirmacao; atualizarLabelBot(data.botAtivo); }
+    function atualizarLabelBot(ativo) { const lbl = document.getElementById('label-bot-status'); const cmp = document.getElementById('campos-bot-config'); if(ativo) { lbl.innerText="Robô Ligado"; lbl.classList.add('text-success'); cmp.style.opacity="1"; cmp.style.pointerEvents="auto"; } else { lbl.innerText="Robô Desligado"; lbl.classList.remove('text-success'); cmp.style.opacity="0.5"; cmp.style.pointerEvents="none"; } }
+    async function salvarConfigsBot() { await fetch('/api/configuracoes/geral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ botAtivo: document.getElementById('switch-bot-ativo').checked, minutosConfirmacao: parseInt(document.getElementById('minutos-bot').value) }) }); bootstrap.Modal.getInstance(document.getElementById('modalConfigBot')).hide(); }
     let gradeHorariosGlobal = [];
-
-    // ✨ CORREÇÃO AQUI: Buscando horários do Barbeiro Específico
     async function carregarGradeHorarios() {
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
-        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
+        let url = '/api/horarios';
 
-        const res = await fetch(`/api/horarios?barbeiroId=${idBarbeiroSelecionado}`);
+        if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
+            url += '?barbeiroId=' + selectBarbeiro.value;
+        }
+
+        const res = await fetch(url);
         if (res.ok) {
             gradeHorariosGlobal = await res.json();
             gradeHorariosGlobal.sort((a,b) => a.diaDaSemana - b.diaDaSemana);
             renderizarGradeHorarios();
         }
     }
-
     function renderizarGradeHorarios() { const corpo = document.getElementById('corpo-modal-horarios'); corpo.innerHTML = ''; gradeHorariosGlobal.forEach((dia, index) => { const chk = dia.fechado ? '' : 'checked', dis = dia.fechado ? 'disabled' : ''; corpo.innerHTML += `<div class="custom-card mb-3 p-3"><div class="d-flex justify-content-between mb-3"><span class="badge-modern ${dia.fechado ? 'badge-danger' : 'badge-primary'}">${dia.nomeDia}</span><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" ${chk} onchange="toggleDia(${index})"></div></div><div class="row g-2"><div class="col-6"><label class="form-label text-light small fw-bold">Abertura</label><input type="time" class="form-control custom-input" id="hora-abertura-${index}" value="${dia.horaAbertura}" ${dis} onchange="alterarHoraAbertura(${index})"></div><div class="col-6"><label class="form-label text-light small fw-bold">Fechamento</label><input type="time" class="form-control custom-input" id="hora-fechamento-${index}" value="${dia.horaFechamento}" ${dis} onchange="alterarHoraFechamento(${index})"></div></div></div>`; }); }
     function toggleDia(idx) { gradeHorariosGlobal[idx].fechado = !gradeHorariosGlobal[idx].fechado; renderizarGradeHorarios(); }
     function alterarHoraAbertura(idx) { gradeHorariosGlobal[idx].horaAbertura = document.getElementById(`hora-abertura-${idx}`).value; }
     function alterarHoraFechamento(idx) { gradeHorariosGlobal[idx].horaFechamento = document.getElementById(`hora-fechamento-${idx}`).value; }
-
-    // ✨ CORREÇÃO AQUI: Salvando horários do Barbeiro Específico
     async function salvarGradeHorarios() {
         const selectBarbeiro = document.getElementById('filtro-barbeiro');
-        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
+        let url = '/api/horarios';
 
-        const res = await fetch(`/api/horarios?barbeiroId=${idBarbeiroSelecionado}`, {
+        if (selectBarbeiro && selectBarbeiro.value !== 'TODOS' && selectBarbeiro.value !== 'CAIXA') {
+            url += '?barbeiroId=' + selectBarbeiro.value;
+        }
+
+        const res = await fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(gradeHorariosGlobal)
@@ -477,7 +482,6 @@
             alert("Erro ao salvar o expediente.");
         }
     }
-
     function abrirModalPagamento(id) { document.getElementById('id-agendamento-pagamento').value = id; new bootstrap.Modal(document.getElementById('modalPagamento')).show(); }
 
     async function processarPagamento(metodo) {
@@ -488,15 +492,6 @@
         await fetch(`/api/agendamentos/${id}/concluir`, { method: 'PUT' });
         bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide();
         carregarAgendamentos();
-    }
-
-    async function salvarBloqueio() {
-        const selectFiltro = document.getElementById('filtro-barbeiro');
-        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;
-
-        const dados = { dataHoraInicio: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-inicio-bloqueio').value}:00`, dataHoraFim: `${document.getElementById('data-bloqueio').value}T${document.getElementById('hora-fim-bloqueio').value}:00`, motivo: document.getElementById('motivo-bloqueio').value, donoDoRegistro: { id: idBarbeiroSelecionado } };
-        await fetch('/api/agendamentos/bloqueios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
-        bootstrap.Modal.getInstance(document.getElementById('modalBloqueio')).hide(); carregarAgendamentos();
     }
 
     async function cancelar(id) { if(confirm("Cancelar agendamento?")) { await fetch(`/api/agendamentos/${id}/cancelar`, { method: 'PUT' }); carregarAgendamentos(); } }
