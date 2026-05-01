@@ -44,8 +44,11 @@
 
     .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
     .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+
+    .page-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
+    .action-bar-custom { display: flex; gap: 12px; align-items: center; }
+
     .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
     .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
     .custom-input:focus, .custom-select:focus { background-color: var(--bg-body); color: var(--text-main); border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
@@ -75,9 +78,11 @@
     .text-success-custom { color: var(--success-color) !important; }
     .text-danger-custom { color: var(--danger-color) !important; }
 
-    @media (min-width: 992px) {
-        .action-bar-financeiro { display: flex; flex-direction: row; gap: 12px; align-items: center; justify-content: flex-end; }
-        .action-bar-financeiro .buttons-grid { display: flex; gap: 12px; }
+    /* ✨ Ícones brancos */
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(100%);
+        cursor: pointer;
     }
 
     @media (max-width: 991.98px) {
@@ -86,12 +91,12 @@
         .sidebar.open { left: 0; }
         .sidebar-overlay.show { display: block; }
         .main-content { padding: 16px; }
-        .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
 
-        .action-bar-financeiro { display: flex; flex-direction: column; width: 100%; gap: 10px; }
-        .action-bar-financeiro .month-container { width: 100%; }
-        .action-bar-financeiro .buttons-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; }
-        .btn-modern { justify-content: center; padding-left: 5px; padding-right: 5px; font-size: 0.8rem;}
+        .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
+        .action-bar-custom { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); width: 100%; gap: 10px; }
+        .action-bar-custom .btn-modern { width: 100%; justify-content: center; }
+        .action-bar-custom .dropdown { width: 100%; }
+        .action-bar-custom .dropdown-toggle { width: 100%; justify-content: center; }
 
         .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
 
@@ -102,7 +107,7 @@
         .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
 
         .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
-        .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; }
+        .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; justify-content: center !important;}
         .empty-state-row td::before { display: none !important; }
     }
   </style>
@@ -142,37 +147,39 @@
     </aside>
 
     <main class="main-content" id="area-relatorio">
-      <div class="page-header flex-column flex-xl-row gap-3">
+      <div class="page-header-custom">
         <h1 class="page-title" id="titulo-pagina">Visão Financeira (BI)</h1>
         <h2 class="mb-0 d-none text-center w-100 fw-bold border-bottom border-secondary pb-2" id="titulo-pdf">💈 Relatório Financeiro</h2>
 
-        <div class="action-bar-financeiro" id="botoes-acao">
-
-          <div class="d-flex align-items-center custom-card p-1 month-container d-none" id="container-filtro-barbeiro">
-            <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-person"></i> BARBEIRO:</label>
-            <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold text-primary" style="box-shadow: none;" onchange="carregarFinanceiro()"></select>
+        <div class="action-bar-custom" id="botoes-acao">
+          <div class="dropdown">
+            <button class="btn-modern btn-outline-modern dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-files"></i> Documento
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark custom-card" style="border: 1px solid var(--border-color);">
+              <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarPDF()"><i class="bi bi-file-earmark-pdf text-danger fs-5"></i> Gerar em PDF</a></li>
+              <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarExcel()"><i class="bi bi-file-earmark-excel text-success fs-5"></i> Gerar em Excel</a></li>
+            </ul>
           </div>
+          <button class="btn-modern btn-danger-modern d-none" id="btn-custo" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
+          <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
+        </div>
+      </div>
 
-          <div class="d-flex align-items-center custom-card p-1 month-container flex-wrap">
-            <label class="me-2 ms-2 fw-bold text-white mb-0 small">PERÍODO:</label>
-            <input type="date" id="filtro-data-inicio" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none; max-width: 140px;" onchange="carregarFinanceiro()">
-            <span class="mx-1 text-muted">até</span>
-            <input type="date" id="filtro-data-fim" class="form-control border-0 p-1 bg-transparent text-main fw-bold" style="color: var(--text-main) !important; box-shadow: none; max-width: 140px;" onchange="carregarFinanceiro()">
-          </div>
-
-          <div class="buttons-grid">
-            <div class="dropdown">
-              <button class="btn-modern btn-outline-modern dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-files"></i> Documento
-              </button>
-              <ul class="dropdown-menu dropdown-menu-dark custom-card" style="border: 1px solid var(--border-color);">
-                <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarPDF()"><i class="bi bi-file-earmark-pdf text-danger fs-5"></i> Gerar em PDF</a></li>
-                <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarExcel()"><i class="bi bi-file-earmark-excel text-success fs-5"></i> Gerar em Excel</a></li>
-              </ul>
+      <div class="custom-card p-4 mb-4" id="filtro-card-print">
+        <div class="row g-3 align-items-center m-0">
+          <div class="col-12 col-md-6 ps-0">
+            <label class="form-label text-light small fw-bold mb-1">PERÍODO</label>
+            <div class="input-group">
+              <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarFinanceiro()">
+              <span class="input-group-text" style="background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);">até</span>
+              <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarFinanceiro()">
             </div>
-
-            <button class="btn-modern btn-danger-modern d-none" id="btn-custo" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
-            <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
+          </div>
+          <div class="col-12 col-md-6 pe-0 d-none" id="container-filtro-barbeiro">
+            <label class="form-label text-primary small fw-bold mb-1"><i class="bi bi-person"></i> BARBEIRO</label>
+            <select id="filtro-barbeiro" class="form-select custom-select" style="border-color: var(--accent-primary);" onchange="carregarFinanceiro()">
+            </select>
           </div>
         </div>
       </div>
@@ -633,7 +640,7 @@
           dGraph = [Math.max(0, lucroNoBolso), despesasTotal, taxasTotal];
           cGraph = ['#10B981', '#F59E0B', '#EF4444'];
       } else if (fBarbeiro === 'CAIXA') {
-          labelsG = ['Lucro Livre', 'Despesas'];
+          labelsG = ['Lucro Livre', 'Despesas (Luz, Água)'];
           dGraph = [Math.max(0, lucroNoBolso), despesasTotal];
           cGraph = ['#10B981', '#F59E0B'];
       } else {
@@ -691,7 +698,62 @@
       XLSX.writeFile(wb, `Extrato_${dIni}_a_${dFim}.xlsx`);
   }
 
-  async function exportarPDF() { const el = document.getElementById('area-relatorio'); const botoes = document.getElementById('botoes-acao'); const tituloPag = document.getElementById('titulo-pagina'); const tituloPDF = document.getElementById('titulo-pdf'); const containerTabela = document.getElementById('container-tabela-extrato'); const cGrafico = document.getElementById('coluna-grafico'); const cTabela = document.getElementById('coluna-tabela'); const mobileTop = document.getElementById('mobile-topbar-print'); if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important'); botoes.style.setProperty('display', 'none', 'important'); tituloPag.style.display = 'none'; const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/'); const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/'); tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`; tituloPDF.classList.remove('d-none'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none'); cGrafico.classList.replace('col-lg-4', 'w-100'); cGrafico.classList.add('mb-4'); cTabela.classList.replace('col-lg-8', 'w-100'); const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color }; document.body.style.backgroundColor = "#FFFFFF"; document.body.style.color = "#000000"; el.style.backgroundColor = "#FFFFFF"; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333'); document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333'); document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666'); await html2pdf().set({ margin: [10, 10, 10, 10], filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#FFFFFF' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } }).from(el).save(); document.body.style.backgroundColor = originalColors.body; document.body.style.color = originalColors.color; el.style.backgroundColor = ""; document.querySelectorAll('.table-modern td').forEach(td => td.style.color = ''); document.querySelectorAll('.text-light').forEach(el => el.style.color = ''); botoes.style.setProperty('display', 'flex', 'important'); tituloPag.style.display = 'block'; tituloPDF.classList.add('d-none'); if(mobileTop) mobileTop.style.display = ''; cGrafico.classList.replace('w-100', 'col-lg-4'); cGrafico.classList.remove('mb-4'); cTabela.classList.replace('w-100', 'col-lg-8'); document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = ''); }
+  async function exportarPDF() {
+      const el = document.getElementById('area-relatorio');
+      const botoes = document.getElementById('botoes-acao');
+      const tituloPag = document.getElementById('titulo-pagina');
+      const tituloPDF = document.getElementById('titulo-pdf');
+      const containerTabela = document.getElementById('container-tabela-extrato');
+      const cGrafico = document.getElementById('coluna-grafico');
+      const cTabela = document.getElementById('coluna-tabela');
+      const mobileTop = document.getElementById('mobile-topbar-print');
+      const filtroCard = document.getElementById('filtro-card-print');
+
+      if(mobileTop) mobileTop.style.setProperty('display', 'none', 'important');
+      botoes.style.setProperty('display', 'none', 'important');
+      if(filtroCard) filtroCard.style.setProperty('display', 'none', 'important');
+
+      tituloPag.style.display = 'none';
+      const dIniFmt = document.getElementById('filtro-data-inicio').value.split('-').reverse().join('/');
+      const dFimFmt = document.getElementById('filtro-data-fim').value.split('-').reverse().join('/');
+      tituloPDF.innerText = `💈 Balanço Financeiro - Ref: ${dIniFmt} a ${dFimFmt}`;
+      tituloPDF.classList.remove('d-none');
+      document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = 'none');
+      cGrafico.classList.replace('col-lg-4', 'w-100');
+      cGrafico.classList.add('mb-4');
+      cTabela.classList.replace('col-lg-8', 'w-100');
+      const originalColors = { body: document.body.style.backgroundColor, color: document.body.style.color };
+      document.body.style.backgroundColor = "#FFFFFF";
+      document.body.style.color = "#000000";
+      el.style.backgroundColor = "#FFFFFF";
+      document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '#333');
+      document.querySelectorAll('.text-main').forEach(el => el.style.color = '#333');
+      document.querySelectorAll('.text-light').forEach(el => el.style.color = '#666');
+
+      await html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename: `Extrato_${document.getElementById('filtro-data-inicio').value}_a_${document.getElementById('filtro-data-fim').value}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, backgroundColor: '#FFFFFF' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      }).from(el).save();
+
+      document.body.style.backgroundColor = originalColors.body;
+      document.body.style.color = originalColors.color;
+      el.style.backgroundColor = "";
+      document.querySelectorAll('.table-modern td').forEach(td => td.style.color = '');
+      document.querySelectorAll('.text-light').forEach(el => el.style.color = '');
+      botoes.style.setProperty('display', 'flex', 'important');
+      if(filtroCard) filtroCard.style.display = 'block';
+      tituloPag.style.display = 'block';
+      tituloPDF.classList.add('d-none');
+      if(mobileTop) mobileTop.style.display = '';
+      cGrafico.classList.replace('w-100', 'col-lg-4');
+      cGrafico.classList.remove('mb-4');
+      cTabela.classList.replace('w-100', 'col-lg-8');
+      document.querySelectorAll('.coluna-acao').forEach(e => e.style.display = '');
+  }
 
   function abrirModalEditarFinanceiro(id, valorFinal, pgto) {
       document.getElementById('edit-fin-id').value = id;

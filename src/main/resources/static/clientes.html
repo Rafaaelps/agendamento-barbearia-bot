@@ -41,11 +41,14 @@
 
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
         .main-content { flex-grow: 1; padding: 32px; overflow-y: auto; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap;}
+
+        .page-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
+        .action-bar-custom { display: flex; gap: 12px; align-items: center; }
+
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
-        .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); }
+        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
 
         .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
         .btn-outline-modern { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
@@ -59,13 +62,22 @@
 
         .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; background-color: var(--border-color); color: var(--text-main); }
 
+        /* ✨ Ícones brancos */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(100%);
+            cursor: pointer;
+        }
+
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
             .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
             .sidebar.open { left: 0; }
             .sidebar-overlay.show { display: block; }
             .main-content { padding: 16px; }
-            .page-header { flex-direction: column; align-items: stretch; gap: 15px; }
+
+            .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
+            .action-bar-custom { display: flex; flex-wrap: wrap; width: 100%; gap: 10px; justify-content: space-between; }
 
             .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
 
@@ -76,7 +88,7 @@
             .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
 
             .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
-            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; }
+            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; justify-content: center !important;}
             .empty-state-row td::before { display: none !important; }
         }
     </style>
@@ -116,28 +128,31 @@
         </aside>
 
         <main class="main-content">
-            <div class="page-header gap-3 flex-wrap">
+            <div class="page-header-custom">
                 <h1 class="page-title">Gestão de Clientes</h1>
-                <div class="d-flex gap-2 flex-grow-1 flex-md-grow-0 flex-wrap">
+            </div>
 
-                    <div class="d-flex align-items-center custom-card p-2 flex-grow-1">
-                        <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-calendar"></i> PERÍODO:</label>
-                        <input type="date" id="filtro-data-inicio" class="form-control border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none; max-width: 140px;" onchange="carregarCRM()">
-                        <span class="mx-1 text-muted">até</span>
-                        <input type="date" id="filtro-data-fim" class="form-control border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none; max-width: 140px;" onchange="carregarCRM()">
+            <div class="custom-card p-4 mb-4">
+                <div class="row g-3 align-items-center m-0">
+                    <div class="col-12 col-md-5 ps-0">
+                        <label class="form-label text-light small fw-bold mb-1">PERÍODO</label>
+                        <div class="input-group">
+                            <input type="date" id="filtro-data-inicio" class="form-control custom-input" onchange="carregarCRM()">
+                            <span class="input-group-text" style="background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);">até</span>
+                            <input type="date" id="filtro-data-fim" class="form-control custom-input" onchange="carregarCRM()">
+                        </div>
                     </div>
-
-                    <div class="d-flex align-items-center custom-card p-2 d-none flex-grow-1" id="container-filtro-barbeiro">
-                        <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-person"></i> BARBEIRO:</label>
-                        <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="carregarCRM()"></select>
-                    </div>
-
-                    <div class="d-flex align-items-center custom-card p-2 flex-grow-1">
-                        <label for="filtro-ordem" class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-funnel"></i> ORDENAR:</label>
-                        <select id="filtro-ordem" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="renderizarTabela()">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label text-light small fw-bold mb-1">ORDENAR</label>
+                        <select id="filtro-ordem" class="form-select custom-select" onchange="renderizarTabela()">
                             <option value="GASTO" style="color: black;">Quem mais gastou</option>
                             <option value="SUMIDOS" style="color: black;">Há mais tempo sem vir</option>
                             <option value="FREQUENTES" style="color: black;">Mais visitas</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 pe-0 d-none" id="container-filtro-barbeiro">
+                        <label class="form-label text-primary small fw-bold mb-1"><i class="bi bi-person"></i> BARBEIRO</label>
+                        <select id="filtro-barbeiro" class="form-select custom-select" style="border-color: var(--accent-primary);" onchange="carregarCRM()">
                         </select>
                     </div>
                 </div>
@@ -237,7 +252,6 @@
                                 select.value = 'TODOS';
                             }
                         } else {
-                            // Admin não tem mais TODOS
                             barbeirosPermitidos = [me.id];
                             const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
                             subordinados.forEach(s => barbeirosPermitidos.push(s.id));
@@ -286,7 +300,6 @@
                 let estaNoPeriodo = dataAg >= dataInicio && dataAg <= dataFim;
                 let ehConcluido = ag.status === 'CONCLUIDO';
 
-                // Isolamento
                 const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
                 if (!barbeirosPermitidos.includes(idDono)) return false;
 
