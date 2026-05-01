@@ -337,9 +337,8 @@
                               select.value = 'TODOS';
                           }
                       } else {
-                          // Admin normal não tem mais TODOS
                           barbeirosPermitidos = [me.id];
-                          const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
+                          const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
                           subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
                           if(select) {
@@ -403,16 +402,19 @@
         let pNorm = (ag.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
-        let fatBarbeiro = Number(ag.faturamentoBarbeiro || 0);
-        let comissaoSalao = Number(ag.comissaoDoAdmin || 0);
-        let valTaxa = Math.max(0, precoCheio - fatBarbeiro - comissaoSalao);
+        let txC = (ag.donoDoRegistro && ag.donoDoRegistro.taxaCredito != null) ? (ag.donoDoRegistro.taxaCredito / 100.0) : taxaCredGlobal;
+        let txD = (ag.donoDoRegistro && ag.donoDoRegistro.taxaDebito != null) ? (ag.donoDoRegistro.taxaDebito / 100.0) : taxaDebGlobal;
+        let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
 
-        if (ehFuturo || (fatBarbeiro === 0 && comissaoSalao === 0 && precoCheio > 0)) {
-            let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
-            valTaxa = 0;
-            comissaoSalao = precoCheio * txSalao;
-            fatBarbeiro = precoCheio - comissaoSalao;
+        let valTaxa = 0;
+        if (!ehFuturo) {
+            if (pNorm.includes('CREDITO')) valTaxa = precoCheio * txC;
+            else if (pNorm.includes('DEBITO')) valTaxa = precoCheio * txD;
         }
+
+        let baseCalculo = precoCheio - valTaxa;
+        let comissaoSalao = baseCalculo * txSalao;
+        let fatBarbeiro = baseCalculo - comissaoSalao;
 
         let valorLiquidoExibicao = 0;
         let idDonoDesteCorte = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
@@ -430,7 +432,7 @@
             if (comissaoSalao > 0) {
                 if(!ehFuturo) { receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
-                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div><div class="d-flex justify-content-between text-success fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão Salão:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
                 if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
                 extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio, ehFuturo: ehFuturo });
@@ -439,9 +441,20 @@
         else {
             if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-            if (idDonoDesteCorte != idLogado && comissaoSalao > 0) {
-                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-warning fw-bold"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
+
+            if (comissaoSalao > 0) {
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
+                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Base:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Máquina:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
+                </div>`;
+            } else if (valTaxa > 0) {
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
+                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Base:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-danger fw-bold pt-1 mt-1 border-top border-secondary"><span>Taxa Máquina:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
+                </div>`;
             }
+
             if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
             extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
@@ -462,16 +475,19 @@
         let pNorm = (v.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
-        let fatBarbeiro = Number(v.faturamentoBarbeiro || 0);
-        let comissaoSalao = Number(v.comissaoDoAdmin || 0);
-        let valTaxa = Math.max(0, precoCheio - fatBarbeiro - comissaoSalao);
+        let txC = (donoVenda && donoVenda.taxaCredito != null) ? (donoVenda.taxaCredito / 100.0) : taxaCredGlobal;
+        let txD = (donoVenda && donoVenda.taxaDebito != null) ? (donoVenda.taxaDebito / 100.0) : taxaDebGlobal;
+        let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
 
-        if (ehFuturo || (fatBarbeiro === 0 && comissaoSalao === 0 && precoCheio > 0)) {
-            let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
-            valTaxa = 0;
-            comissaoSalao = precoCheio * txSalaoProd;
-            fatBarbeiro = precoCheio - comissaoSalao;
+        let valTaxa = 0;
+        if (!ehFuturo) {
+            if (pNorm.includes('CREDITO')) valTaxa = precoCheio * txC;
+            else if (pNorm.includes('DEBITO')) valTaxa = precoCheio * txD;
         }
+
+        let baseCalculo = precoCheio - valTaxa;
+        let comissaoSalao = baseCalculo * txSalaoProd;
+        let fatBarbeiro = baseCalculo - comissaoSalao;
 
         let valorLiquidoExibicao = 0;
         let idDonoDestaVenda = donoVenda ? donoVenda.id : idLogado;
@@ -489,7 +505,7 @@
             if (comissaoSalao > 0) {
                 if(!ehFuturo){ receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
-                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div><div class="d-flex justify-content-between text-success fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão Salão:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
                 if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
                 extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio, ehFuturo: ehFuturo });
@@ -498,9 +514,20 @@
         else {
             if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-            if (idDonoDestaVenda != idLogado && comissaoSalao > 0) {
-                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-warning fw-bold"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
+
+            if (comissaoSalao > 0) {
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
+                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Base:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Máquina:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
+                </div>`;
+            } else if (valTaxa > 0) {
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
+                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Base:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
+                    <div class="d-flex justify-content-between text-danger fw-bold pt-1 mt-1 border-top border-secondary"><span>Taxa Máquina:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
+                </div>`;
             }
+
             if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
             extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
@@ -571,7 +598,7 @@
       } else {
           lucroNoBolso = receitaBruta - taxasTotal - comissoesRetidasPeloSalao - despesasTotal;
           if (comissoesRetidasPeloSalao > 0) {
-             textoSaidasExtras = `Comissão do Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
+             textoSaidasExtras = `Comissão Salão: R$ ${comissoesRetidasPeloSalao.toFixed(2)}`;
           }
       }
 
@@ -606,7 +633,7 @@
           dGraph = [Math.max(0, lucroNoBolso), despesasTotal, taxasTotal];
           cGraph = ['#10B981', '#F59E0B', '#EF4444'];
       } else if (fBarbeiro === 'CAIXA') {
-          labelsG = ['Lucro Livre', 'Despesas (Luz, Água)'];
+          labelsG = ['Lucro Livre', 'Despesas'];
           dGraph = [Math.max(0, lucroNoBolso), despesasTotal];
           cGraph = ['#10B981', '#F59E0B'];
       } else {
