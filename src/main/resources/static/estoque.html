@@ -14,6 +14,7 @@
             --text-main: #F8FAFC; --text-muted: #CBD5E1;
             --accent-primary: #6366F1; --accent-hover: #4F46E5; --border-color: #334155;
             --success-color: #10B981; --danger-color: #EF4444; --warning-color: #F59E0B;
+            --info-color: #0EA5E9;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; }
 
@@ -45,8 +46,8 @@
         .page-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
 
         .custom-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
-        .custom-input { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
-        .custom-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
+        .custom-input, .custom-select { background-color: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main) !important; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
+        .custom-input:focus, .custom-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); background-color: var(--bg-body); color: var(--text-main); }
 
         .btn-modern { padding: 10px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; border: none; transition: 0.2s; }
         .btn-primary-modern { background-color: var(--accent-primary); color: white; }
@@ -57,11 +58,24 @@
         .btn-outline-danger:hover { background-color: var(--danger-color); color: white; border-color: var(--danger-color); }
         .btn-success-modern { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.2); }
         .btn-success-modern:hover { background-color: var(--success-color); color: white; }
+        .btn-outline-info { border-color: rgba(14, 165, 233, 0.5); color: var(--info-color); background-color: rgba(14, 165, 233, 0.1);}
+        .btn-outline-info:hover { background-color: var(--info-color); color: white; border-color: var(--info-color); }
 
         .modal-content { background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); }
         .modal-header { border-bottom: 1px solid var(--border-color); }
         .modal-footer { border-top: 1px solid var(--border-color); }
         .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+        .table-modern { color: var(--text-main); margin: 0; width: 100%; }
+        .table-modern th { background-color: var(--bg-body); color: var(--text-main) !important; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding: 16px; font-size: 0.85rem; }
+        .table-modern td { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px; vertical-align: middle; color: var(--text-main); font-weight: 500;}
+        .table-modern tbody tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+
+        .badge-modern { padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; }
+        .badge-primary { background-color: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
+        .badge-success { background-color: rgba(16, 185, 129, 0.15); color: var(--success-color); }
+        .badge-danger { background-color: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+        .badge-info { background-color: rgba(14, 165, 233, 0.15); color: var(--info-color); }
 
         @media (max-width: 991.98px) {
             .mobile-topbar { display: flex; }
@@ -72,6 +86,16 @@
             .btn-modern { justify-content: center; }
 
             .header-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+            .table-modern thead { display: none; }
+            .table-modern tbody tr { display: block; margin-bottom: 16px !important; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); overflow: hidden; }
+            .table-modern tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 14px 16px; }
+            .table-modern tbody td:last-child { border-bottom: none; }
+            .table-modern tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; margin-right: 1rem; text-align: left; }
+
+            .empty-state-row { border: none !important; margin: 0 !important; background: transparent !important; box-shadow: none !important;}
+            .empty-state-row td { display: block !important; text-align: center !important; border: none !important; padding: 20px !important; background: transparent !important; justify-content: center !important;}
+            .empty-state-row td::before { display: none !important; }
         }
     </style>
 </head>
@@ -117,7 +141,8 @@
                         <label class="me-2 ms-2 fw-bold text-light mb-0 small text-nowrap"><i class="bi bi-person"></i> BARBEIRO:</label>
                         <select id="filtro-barbeiro" class="form-select border-0 p-1 bg-transparent fw-bold" style="color: var(--accent-primary) !important; box-shadow: none;" onchange="carregarProdutos()"></select>
                     </div>
-                    <button class="btn-modern btn-primary-modern" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
+                    <button class="btn-modern btn-outline-info d-none" id="btn-historico" onclick="abrirModalHistorico()"><i class="bi bi-clock-history"></i> Histórico</button>
+                    <button class="btn-modern btn-primary-modern d-none" id="btn-novo-produto" onclick="abrirModalProduto()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
                 </div>
             </div>
 
@@ -127,8 +152,38 @@
 </div>
 
 <div class="modal fade" id="modalProduto" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold" id="titulo-modal-produto"><i class="bi bi-box-seam text-primary me-2"></i> Cadastrar Produto</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="id-produto"><div class="mb-3"><label class="form-label fw-bold text-light small">NOME DO PRODUTO</label><input type="text" id="nome-produto" class="form-control custom-input" placeholder="Ex: Pomada Matte"></div><div class="row mb-3 g-2"><div class="col-6"><label class="form-label fw-bold text-light small">PREÇO (R$)</label><input type="number" id="preco-produto" class="form-control custom-input" step="0.01"></div><div class="col-6"><label class="form-label fw-bold text-light small">QUANTIDADE</label><input type="number" id="qtd-produto" class="form-control custom-input" min="0"></div></div></div><div class="modal-footer border-0"><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarProduto()">Salvar Produto</button></div></div></div></div>
-<div class="modal fade" id="modalRepor" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down text-info me-2"></i> Repor Estoque</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 fw-bold text-main fs-5" id="texto-repor-produto">Produto</p><input type="hidden" id="id-produto-repor"><div class="mb-3 text-start"><label class="form-label fw-bold text-light small">QTD RECEBIDA</label><input type="number" id="qtd-repor" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1"></div><button class="btn-modern btn-outline-modern w-100 justify-content-center" onclick="processarReposicao()">Adicionar ao Estoque</button></div></div></div></div>
+
+<div class="modal fade" id="modalRepor" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-arrow-down-circle text-info me-2"></i> Repor Estoque</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 fw-bold text-main fs-5" id="texto-repor-produto">Produto</p><input type="hidden" id="id-produto-repor"><div class="mb-3 text-start"><label class="form-label fw-bold text-light small">QTD RECEBIDA</label><input type="number" id="qtd-repor" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1"></div><button class="btn-modern btn-outline-info w-100 justify-content-center border-0 fw-bold" style="background-color: rgba(14, 165, 233, 0.1);" onclick="processarReposicao()">Adicionar ao Estoque</button></div></div></div></div>
+
 <div class="modal fade" id="modalVendaProduto" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-cart-check text-success me-2"></i> Finalizar Venda</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><p class="mb-3 fw-bold text-main fs-5" id="texto-venda-produto">Produto</p><input type="hidden" id="id-produto-venda"><div class="d-flex justify-content-center align-items-center mb-4"><label class="fw-bold me-2 text-light small">QTD:</label><input type="number" id="qtd-venda" class="form-control custom-input text-center fw-bold fs-5" value="1" min="1" style="width: 80px;"></div><p class="mb-2 text-light small fw-bold">PAGAMENTO:</p><div class="d-grid gap-2"><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarVenda('CREDITO')"><i class="bi bi-credit-card me-2"></i> Crédito</button><button class="btn-modern btn-outline-modern justify-content-center" onclick="processarVenda('DEBITO')"><i class="bi bi-credit-card-2-front me-2"></i> Débito</button><button class="btn-modern btn-success-modern justify-content-center border-0" onclick="processarVenda('PIX_DINHEIRO')"><i class="bi bi-cash-stack me-2"></i> Dinheiro / PIX</button></div></div></div></div></div>
+
+<div class="modal fade" id="modalHistorico" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-clock-history text-info me-2"></i> Histórico de Estoque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive" style="max-height: 50vh; overflow-y: auto;">
+                    <table class="table table-modern text-center align-middle mb-0 w-100">
+                        <thead>
+                        <tr>
+                            <th>Data / Hora</th>
+                            <th>Usuário (Quem fez)</th>
+                            <th>Ação</th>
+                            <th>Produto</th>
+                            <th>Detalhe / Alteração</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabela-historico">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -152,7 +207,6 @@
 
     async function carregarFiltroBarbeiros() {
         try {
-            // ✨ Adicionado no-store para evitar cache de conta
             const resMe = await fetch('/api/usuario/me', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
             if (resMe.ok) {
                 const me = await resMe.json();
@@ -163,59 +217,50 @@
                 const sideUser = document.getElementById('sidebar-user-name');
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
-                const select = document.getElementById('filtro-barbeiro');
-                if (select) select.innerHTML = '';
-
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
+                    document.getElementById('btn-historico').classList.remove('d-none');
+                    document.getElementById('btn-novo-produto').classList.remove('d-none');
 
                     const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
+                        const select = document.getElementById('filtro-barbeiro');
 
-                        if (me.perfil === 'SUPER_ADMIN') {
-                            barbeirosPermitidos = funcs.map(f => String(f.id));
-                            if(select) {
+                        if (select) {
+                            select.innerHTML = '';
+
+                            if (me.perfil === 'SUPER_ADMIN') {
+                                barbeirosPermitidos = funcs.map(f => String(f.id));
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
                                 funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                                 select.value = 'TODOS';
-                            }
-                        } else {
-                            // ✨ ADMIN: Regra padronizada (Ele mesmo + Barbeiros)
-                            barbeirosPermitidos = [String(me.id)];
-                            const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
-                            subordinados.forEach(s => barbeirosPermitidos.push(String(s.id)));
+                            } else {
+                                barbeirosPermitidos = [String(me.id)];
+                                const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
+                                subordinados.forEach(s => barbeirosPermitidos.push(String(s.id)));
 
-                            if(select) {
                                 select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
                                 subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
                                 select.value = me.id;
                             }
+
+                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
-                        document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                     }
                 } else {
                     barbeirosPermitidos = [String(me.id)];
-                    if(select) {
-                        select.innerHTML = `<option value="${me.id}">${me.nome}</option>`;
-                        select.value = me.id;
-                    }
                 }
             }
-        } catch(e) { console.error(e); }
+        } catch(e) {}
     }
 
-    // ✨ CORREÇÃO RIGOROSA: Separa perfeitamente o estoque selecionado
     const checkDonoValido = (donoObj, fBarbeiro) => {
-        let idD = donoObj ? String(donoObj.id) : String(idLogado);
+        if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') return true;
+        if (!donoObj) return (perfilLogado === 'ADMIN' || perfilLogado === 'SUPER_ADMIN' || perfilLogado === 'ROLE_ADMIN');
+        if (fBarbeiro !== 'TODOS' && String(donoObj.id) !== String(fBarbeiro)) return false;
 
-        // 1. Se não está na lista de subordinados, bloqueia
-        if (!barbeirosPermitidos.includes(idD)) return false;
-
-        // 2. Se o Admin selecionou um barbeiro específico e o produto não é dele, bloqueia
-        if (fBarbeiro !== 'TODOS' && idD !== String(fBarbeiro)) return false;
-
-        return true;
+        return barbeirosPermitidos.includes(String(donoObj.id));
     };
 
     async function carregarProdutos() {
@@ -223,11 +268,12 @@
         let produtos = await res.json();
 
         const selectFiltro = document.getElementById('filtro-barbeiro');
-        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : String(idLogado);
+        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
 
         produtos = produtos.filter(p => checkDonoValido(p.donoDoRegistro, fBarbeiro));
 
         const grid = document.getElementById('grid-produtos'); grid.innerHTML = '';
+        let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
         if (produtos.length === 0) {
             grid.innerHTML = '<div class="col-12"><p class="text-light text-center mt-5">Nenhum produto encontrado para este filtro.</p></div>';
@@ -245,6 +291,16 @@
                                   </div>`;
             }
 
+            // ✨ BLOQUEIO VISUAL DOS BOTÕES EDITAR/EXCLUIR
+            let botoesAdminHtml = '';
+            if (isAdmin) {
+                botoesAdminHtml = `
+                <div class="d-flex gap-2 mt-4 pt-2">
+                    <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
+                    <button class="btn-modern btn-outline-danger justify-content-center py-2 px-3" onclick="excluirProduto(${p.id})" title="Excluir"><i class="bi bi-trash3"></i></button>
+                </div>`;
+            }
+
             grid.innerHTML += `
                 <div class="col-12 col-md-4 col-xl-3 mb-4 d-flex align-items-stretch">
                     <div class="custom-card w-100 position-relative p-4 text-center d-flex flex-column">
@@ -255,11 +311,8 @@
                             <h3 class="fw-bold my-2" style="color: var(--accent-primary);">R$ ${p.preco.toFixed(2)}</h3>
                             <p class="mb-2 fw-bold small" style="color: var(--${corEstoque.split('-')[1]}-color);"><i class="bi bi-box-seam me-1"></i> Estoque: ${p.quantidadeEstoque} un</p>
                         </div>
-                        <div class="d-flex gap-2 mt-4 pt-2">
-                            <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalProduto(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidadeEstoque})"><i class="bi bi-pencil-square"></i> Editar</button>
-                            <button class="btn-modern btn-outline-danger justify-content-center py-2 px-3" onclick="excluirProduto(${p.id})" title="Excluir"><i class="bi bi-trash3"></i></button>
-                        </div>
-                        <div class="d-flex gap-2 mt-2">
+                        ${botoesAdminHtml}
+                        <div class="d-flex gap-2 ${isAdmin ? 'mt-2' : 'mt-4 pt-2'}">
                             <button class="btn-modern btn-outline-modern flex-grow-1 justify-content-center py-2 px-1" onclick="abrirModalRepor(${p.id}, '${p.nome}')"><i class="bi bi-arrow-down-circle"></i> Repor</button>
                             <button class="btn-modern btn-success-modern flex-grow-1 justify-content-center py-2 px-1 border-0" onclick="abrirModalVenda(${p.id}, '${p.nome}')" ${p.quantidadeEstoque === 0 ? 'disabled' : ''}><i class="bi bi-cart-check"></i> Vender</button>
                         </div>
@@ -269,31 +322,47 @@
     }
 
     function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
-
-    // ✨ CORREÇÃO: Vincula o produto ao barbeiro selecionado no filtro
-    async function salvarProduto() {
-        const id = document.getElementById('id-produto').value;
-        const selectFiltro = document.getElementById('filtro-barbeiro');
-        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS') ? parseInt(selectFiltro.value) : idLogado;
-
-        const d = {
-            nome: document.getElementById('nome-produto').value,
-            preco: parseFloat(document.getElementById('preco-produto').value),
-            quantidadeEstoque: parseInt(document.getElementById('qtd-produto').value),
-            donoDoRegistro: { id: idBarbeiroSelecionado }
-        };
-
-        if(!d.nome || isNaN(d.preco) || isNaN(d.quantidadeEstoque)) return alert("Preencha tudo corretamente!");
-        await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
-        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
-        carregarProdutos();
-    }
-
+    async function salvarProduto() { const id = document.getElementById('id-produto').value; const selectFiltro = document.getElementById('filtro-barbeiro'); const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS') ? parseInt(selectFiltro.value) : idLogado; const d = { nome: document.getElementById('nome-produto').value, preco: parseFloat(document.getElementById('preco-produto').value), quantidadeEstoque: parseInt(document.getElementById('qtd-produto').value), donoDoRegistro: { id: idBarbeiroSelecionado } }; if(!d.nome || isNaN(d.preco) || isNaN(d.quantidadeEstoque)) return alert("Preencha tudo corretamente!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }
     async function processarReposicao() { await fetch(`/api/estoque/produtos/${document.getElementById('id-produto-repor').value}/repor?quantidade=${document.getElementById('qtd-repor').value}`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalRepor')).hide(); carregarProdutos(); }
     async function excluirProduto(id) { if(confirm("Tem certeza que deseja excluir permanentemente este produto?")) { await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' }); carregarProdutos(); } }
     function abrirModalVenda(id, nome) { document.getElementById('id-produto-venda').value = id; document.getElementById('texto-venda-produto').innerText = nome; document.getElementById('qtd-venda').value = 1; new bootstrap.Modal(document.getElementById('modalVendaProduto')).show(); }
     async function processarVenda(forma) { const id = document.getElementById('id-produto-venda').value, qtd = document.getElementById('qtd-venda').value; if(qtd < 1) return; const res = await fetch(`/api/estoque/vender?produtoId=${id}&quantidade=${qtd}&pagamento=${forma}`, { method: 'POST' }); if(!res.ok) return alert("Erro: " + await res.text()); bootstrap.Modal.getInstance(document.getElementById('modalVendaProduto')).hide(); carregarProdutos(); }
+
+    async function abrirModalHistorico() {
+        try {
+            const res = await fetch('/api/estoque/movimentacoes');
+            if (!res.ok) throw new Error("Ainda não implementado no Backend");
+
+            const movs = await res.json();
+            const corpoTb = document.getElementById('tabela-historico');
+            corpoTb.innerHTML = '';
+
+            if (movs.length === 0) {
+                corpoTb.innerHTML = '<tr class="empty-state-row"><td colspan="5" class="text-light py-4 text-center">O histórico está limpo.</td></tr>';
+            } else {
+                movs.forEach(m => {
+                    const dFmt = new Date(m.dataHora).toLocaleString('pt-BR');
+                    let badge = 'badge-primary';
+                    if(m.acao === 'VENDA') badge = 'badge-success';
+                    if(m.acao === 'EXCLUSAO') badge = 'badge-danger';
+                    if(m.acao === 'REPOSICAO') badge = 'badge-info';
+
+                    corpoTb.innerHTML += `
+                    <tr>
+                        <td data-label="Data / Hora" class="text-light">${dFmt}</td>
+                        <td data-label="Usuário"><strong class="text-white">${m.nomeUsuario || 'Sistema'}</strong></td>
+                        <td data-label="Ação"><span class="badge-modern ${badge}">${m.acao}</span></td>
+                        <td data-label="Produto" class="text-light fw-bold">${m.produtoNome}</td>
+                        <td data-label="Detalhe"><small class="text-muted">${m.detalhes}</small></td>
+                    </tr>`;
+                });
+            }
+            new bootstrap.Modal(document.getElementById('modalHistorico')).show();
+        } catch (e) {
+            alert("Aviso: A tabela do histórico no banco de dados ainda precisa ser criada usando o código Java!");
+        }
+    }
 </script>
 </body>
 </html>
