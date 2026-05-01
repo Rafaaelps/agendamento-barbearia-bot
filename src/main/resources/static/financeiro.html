@@ -99,7 +99,6 @@
 
         .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
 
-        /* ✨ ALTERAÇÃO: Forçando "Documento" a ficar sozinho em cima, e Custo/Taxas em baixo */
         .action-bar-financeiro { display: flex; flex-direction: column; width: 100%; gap: 10px; }
         .action-bar-financeiro .month-container { width: 100%; }
         .action-bar-financeiro .buttons-grid { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
@@ -625,9 +624,106 @@
       agendamentosFiltrados.forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
 
+      // ✨ CÁLCULO DO PERÍODO ANTERIOR (Para o Indicador de Crescimento)
+      let dIni = new Date(dataInicio + 'T00:00:00');
+      let dFim = new Date(dataFim + 'T23:59:59');
+      let diffDays = Math.round((dFim - dIni) / (1000 * 60 * 60 * 24)) + 1;
+
+      let dFimAnt = new Date(dIni);
+      dFimAnt.setDate(dFimAnt.getDate() - 1);
+      let dIniAnt = new Date(dFimAnt);
+      dIniAnt.setDate(dIniAnt.getDate() - diffDays + 1);
+
+      let dtIniAntStr = dIniAnt.toISOString().split('T')[0];
+      let dtFimAntStr = dFimAnt.toISOString().split('T')[0];
+
+      let receitaAnt = 0, taxasAnt = 0, comissoesAnt = 0, despesasAnt = 0;
+
+      todosAg.filter(ag => {
+          const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dtIniAntStr, dtFimAntStr);
+      }).forEach(ag => {
+          let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
+          let pNorm = (ag.formaPagamento || '').toUpperCase();
+          if (pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE')) return;
+
+          let txC = (ag.donoDoRegistro && ag.donoDoRegistro.taxaCredito != null) ? (ag.donoDoRegistro.taxaCredito / 100.0) : taxaCredGlobal;
+          let txD = (ag.donoDoRegistro && ag.donoDoRegistro.taxaDebito != null) ? (ag.donoDoRegistro.taxaDebito / 100.0) : taxaDebGlobal;
+          let txSalao = (ag.donoDoRegistro && ag.donoDoRegistro.taxaComissao != null) ? (ag.donoDoRegistro.taxaComissao / 100.0) : 0;
+
+          let valTaxa = 0;
+          if (pNorm.includes('CREDITO')) valTaxa = precoCheio * txC;
+          else if (pNorm.includes('DEBITO')) valTaxa = precoCheio * txD;
+
+          let comissaoSalao = (precoCheio - valTaxa) * txSalao;
+
+          if (fBarbeiro === 'TODOS') { receitaAnt += precoCheio; taxasAnt += valTaxa; }
+          else if (fBarbeiro === 'CAIXA') { if (comissaoSalao > 0) receitaAnt += comissaoSalao; }
+          else { receitaAnt += precoCheio; taxasAnt += valTaxa; comissoesAnt += comissaoSalao; }
+      });
+
+      todasV.filter(v => {
+          let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
+          let idDono = donoVenda ? donoVenda.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return estaNoPeriodo(v.dataHoraVenda, dtIniAntStr, dtFimAntStr);
+      }).forEach(v => {
+          let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
+          let precoCheio = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
+          let pNorm = (v.formaPagamento || '').toUpperCase();
+          if (pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE')) return;
+
+          let txC = (donoVenda && donoVenda.taxaCredito != null) ? (donoVenda.taxaCredito / 100.0) : taxaCredGlobal;
+          let txD = (donoVenda && donoVenda.taxaDebito != null) ? (donoVenda.taxaDebito / 100.0) : taxaDebGlobal;
+          let txSalaoProd = (donoVenda && donoVenda.taxaComissaoProduto != null) ? (donoVenda.taxaComissaoProduto / 100.0) : 0;
+
+          let valTaxa = 0;
+          if (pNorm.includes('CREDITO')) valTaxa = precoCheio * txC;
+          else if (pNorm.includes('DEBITO')) valTaxa = precoCheio * txD;
+
+          let comissaoSalao = (precoCheio - valTaxa) * txSalaoProd;
+
+          if (fBarbeiro === 'TODOS') { receitaAnt += precoCheio; taxasAnt += valTaxa; }
+          else if (fBarbeiro === 'CAIXA') { if (comissaoSalao > 0) receitaAnt += comissaoSalao; }
+          else { receitaAnt += precoCheio; taxasAnt += valTaxa; comissoesAnt += comissaoSalao; }
+      });
+
+      todasD.filter(d => {
+          let idDono = d.donoDoRegistro ? d.donoDoRegistro.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return estaNoPeriodo(d.dataHora, dtIniAntStr, dtFimAntStr);
+      }).forEach(d => {
+          despesasAnt += Number(d.valor || 0);
+      });
+
+      let lucroAnterior = 0;
+      if (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA') {
+          lucroAnterior = receitaAnt - taxasAnt - despesasAnt;
+      } else {
+          lucroAnterior = receitaAnt - taxasAnt - comissoesAnt - despesasAnt;
+      }
+
+      let textoCrescimento = '<span class="text-light">Líquido em Conta</span>';
+      if (lucroAnterior > 0) {
+          let percentual = ((lucroNoBolso - lucroAnterior) / lucroAnterior) * 100;
+          if (percentual > 0) {
+              textoCrescimento = `<span class="text-success"><i class="bi bi-arrow-up-right"></i> +${percentual.toFixed(1)}%</span> <span class="text-light fw-normal">vs ant.</span>`;
+          } else if (percentual < 0) {
+              textoCrescimento = `<span class="text-danger"><i class="bi bi-arrow-down-right"></i> ${percentual.toFixed(1)}%</span> <span class="text-light fw-normal">vs ant.</span>`;
+          } else {
+              textoCrescimento = `<span class="text-muted"><i class="bi bi-dash"></i> 0.0%</span> <span class="text-light fw-normal">vs ant.</span>`;
+          }
+      } else if (lucroAnterior <= 0 && lucroNoBolso > 0) {
+          textoCrescimento = `<span class="text-success"><i class="bi bi-arrow-up-right"></i> 100%</span> <span class="text-light fw-normal">vs ant.</span>`;
+      }
+
       document.getElementById('valor-pendente').innerText = totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('valor-lucro-liquido').innerText = lucroNoBolso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      document.getElementById('indicador-crescimento').innerHTML = `<span class="text-light">Líquido em Conta</span>`;
+      document.getElementById('indicador-crescimento').innerHTML = textoCrescimento;
       document.getElementById('valor-entradas').innerText = receitaBruta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
       let somaSaidas = 0;
