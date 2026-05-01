@@ -229,7 +229,7 @@
 
     async function carregarFiltroBarbeiros() {
         try {
-            const resMe = await fetch('/api/usuario/me');
+            const resMe = await fetch('/api/usuario/me', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
             if (resMe.ok) {
                 const me = await resMe.json();
                 perfilLogado = me.perfil;
@@ -241,22 +241,30 @@
 
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
-                    const resFunc = await fetch('/api/admin/funcionarios');
+                    const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
-                        barbeirosPermitidos = funcs.map(f => f.id);
-
                         const select = document.getElementById('filtro-barbeiro');
                         if (select) {
                             select.innerHTML = '';
 
                             if (me.perfil === 'SUPER_ADMIN') {
+                                barbeirosPermitidos = funcs.map(f => f.id);
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
+                                funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
+                                select.value = 'TODOS';
+                            } else {
+                                // ADMIN
+                                barbeirosPermitidos = [me.id];
+                                // ✨ ALTERAÇÃO: Atualizado para BARBEIRO
+                                const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
+                                subordinados.forEach(s => barbeirosPermitidos.push(s.id));
+
+                                select.innerHTML += `<option value="TODOS">Visão Geral (Salão)</option>`;
+                                select.innerHTML += `<option value="${me.id}">Minha Agenda (Pessoal)</option>`;
+                                subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
+                                select.value = 'TODOS';
                             }
-
-                            funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
-
-                            select.value = me.id;
                             document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
                     }
@@ -351,7 +359,6 @@
 
     async function carregarServicosEncaixe() { const res = await fetch('/api/servicos'); const servicos = await res.json(); const select = document.getElementById('servico-encaixe'); select.innerHTML = ''; servicos.forEach(s => select.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`); }
 
-    // ✨ CORREÇÃO APLICADA: Envia o Barbeiro selecionado para o Banco de Dados.
     async function salvarEncaixe() {
         const selectFiltro = document.getElementById('filtro-barbeiro');
         const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS' && selectFiltro.value !== 'CAIXA') ? parseInt(selectFiltro.value) : idLogado;

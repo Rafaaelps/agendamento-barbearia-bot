@@ -260,7 +260,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option><option value="PIX_DINHEIRO">Dinheiro / PIX</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
+<div class="modal fade" id="modalEditarFinanceiro" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> Editar Atendimento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="edit-fin-id"><div class="mb-3"><label class="form-label fw-bold text-light small">VALOR CHEIO (R$)</label><input type="number" id="edit-fin-valor" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">FORMA DE PAGAMENTO</label><select id="edit-fin-pgto" class="form-select custom-select fw-bold"><option value="PIX_DINHEIRO">Dinheiro / PIX</option><option value="CREDITO">Cartão de Crédito</option><option value="DEBITO">Cartão de Débito</option></select></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarEdicaoFinanceira()">Salvar Alterações</button></div></div></div></div>
 <div class="modal fade" id="modalTaxas" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-gear text-light me-2"></i> Configurar Taxas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="text-light small">As próximas vendas utilizarão estes valores para calcular seu lucro líquido.</p><div class="mb-3"><label class="form-label fw-bold text-light small">TAXA CRÉDITO (%):</label><input type="number" id="taxa-credito" class="form-control custom-input fw-bold" step="0.01"></div><div class="mb-4"><label class="form-label fw-bold text-light small">TAXA DÉBITO (%):</label><input type="number" id="taxa-debito" class="form-control custom-input fw-bold" step="0.01"></div><button class="btn-modern btn-primary-modern w-100 justify-content-center" onclick="salvarTaxas()">Salvar Novas Taxas</button></div></div></div></div>
 <div class="modal fade" id="modalDespesa" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title fw-bold"><i class="bi bi-receipt text-danger me-2"></i> Lançar Despesa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold text-light small">DO QUE SE TRATA?</label><input type="text" id="desc-despesa" class="form-control custom-input" placeholder="Ex: Conta de Luz..."></div><div class="mb-4"><label class="form-label fw-bold text-light small">VALOR GASTO (R$):</label><input type="number" id="valor-despesa" class="form-control custom-input fw-bold text-danger" step="0.01"></div><button class="btn-modern btn-danger-modern w-100 justify-content-center" onclick="salvarDespesa()">Registrar Saída</button></div></div></div></div>
 
@@ -269,7 +269,6 @@
   let meuGrafico = null; let taxaCredGlobal = 0.05; let taxaDebGlobal = 0.02;
   let perfilLogado = ''; let nomeLogado = ''; let idLogado = null;
   let barbeirosPermitidos = [];
-
   let modoFiltroFuturo = false;
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -281,7 +280,6 @@
     const dataHoje = new Date();
     const primeiroDia = new Date(dataHoje.getFullYear(), dataHoje.getMonth(), 1).toISOString().split('T')[0];
     const hoje = dataHoje.toISOString().split('T')[0];
-
     document.getElementById('filtro-data-inicio').value = primeiroDia;
     document.getElementById('filtro-data-fim').value = hoje;
 
@@ -311,7 +309,7 @@
 
   async function carregarFiltroBarbeiros() {
       try {
-          const resMe = await fetch('/api/usuario/me');
+          const resMe = await fetch('/api/usuario/me', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
           if (resMe.ok) {
               const me = await resMe.json();
               perfilLogado = me.perfil;
@@ -325,31 +323,31 @@
                   document.getElementById('menu-usuarios').classList.remove('d-none');
                   document.getElementById('btn-custo').classList.remove('d-none');
 
-                  const resFunc = await fetch('/api/admin/funcionarios');
+                  const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                   if (resFunc.ok) {
                       const funcs = await resFunc.json();
-                      barbeirosPermitidos = funcs.map(f => f.id);
-
                       const select = document.getElementById('filtro-barbeiro');
                       if (select) {
                           select.innerHTML = '';
 
                           if (me.perfil === 'SUPER_ADMIN') {
-                              select.innerHTML += '<option value="TODOS">Todos os Barbeiros (Salão)</option>';
-                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
-                          }
-                          else if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN') {
-                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
-                          }
-
-                          funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
-
-                          if (me.perfil === 'SUPER_ADMIN') {
+                              barbeirosPermitidos = funcs.map(f => f.id);
+                              select.innerHTML += '<option value="TODOS">Todos os Barbeiros (Faturamento da Empresa)</option>';
+                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia (Apenas Comissões)</option>';
+                              funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                               select.value = 'TODOS';
                           } else {
-                              select.value = me.id;
-                          }
+                              barbeirosPermitidos = [me.id];
+                              // ✨ ALTERAÇÃO: Atualizado para BARBEIRO
+                              const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
+                              subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
+                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
+                              select.innerHTML += `<option value="${me.id}">Minha Agenda (Pessoal)</option>`;
+                              select.innerHTML += '<option value="TODOS">Visão Geral (Salão)</option>';
+                              subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
+                              select.value = 'TODOS';
+                          }
                           document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                       }
                   }
@@ -390,24 +388,20 @@
       const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
       let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
-      const checkDono = (donoObj) => {
-          if (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA') return true;
-          let idD = donoObj ? donoObj.id : idLogado;
-          return (idD == fBarbeiro);
-      };
+      const agendamentosFiltrados = todosAg.filter(ag => {
+          const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dataInicio, dataFim);
+      });
 
-      // --- CORTES DE CABELO ---
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && estaNoPeriodo(ag.dataHoraInicio, dataInicio, dataFim)).forEach(ag => {
-        if (!checkDono(ag.donoDoRegistro)) return;
-
+      agendamentosFiltrados.forEach(ag => {
         let precoCheio = ag.valorFinal ? Number(ag.valorFinal) : Number(ag.servicoEscolhido?.preco || 0);
         let pNorm = (ag.formaPagamento || '').toUpperCase();
-
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
 
         let fatBarbeiro = Number(ag.faturamentoBarbeiro || 0);
         let comissaoSalao = Number(ag.comissaoDoAdmin || 0);
-
         let valTaxa = Math.max(0, precoCheio - fatBarbeiro - comissaoSalao);
 
         if (ehFuturo || (fatBarbeiro === 0 && comissaoSalao === 0 && precoCheio > 0)) {
@@ -422,33 +416,32 @@
         let detalheComissaoHtml = '';
         let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
 
-        if (isAdmin && fBarbeiro === 'TODOS') {
-            if (idDonoDesteCorte == idLogado) {
+        if (fBarbeiro === 'TODOS') {
+            if (perfilLogado === 'SUPER_ADMIN') {
                 if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; }
                 valorLiquidoExibicao = precoCheio - valTaxa;
+                let objFakeComHtml = { ...ag, detalheHtml: '' };
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
+                extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
             } else {
-                if(!ehFuturo) { receitaBruta += comissaoSalao; }
-                valorLiquidoExibicao = comissaoSalao;
-                detalheComissaoHtml = `
-                    <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
-                        <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
-                    </div>`;
+                if (idDonoDesteCorte == idLogado) {
+                    if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; }
+                    valorLiquidoExibicao = precoCheio - valTaxa;
+                } else {
+                    if(!ehFuturo) { receitaBruta += comissaoSalao; }
+                    valorLiquidoExibicao = comissaoSalao;
+                    detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
+                }
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
+                let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
+                extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
             }
-            if(ehFuturo) totalPendente += valorLiquidoExibicao;
-            let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
-            extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
         }
         else if (fBarbeiro === 'CAIXA') {
             if (comissaoSalao > 0) {
                 if(!ehFuturo) { receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
-                detalheComissaoHtml = `
-                    <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
-                        <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado do Cliente:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Comissão Recebida (Livre):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
-                    </div>`;
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
                 if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
                 extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio, ehFuturo: ehFuturo });
@@ -457,14 +450,8 @@
         else {
             if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-
             if (isAdmin && idDonoDesteCorte != idLogado) {
-                detalheComissaoHtml = `
-                <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
-                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
-                </div>`;
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-warning fw-bold"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
             }
             if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...ag, detalheHtml: detalheComissaoHtml };
@@ -473,10 +460,16 @@
       });
 
       // --- PRODUTOS DO ESTOQUE ---
-      todasV.filter(v => estaNoPeriodo(v.dataHoraVenda, dataInicio, dataFim)).forEach(v => {
-        let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
-        if (!checkDono(donoVenda)) return;
+      const vendasFiltradas = todasV.filter(v => {
+          let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
+          let idDono = donoVenda ? donoVenda.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return estaNoPeriodo(v.dataHoraVenda, dataInicio, dataFim);
+      });
 
+      vendasFiltradas.forEach(v => {
+        let donoVenda = v.produto ? v.produto.donoDoRegistro : null;
         let precoCheio = Number(v.quantidade || 0) * Number(v.produto?.preco || 0);
         let pNorm = (v.formaPagamento || '').toUpperCase();
         let ehFuturo = pNorm === '' || pNorm === 'NULL' || pNorm.includes('LANCAMENTO') || pNorm.includes('PENDENTE');
@@ -497,35 +490,34 @@
         let detalheComissaoHtml = '';
         let dataString = Array.isArray(v.dataHoraVenda) ? `${v.dataHoraVenda[0]}-${String(v.dataHoraVenda[1]).padStart(2,'0')}-${String(v.dataHoraVenda[2]).padStart(2,'0')}T${String(v.dataHoraVenda[3]).padStart(2,'0')}:${String(v.dataHoraVenda[4]).padStart(2,'0')}` : v.dataHoraVenda;
 
-        if (isAdmin && fBarbeiro === 'TODOS') {
-            if (idDonoDestaVenda == idLogado) {
+        if (fBarbeiro === 'TODOS') {
+            if (perfilLogado === 'SUPER_ADMIN') {
                 if(!ehFuturo){ receitaBruta += precoCheio; taxasTotal += valTaxa; }
                 valorLiquidoExibicao = precoCheio - valTaxa;
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
+                let objFakeComHtml = { ...v, detalheHtml: '' };
+                extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
             } else {
-                if (comissaoSalao > 0) {
-                    if(!ehFuturo) { receitaBruta += comissaoSalao; }
-                    valorLiquidoExibicao = comissaoSalao;
-                    detalheComissaoHtml = `
-                    <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
-                        <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
-                        <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Sua Comissão (Lucro):</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
-                    </div>`;
-                } else return;
+                if (idDonoDestaVenda == idLogado) {
+                    if(!ehFuturo){ receitaBruta += precoCheio; taxasTotal += valTaxa; }
+                    valorLiquidoExibicao = precoCheio - valTaxa;
+                } else {
+                    if (comissaoSalao > 0) {
+                        if(!ehFuturo) { receitaBruta += comissaoSalao; }
+                        valorLiquidoExibicao = comissaoSalao;
+                        detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
+                    } else return;
+                }
+                if(ehFuturo) totalPendente += valorLiquidoExibicao;
+                let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
+                extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
             }
-            if(ehFuturo) totalPendente += valorLiquidoExibicao;
-            let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
-            extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
         }
         else if (fBarbeiro === 'CAIXA') {
             if (comissaoSalao > 0) {
                 if(!ehFuturo){ receitaBruta += comissaoSalao; }
                 valorLiquidoExibicao = comissaoSalao;
-                detalheComissaoHtml = `
-                <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
-                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado do Cliente:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-success fw-bold border-top border-secondary pt-1 mt-1"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div>
-                </div>`;
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-success fw-bold"><span>Comissão Recebida:</span> <span>+ R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
                 if(ehFuturo) totalPendente += valorLiquidoExibicao;
                 let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
                 extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: 0, precoCheio: precoCheio, ehFuturo: ehFuturo });
@@ -534,14 +526,8 @@
         else {
             if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-
             if (isAdmin && idDonoDestaVenda != idLogado && comissaoSalao > 0) {
-                detalheComissaoHtml = `
-                <div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;">
-                    <div class="d-flex justify-content-between text-muted mb-1"><span>Valor Cobrado:</span> <span>R$ ${precoCheio.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-danger mb-1"><span>Taxa Cartão:</span> <span>- R$ ${valTaxa.toFixed(2)}</span></div>
-                    <div class="d-flex justify-content-between text-warning fw-bold pt-1 mt-1 border-top border-secondary"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div>
-                </div>`;
+                detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-warning fw-bold"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
             }
             if(ehFuturo) totalPendente += valorLiquidoExibicao;
             let objFakeComHtml = { ...v, detalheHtml: detalheComissaoHtml };
@@ -550,13 +536,12 @@
       });
 
       // --- DESPESAS ---
-      const dataHoje = new Date();
-      const mesAt = dataHoje.getMonth(), anoAt = dataHoje.getFullYear();
-      const mesAn = mesAt === 0 ? 11 : mesAt - 1, anoAn = mesAt === 0 ? anoAt - 1 : anoAt;
-      let lucroMesAt = 0, lucroMesAn = 0;
-
-      todasD.filter(d => estaNoPeriodo(d.dataHora, dataInicio, dataFim)).forEach(d => {
-        if (!checkDono(d.donoDoRegistro)) return;
+      todasD.filter(d => {
+          let idDono = d.donoDoRegistro ? d.donoDoRegistro.id : idLogado;
+          if (!barbeirosPermitidos.includes(idDono)) return false;
+          if (fBarbeiro !== 'TODOS' && fBarbeiro !== 'CAIXA' && idDono != fBarbeiro) return false;
+          return estaNoPeriodo(d.dataHora, dataInicio, dataFim);
+      }).forEach(d => {
         despesasTotal += Number(d.valor || 0);
         let dataString = Array.isArray(d.dataHora) ? `${d.dataHora[0]}-${String(d.dataHora[1]).padStart(2,'0')}-${String(d.dataHora[2]).padStart(2,'0')}T${String(d.dataHora[3]).padStart(2,'0')}:${String(d.dataHora[4]).padStart(2,'0')}` : d.dataHora;
         extratoMisto.push({ data: dataString, tipo: 'DESPESA', obj: d, ehFuturo: false });
@@ -607,7 +592,7 @@
       let lucroNoBolso = 0;
       let textoSaidasExtras = "";
 
-      if (isAdmin && fBarbeiro === 'TODOS') {
+      if (fBarbeiro === 'TODOS') {
           lucroNoBolso = receitaBruta - taxasTotal - despesasTotal;
       } else if (fBarbeiro === 'CAIXA') {
           lucroNoBolso = receitaBruta - despesasTotal;
@@ -617,7 +602,7 @@
       }
 
       let hist = {}, totalCts = 0, fatGlobal = 0;
-      todosAg.filter(ag => ag.status === 'CONCLUIDO' && checkDono(ag.donoDoRegistro)).forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
+      agendamentosFiltrados.forEach(ag => { fatGlobal += Number(ag.valorFinal || ag.servicoEscolhido?.preco || 0); totalCts++; hist[ag.telefoneCliente] = (hist[ag.telefoneCliente] || 0) + 1; });
       let previsao = Object.values(hist).filter(v => v > 1).length * (totalCts > 0 ? (fatGlobal / totalCts) : 0);
 
       document.getElementById('valor-pendente').innerText = totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -675,7 +660,6 @@
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;
   }
 
-  // ✨ FUNÇÃO NOVA PARA EXPORTAR EXCEL
   async function exportarExcel() {
       const corpoTb = document.getElementById('tabela-extrato');
       const linhas = corpoTb.querySelectorAll('tr');
