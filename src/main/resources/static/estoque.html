@@ -152,7 +152,8 @@
 
     async function carregarFiltroBarbeiros() {
         try {
-            const resMe = await fetch('/api/usuario/me');
+            // ✨ Adicionado no-store para evitar cache de conta
+            const resMe = await fetch('/api/usuario/me', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
             if (resMe.ok) {
                 const me = await resMe.json();
                 perfilLogado = me.perfil;
@@ -162,47 +163,59 @@
                 const sideUser = document.getElementById('sidebar-user-name');
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
+                const select = document.getElementById('filtro-barbeiro');
+                if (select) select.innerHTML = '';
+
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
 
-                    const resFunc = await fetch('/api/admin/funcionarios');
+                    const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
-                        barbeirosPermitidos = funcs.map(f => String(f.id));
 
-                        const select = document.getElementById('filtro-barbeiro');
-                        if (select) {
-                            select.innerHTML = '';
-
-                            if (me.perfil === 'SUPER_ADMIN') {
+                        if (me.perfil === 'SUPER_ADMIN') {
+                            barbeirosPermitidos = funcs.map(f => String(f.id));
+                            if(select) {
                                 select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
-                            }
-
-                            funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
-
-                            if (me.perfil === 'SUPER_ADMIN') {
+                                funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                                 select.value = 'TODOS';
-                            } else {
+                            }
+                        } else {
+                            // ✨ ADMIN: Regra padronizada (Ele mesmo + Barbeiros)
+                            barbeirosPermitidos = [String(me.id)];
+                            const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
+                            subordinados.forEach(s => barbeirosPermitidos.push(String(s.id)));
+
+                            if(select) {
+                                select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
+                                subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
                                 select.value = me.id;
                             }
-
-                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
+                        document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                     }
                 } else {
                     barbeirosPermitidos = [String(me.id)];
+                    if(select) {
+                        select.innerHTML = `<option value="${me.id}">${me.nome}</option>`;
+                        select.value = me.id;
+                    }
                 }
             }
-        } catch(e) {}
+        } catch(e) { console.error(e); }
     }
 
-    // ✨ A CORREÇÃO PRINCIPAL: O Passe Livre do Desenvolvedor
+    // ✨ CORREÇÃO RIGOROSA: Separa perfeitamente o estoque selecionado
     const checkDonoValido = (donoObj, fBarbeiro) => {
-        if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') return true; // Passe livre
-        if (!donoObj) return (perfilLogado === 'ADMIN' || perfilLogado === 'SUPER_ADMIN' || perfilLogado === 'ROLE_ADMIN');
-        if (fBarbeiro !== 'TODOS' && donoObj.id != fBarbeiro) return false;
+        let idD = donoObj ? String(donoObj.id) : String(idLogado);
 
-        return barbeirosPermitidos.includes(String(donoObj.id)); // Compara tipo String rigorosamente
+        // 1. Se não está na lista de subordinados, bloqueia
+        if (!barbeirosPermitidos.includes(idD)) return false;
+
+        // 2. Se o Admin selecionou um barbeiro específico e o produto não é dele, bloqueia
+        if (fBarbeiro !== 'TODOS' && idD !== String(fBarbeiro)) return false;
+
+        return true;
     };
 
     async function carregarProdutos() {
@@ -210,7 +223,7 @@
         let produtos = await res.json();
 
         const selectFiltro = document.getElementById('filtro-barbeiro');
-        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
+        const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : String(idLogado);
 
         produtos = produtos.filter(p => checkDonoValido(p.donoDoRegistro, fBarbeiro));
 
@@ -224,7 +237,6 @@
         produtos.forEach(p => {
             let corEstoque = p.quantidadeEstoque > 5 ? 'text-success' : 'text-danger';
 
-            // ✨ TAG EXCLUSIVA: Só aparece para SUPER_ADMIN no filtro de TODOS
             let tagResponsavel = '';
             if (perfilLogado === 'SUPER_ADMIN' && fBarbeiro === 'TODOS') {
                 const nomeDono = p.donoDoRegistro ? p.donoDoRegistro.nome : 'Sistema';
@@ -257,7 +269,26 @@
     }
 
     function abrirModalProduto(id='', nome='', preco='', qtd='') { document.getElementById('id-produto').value = id; document.getElementById('nome-produto').value = nome; document.getElementById('preco-produto').value = preco; document.getElementById('qtd-produto').value = qtd; document.getElementById('titulo-modal-produto').innerHTML = id ? '<i class="bi bi-pencil-square text-primary me-2"></i> Editar Produto' : '<i class="bi bi-plus-circle text-primary me-2"></i> Cadastrar Produto'; new bootstrap.Modal(document.getElementById('modalProduto')).show(); }
-    async function salvarProduto() { const id = document.getElementById('id-produto').value, d = { nome: document.getElementById('nome-produto').value, preco: document.getElementById('preco-produto').value, quantidadeEstoque: document.getElementById('qtd-produto').value }; if(!d.nome || !d.preco || !d.quantidadeEstoque) return alert("Preencha tudo!"); await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide(); carregarProdutos(); }
+
+    // ✨ CORREÇÃO: Vincula o produto ao barbeiro selecionado no filtro
+    async function salvarProduto() {
+        const id = document.getElementById('id-produto').value;
+        const selectFiltro = document.getElementById('filtro-barbeiro');
+        const idBarbeiroSelecionado = (selectFiltro && selectFiltro.value && selectFiltro.value !== 'TODOS') ? parseInt(selectFiltro.value) : idLogado;
+
+        const d = {
+            nome: document.getElementById('nome-produto').value,
+            preco: parseFloat(document.getElementById('preco-produto').value),
+            quantidadeEstoque: parseInt(document.getElementById('qtd-produto').value),
+            donoDoRegistro: { id: idBarbeiroSelecionado }
+        };
+
+        if(!d.nome || isNaN(d.preco) || isNaN(d.quantidadeEstoque)) return alert("Preencha tudo corretamente!");
+        await fetch(id ? `/api/estoque/produtos/${id}` : '/api/estoque/produtos', { method: id ? 'PUT':'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+        carregarProdutos();
+    }
+
     function abrirModalRepor(id, nome) { document.getElementById('id-produto-repor').value = id; document.getElementById('texto-repor-produto').innerText = nome; document.getElementById('qtd-repor').value = 1; new bootstrap.Modal(document.getElementById('modalRepor')).show(); }
     async function processarReposicao() { await fetch(`/api/estoque/produtos/${document.getElementById('id-produto-repor').value}/repor?quantidade=${document.getElementById('qtd-repor').value}`, { method: 'PUT' }); bootstrap.Modal.getInstance(document.getElementById('modalRepor')).hide(); carregarProdutos(); }
     async function excluirProduto(id) { if(confirm("Tem certeza que deseja excluir permanentemente este produto?")) { await fetch(`/api/estoque/produtos/${id}`, { method: 'DELETE' }); carregarProdutos(); } }
