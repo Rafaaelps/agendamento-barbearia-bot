@@ -85,6 +85,11 @@
         cursor: pointer;
     }
 
+    @media (min-width: 992px) {
+        .action-bar-financeiro { display: flex; flex-direction: row; gap: 12px; align-items: center; justify-content: flex-end; }
+        .action-bar-financeiro .buttons-grid { display: flex; gap: 12px; }
+    }
+
     @media (max-width: 991.98px) {
         .mobile-topbar { display: flex; }
         .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; height: 100%; z-index: 1050; }
@@ -93,10 +98,15 @@
         .main-content { padding: 16px; }
 
         .page-header-custom { flex-direction: column; align-items: stretch; gap: 15px; }
-        .action-bar-custom { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); width: 100%; gap: 10px; }
-        .action-bar-custom .btn-modern { width: 100%; justify-content: center; }
-        .action-bar-custom .dropdown { width: 100%; }
-        .action-bar-custom .dropdown-toggle { width: 100%; justify-content: center; }
+
+        /* ✨ ALTERAÇÃO: Forçando "Documento" a ficar sozinho em cima, e Custo/Taxas em baixo */
+        .action-bar-financeiro { display: flex; flex-direction: column; width: 100%; gap: 10px; }
+        .action-bar-financeiro .month-container { width: 100%; }
+        .action-bar-financeiro .buttons-grid { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+        .action-bar-financeiro .buttons-grid .dropdown { width: 100%; }
+        .action-bar-financeiro .buttons-grid .dropdown .btn-modern { width: 100%; justify-content: center; }
+        .action-bar-financeiro .buttons-grid > button { flex: 1; justify-content: center; }
+        .btn-modern { padding-left: 5px; padding-right: 5px; font-size: 0.8rem;}
 
         .transparent-mobile { background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
 
@@ -151,18 +161,20 @@
         <h1 class="page-title" id="titulo-pagina">Visão Financeira (BI)</h1>
         <h2 class="mb-0 d-none text-center w-100 fw-bold border-bottom border-secondary pb-2" id="titulo-pdf">💈 Relatório Financeiro</h2>
 
-        <div class="action-bar-custom" id="botoes-acao">
-          <div class="dropdown">
-            <button class="btn-modern btn-outline-modern dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-files"></i> Documento
-            </button>
-            <ul class="dropdown-menu dropdown-menu-dark custom-card" style="border: 1px solid var(--border-color);">
-              <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarPDF()"><i class="bi bi-file-earmark-pdf text-danger fs-5"></i> Gerar em PDF</a></li>
-              <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarExcel()"><i class="bi bi-file-earmark-excel text-success fs-5"></i> Gerar em Excel</a></li>
-            </ul>
+        <div class="action-bar-financeiro" id="botoes-acao">
+          <div class="buttons-grid">
+            <div class="dropdown">
+              <button class="btn-modern btn-outline-modern dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-files"></i> Documento
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark custom-card" style="border: 1px solid var(--border-color);">
+                <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarPDF()"><i class="bi bi-file-earmark-pdf text-danger fs-5"></i> Gerar em PDF</a></li>
+                <li><a class="dropdown-item text-light d-flex align-items-center gap-2 py-2" href="#" onclick="exportarExcel()"><i class="bi bi-file-earmark-excel text-success fs-5"></i> Gerar em Excel</a></li>
+              </ul>
+            </div>
+            <button class="btn-modern btn-danger-modern d-none" id="btn-custo" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
+            <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
           </div>
-          <button class="btn-modern btn-danger-modern d-none" id="btn-custo" onclick="abrirModalDespesa()"><i class="bi bi-receipt"></i> Custo</button>
-          <button class="btn-modern btn-outline-modern" onclick="abrirModalTaxas()"><i class="bi bi-gear"></i> Taxas</button>
         </div>
       </div>
 
