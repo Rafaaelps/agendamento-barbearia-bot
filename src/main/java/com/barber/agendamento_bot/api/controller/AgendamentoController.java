@@ -39,16 +39,20 @@ public class AgendamentoController {
         List<Agendamento> todos = agendaService.listarTodosOsAgendamentos();
         if (logado == null) return List.of();
 
+        // ✨ 1. Super Admin tem acesso a todos os dados da empresa
         if (logado.getPerfil().equals("SUPER_ADMIN")) {
             return todos;
-        } else if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
+        }
+        // ✨ 2. Admin vê a si próprio e os Barbeiros
+        else if (logado.getPerfil().equals("ADMIN") || logado.getPerfil().equals("ROLE_ADMIN")) {
             return todos.stream().filter(a -> {
                 Usuario dono = a.getDonoDoRegistro();
-                if (dono == null) return true; // Mostra encaixes órfãos antigos para o Admin
-                // ✨ ALTERAÇÃO: Agora verifica se o perfil é "BARBEIRO"
-                return dono.getId().equals(logado.getId()) || dono.getPerfil().equals("BARBEIRO");
+                if (dono == null) return true; // Permite ver encaixes órfãos do passado
+                return dono.getId().equals(logado.getId()) || dono.getPerfil().equals("BARBEIRO") || dono.getPerfil().equals("USER");
             }).collect(Collectors.toList());
-        } else {
+        }
+        // ✨ 3. Barbeiros vêem estritamente apenas a sua agenda
+        else {
             return todos.stream()
                     .filter(a -> a.getDonoDoRegistro() != null && a.getDonoDoRegistro().getId().equals(logado.getId()))
                     .collect(Collectors.toList());
@@ -67,8 +71,7 @@ public class AgendamentoController {
             return todos.stream().filter(b -> {
                 Usuario dono = b.getDonoDoRegistro();
                 if (dono == null) return true;
-                // ✨ ALTERAÇÃO: Agora verifica se o perfil é "BARBEIRO"
-                return dono.getId().equals(logado.getId()) || dono.getPerfil().equals("BARBEIRO");
+                return dono.getId().equals(logado.getId()) || dono.getPerfil().equals("BARBEIRO") || dono.getPerfil().equals("USER");
             }).collect(Collectors.toList());
         } else {
             return todos.stream()
@@ -111,8 +114,10 @@ public class AgendamentoController {
     public ResponseEntity<List<LocalTime>> buscarHorariosLivres(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate data,
             @RequestParam Long servicoId) {
+
         Usuario logado = getUsuarioLogado();
         List<LocalTime> horarios = agendaService.buscarHorariosLivres(data, servicoId, logado);
+
         return ResponseEntity.ok(horarios);
     }
 }

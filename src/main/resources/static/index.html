@@ -239,44 +239,51 @@
                 const sideUser = document.getElementById('sidebar-user-name');
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
+                const select = document.getElementById('filtro-barbeiro');
+                if (select) select.innerHTML = '';
+
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
                     const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
+
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
-                        const select = document.getElementById('filtro-barbeiro');
-                        if (select) {
-                            select.innerHTML = '';
 
-                            if (me.perfil === 'SUPER_ADMIN') {
-                                barbeirosPermitidos = funcs.map(f => f.id);
-                                select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
+                        if (me.perfil === 'SUPER_ADMIN') {
+                            barbeirosPermitidos = funcs.map(f => f.id);
+                            if(select) {
+                                select.innerHTML += '<option value="TODOS">Visão Geral (Salão)</option>';
                                 funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                                 select.value = 'TODOS';
-                            } else {
-                                // ✨ ADMIN: Remove visão geral e coloca o próprio nome
-                                barbeirosPermitidos = [me.id];
-                                const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
-                                subordinados.forEach(s => barbeirosPermitidos.push(s.id));
+                            }
+                        } else {
+                            barbeirosPermitidos = [me.id];
+                            const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
+                            subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
+                            if(select) {
                                 select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
                                 subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
-                                select.value = me.id; // Padrão é a própria agenda
+                                select.value = me.id;
                             }
-                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
+                        document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                     }
                 } else {
                     barbeirosPermitidos = [me.id];
+                    if (select) {
+                        select.innerHTML = `<option value="${me.id}">${me.nome}</option>`;
+                        select.value = me.id;
+                    }
                 }
             }
-        } catch(e) {}
+        } catch(e) { console.error(e); }
     }
 
     const checkDonoValido = (donoObj, fBarbeiro) => {
-        if (!donoObj) return (perfilLogado === 'ADMIN' || perfilLogado === 'SUPER_ADMIN' || perfilLogado === 'ROLE_ADMIN');
-        if (fBarbeiro !== 'TODOS' && donoObj.id != fBarbeiro) return false;
-        return barbeirosPermitidos.includes(donoObj.id);
+        if (fBarbeiro === 'TODOS') return true;
+        let idD = donoObj ? donoObj.id : idLogado;
+        return (idD == fBarbeiro);
     };
 
     async function carregarAgendamentos() {
@@ -289,7 +296,7 @@
             const filtroStatus = document.getElementById('filtro-status').value;
 
             const selectFiltro = document.getElementById('filtro-barbeiro');
-            const filtroBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
+            const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
             let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
             let listaMista = [];
@@ -297,19 +304,30 @@
             todosAg.filter(ag => {
                 if (!ag.dataHoraInicio) return false;
                 const dataAg = ag.dataHoraInicio.split('T')[0];
-                return dataAg >= dataInicio && dataAg <= dataFim;
+                let estaNoPeriodo = dataAg >= dataInicio && dataAg <= dataFim;
+
+                // Isolamento
+                const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
+                if (!barbeirosPermitidos.includes(idDono)) return false;
+
+                return estaNoPeriodo;
             }).forEach(ag => {
                 let exibir = (filtroStatus === 'TODOS') || (filtroStatus === 'PADRAO' && (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO')) || (filtroStatus === ag.status);
-                let donoValido = checkDonoValido(ag.donoDoRegistro, filtroBarbeiro);
+                let donoValido = checkDonoValido(ag.donoDoRegistro, fBarbeiro);
                 if(exibir && donoValido) listaMista.push({ tipo: 'AGENDAMENTO', dado: ag });
             });
 
             todosBq.filter(bq => {
                 if (!bq.dataHoraInicio) return false;
                 const dataBq = bq.dataHoraInicio.split('T')[0];
-                return dataBq >= dataInicio && dataBq <= dataFim;
+                let estaNoPeriodo = dataBq >= dataInicio && dataBq <= dataFim;
+
+                const idDono = bq.donoDoRegistro ? bq.donoDoRegistro.id : idLogado;
+                if (!barbeirosPermitidos.includes(idDono)) return false;
+
+                return estaNoPeriodo;
             }).forEach(bq => {
-                let donoValido = checkDonoValido(bq.donoDoRegistro, filtroBarbeiro);
+                let donoValido = checkDonoValido(bq.donoDoRegistro, fBarbeiro);
                 if ((filtroStatus === 'PADRAO' || filtroStatus === 'TODOS') && donoValido) listaMista.push({ tipo: 'BLOQUEIO', dado: bq });
             });
 
@@ -329,7 +347,7 @@
                     let bClass = 'badge-success'; if(ag.status === 'AGENDADO') bClass = 'badge-warning'; if(ag.status === 'CONFIRMADO') bClass = 'badge-primary'; if(ag.status === 'CANCELADO') bClass = 'badge-danger';
                     let botoes = (ag.status === 'AGENDADO' || ag.status === 'CONFIRMADO') ? `<button class="btn btn-sm btn-success-modern me-2" onclick="abrirModalPagamento(${ag.id})"><i class="bi bi-check-lg"></i> Receber</button><button class="btn btn-sm btn-outline-danger border-0" onclick="cancelar(${ag.id})"><i class="bi bi-x-lg"></i></button>` : `<span class="text-light fw-bold">${ag.status}</span>`;
 
-                    let seloBarbeiro = (ag.donoDoRegistro && isAdmin && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${ag.donoDoRegistro.nome}</span>` : '';
+                    let seloBarbeiro = (ag.donoDoRegistro && isAdmin && fBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${ag.donoDoRegistro.nome}</span>` : '';
 
                     corpo.innerHTML += `<tr><td data-label="Cliente / Detalhe"><strong class="text-white">${ag.nomeCliente}</strong>${seloBarbeiro}</td><td data-label="Contato" class="text-light fw-bold">${ag.telefoneCliente}</td><td data-label="Serviço"><span class="text-light">${ag.servicoEscolhido.nome}</span><br><small class="text-success fw-bold">R$ ${ag.servicoEscolhido.preco.toFixed(2)}</small></td><td data-label="Período" class="text-primary fw-bold">${dataBonita}<br><small class="text-muted">${hi} - ${hf}</small></td><td data-label="Status / Pgto"><span class="badge-modern ${bClass}">${ag.status}</span></td><td data-label="Ações">${botoes}</td></tr>`;
                 } else {
@@ -339,7 +357,7 @@
                     const hi = new Date(bq.dataHoraInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const hf = new Date(bq.dataHoraFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-                    let seloBarbeiroBq = (bq.donoDoRegistro && isAdmin && filtroBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${bq.donoDoRegistro.nome}</span>` : '';
+                    let seloBarbeiroBq = (bq.donoDoRegistro && isAdmin && fBarbeiro === 'TODOS') ? ` <br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${bq.donoDoRegistro.nome}</span>` : '';
                     let btnExcluirBq = `<button class="btn btn-sm btn-outline-danger border-0" onclick="excluirBloqueio(${bq.id})" title="Remover Bloqueio"><i class="bi bi-trash3 fs-6"></i></button>`;
 
                     corpo.innerHTML += `<tr style="background-color: rgba(245, 158, 11, 0.05);"><td data-label="Cliente / Detalhe"><span class="text-warning"><i class="bi bi-lock-fill"></i> ${bq.motivo}</span>${seloBarbeiroBq}</td><td data-label="Contato" class="text-light">-</td><td data-label="Serviço" class="text-light">-</td><td data-label="Período" class="text-warning fw-bold">${dataBonita}<br><small class="text-muted">${hi} - ${hf}</small></td><td data-label="Status / Pgto"><span class="badge-modern badge-warning">BLOQUEADO</span></td><td data-label="Ações">${btnExcluirBq}</td></tr>`;

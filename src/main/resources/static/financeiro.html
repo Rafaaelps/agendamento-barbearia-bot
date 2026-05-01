@@ -317,6 +317,9 @@
               idLogado = me.id;
               document.getElementById('sidebar-user-name').innerText = 'Usuário: ' + me.nome;
 
+              const select = document.getElementById('filtro-barbeiro');
+              if (select) select.innerHTML = '';
+
               if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                   document.getElementById('menu-usuarios').classList.remove('d-none');
                   document.getElementById('btn-custo').classList.remove('d-none');
@@ -324,31 +327,36 @@
                   const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                   if (resFunc.ok) {
                       const funcs = await resFunc.json();
-                      const select = document.getElementById('filtro-barbeiro');
-                      if (select) {
-                          select.innerHTML = '';
 
-                          if (me.perfil === 'SUPER_ADMIN') {
-                              barbeirosPermitidos = funcs.map(f => f.id);
-                              select.innerHTML += '<option value="TODOS">Todos os Barbeiros (Faturamento da Empresa)</option>';
-                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia (Apenas Comissões)</option>';
+                      if (me.perfil === 'SUPER_ADMIN') {
+                          barbeirosPermitidos = funcs.map(f => f.id);
+                          if(select) {
+                              select.innerHTML += '<option value="TODOS">Faturamento da Empresa</option>';
+                              select.innerHTML += '<option value="CAIXA">Caixa da Barbearia (Comissões)</option>';
                               funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                               select.value = 'TODOS';
-                          } else {
-                              barbeirosPermitidos = [me.id];
-                              const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
-                              subordinados.forEach(s => barbeirosPermitidos.push(s.id));
+                          }
+                      } else {
+                          // Admin normal não tem mais TODOS
+                          barbeirosPermitidos = [me.id];
+                          const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
+                          subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
+                          if(select) {
                               select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
                               select.innerHTML += '<option value="CAIXA">Caixa da Barbearia</option>';
                               subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
                               select.value = me.id;
                           }
-                          document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                       }
+                      document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                   }
               } else {
                   barbeirosPermitidos = [me.id];
+                  if (select) {
+                      select.innerHTML = `<option value="${me.id}">${me.nome}</option>`;
+                      select.value = me.id;
+                  }
               }
           }
       } catch(e) {}
@@ -381,14 +389,7 @@
       let totalPendente = 0;
 
       const selectFiltro = document.getElementById('filtro-barbeiro');
-      const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : 'TODOS';
-      let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
-
-      const checkDono = (donoObj) => {
-          if (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA') return true;
-          let idD = donoObj ? donoObj.id : idLogado;
-          return (idD == fBarbeiro);
-      };
+      const fBarbeiro = (selectFiltro && selectFiltro.options.length > 0) ? selectFiltro.value : String(idLogado);
 
       const agendamentosFiltrados = todosAg.filter(ag => {
           const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
@@ -419,13 +420,11 @@
         let dataString = Array.isArray(ag.dataHoraInicio) ? `${ag.dataHoraInicio[0]}-${String(ag.dataHoraInicio[1]).padStart(2,'0')}-${String(ag.dataHoraInicio[2]).padStart(2,'0')}T${String(ag.dataHoraInicio[3]).padStart(2,'0')}:${String(ag.dataHoraInicio[4]).padStart(2,'0')}` : ag.dataHoraInicio;
 
         if (fBarbeiro === 'TODOS') {
-            if (perfilLogado === 'SUPER_ADMIN') {
-                if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; }
-                valorLiquidoExibicao = precoCheio - valTaxa;
-                if(ehFuturo) totalPendente += valorLiquidoExibicao;
-                let objFakeComHtml = { ...ag, detalheHtml: '' };
-                extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
-            }
+            if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; }
+            valorLiquidoExibicao = precoCheio - valTaxa;
+            let objFakeComHtml = { ...ag, detalheHtml: '' };
+            if(ehFuturo) totalPendente += valorLiquidoExibicao;
+            extratoMisto.push({ data: dataString, tipo: 'CORTE', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
         }
         else if (fBarbeiro === 'CAIXA') {
             if (comissaoSalao > 0) {
@@ -440,7 +439,7 @@
         else {
             if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-            if (isAdmin && idDonoDesteCorte != idLogado) {
+            if (idDonoDesteCorte != idLogado && comissaoSalao > 0) {
                 detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-warning fw-bold"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
             }
             if(ehFuturo) totalPendente += valorLiquidoExibicao;
@@ -480,13 +479,11 @@
         let dataString = Array.isArray(v.dataHoraVenda) ? `${v.dataHoraVenda[0]}-${String(v.dataHoraVenda[1]).padStart(2,'0')}-${String(v.dataHoraVenda[2]).padStart(2,'0')}T${String(v.dataHoraVenda[3]).padStart(2,'0')}:${String(v.dataHoraVenda[4]).padStart(2,'0')}` : v.dataHoraVenda;
 
         if (fBarbeiro === 'TODOS') {
-            if (perfilLogado === 'SUPER_ADMIN') {
-                if(!ehFuturo){ receitaBruta += precoCheio; taxasTotal += valTaxa; }
-                valorLiquidoExibicao = precoCheio - valTaxa;
-                if(ehFuturo) totalPendente += valorLiquidoExibicao;
-                let objFakeComHtml = { ...v, detalheHtml: '' };
-                extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
-            }
+            if(!ehFuturo){ receitaBruta += precoCheio; taxasTotal += valTaxa; }
+            valorLiquidoExibicao = precoCheio - valTaxa;
+            if(ehFuturo) totalPendente += valorLiquidoExibicao;
+            let objFakeComHtml = { ...v, detalheHtml: '' };
+            extratoMisto.push({ data: dataString, tipo: 'VENDA', obj: objFakeComHtml, lucroLivre: valorLiquidoExibicao, taxa: valTaxa, precoCheio: precoCheio, ehFuturo: ehFuturo });
         }
         else if (fBarbeiro === 'CAIXA') {
             if (comissaoSalao > 0) {
@@ -501,7 +498,7 @@
         else {
             if(!ehFuturo) { receitaBruta += precoCheio; taxasTotal += valTaxa; comissoesRetidasPeloSalao += comissaoSalao; }
             valorLiquidoExibicao = fatBarbeiro;
-            if (isAdmin && idDonoDestaVenda != idLogado && comissaoSalao > 0) {
+            if (idDonoDestaVenda != idLogado && comissaoSalao > 0) {
                 detalheComissaoHtml = `<div class="mt-2 p-2 rounded border border-secondary text-start" style="background: rgba(0,0,0,0.15); font-size: 0.75rem;"><div class="d-flex justify-content-between text-warning fw-bold"><span>Comissão do Salão:</span> <span>- R$ ${comissaoSalao.toFixed(2)}</span></div></div>`;
             }
             if(ehFuturo) totalPendente += valorLiquidoExibicao;
@@ -540,7 +537,7 @@
               let descricaoFinal = `<i class="bi bi-scissors"></i> ${item.obj.servicoEscolhido.nome}${item.obj.detalheHtml || ''}`;
               let displayPgto = item.ehFuturo ? '<span class="text-warning fw-bold"><i class="bi bi-clock-history"></i> Lançamento Futuro</span>' : item.obj.formaPagamento;
 
-              corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, descricaoFinal, displayPgto, item.lucroLivre, item.obj.donoDoRegistro, btnEdit, isAdmin, fBarbeiro);
+              corpoTb.innerHTML += criarLinhaTabela(item.data, item.obj.nomeCliente, descricaoFinal, displayPgto, item.lucroLivre, item.obj.donoDoRegistro, btnEdit, perfilLogado, fBarbeiro);
           }
           else if (item.tipo === 'VENDA') {
               let donoVenda = item.obj.produto ? item.obj.produto.donoDoRegistro : null;
@@ -552,11 +549,12 @@
 
               let displayPgto = item.ehFuturo ? '<span class="text-warning fw-bold"><i class="bi bi-clock-history"></i> Lançamento Futuro</span>' : item.obj.formaPagamento;
 
-              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", descricaoFinal, displayPgto, item.lucroLivre, donoVenda, btnEdit, isAdmin, fBarbeiro);
+              corpoTb.innerHTML += criarLinhaTabela(item.data, "Cliente Avulso", descricaoFinal, displayPgto, item.lucroLivre, donoVenda, btnEdit, perfilLogado, fBarbeiro);
           }
           else if (item.tipo === 'DESPESA') {
               const dFmt = new Date(item.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-              let seloDonoDespesa = (item.obj.donoDoRegistro && isAdmin && (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA')) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${item.obj.donoDoRegistro.nome}</span>` : '';
+              let ehAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
+              let seloDonoDespesa = (item.obj.donoDoRegistro && ehAdmin && (fBarbeiro === 'TODOS' || fBarbeiro === 'CAIXA')) ? `<br><span class="badge-modern badge-primary mt-1"><i class="bi bi-person"></i> ${item.obj.donoDoRegistro.nome}</span>` : '';
               corpoTb.innerHTML += `<tr style="background-color: rgba(239, 68, 68, 0.05);"><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-white">Caixa (Barbearia)</strong></td><td data-label="Descrição"><small class="text-danger-custom fw-bold"><i class="bi bi-arrow-down-right"></i> ${item.obj.descricao}</small>${seloDonoDespesa}</td><td data-label="Pagamento" class="fw-bold text-light">-</td><td data-label="Valor Líquido" class="text-danger-custom fw-bold">- ${Number(item.obj.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao"><button class="btn btn-sm btn-outline-danger border-0" onclick="deletarDespesa(${item.obj.id})" title="Apagar"><i class="bi bi-trash3 fs-6"></i></button></td></tr>`;
           }
       });
@@ -622,7 +620,7 @@
     } catch (e) { console.error(e); }
   }
 
-  function criarLinhaTabela(data, cl, desc, pgto, val, barbeiroObj = null, acaoExtra = '<span class="text-light">-</span>', ehAdmin = false, fBarbeiroAtual = 'TODOS') {
+  function criarLinhaTabela(data, cl, desc, pgto, val, barbeiroObj = null, acaoExtra = '<span class="text-light">-</span>', pLogado = '', fBarbeiroAtual = 'TODOS') {
     const dFmt = new Date(data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     let p = pgto || '', pNorm = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     let cor = 'text-light', nPgto = p;
@@ -631,6 +629,7 @@
     else if (pNorm.includes('DEBITO')) { cor = 'text-info'; nPgto = '<i class="bi bi-credit-card-2-front"></i> Débito'; }
     else if (pNorm.includes('PIX') || pNorm.includes('DINHEIRO')) { cor = 'text-success-custom'; nPgto = '<i class="bi bi-cash-stack"></i> Dinheiro/PIX'; }
 
+    let ehAdmin = (pLogado === 'ADMIN' || pLogado === 'ROLE_ADMIN' || pLogado === 'SUPER_ADMIN');
     let nomeDono = (barbeiroObj && ehAdmin && (fBarbeiroAtual === 'TODOS' || fBarbeiroAtual === 'CAIXA')) ? `<br><span class="badge-modern badge-primary mt-2 d-inline-block"><i class="bi bi-person"></i> ${barbeiroObj.nome}</span>` : '';
 
     return `<tr><td data-label="Data" class="text-light">${dFmt}</td><td data-label="Origem/Destino"><strong class="text-main">${cl}</strong></td><td data-label="Descrição"><small class="text-light">${desc}</small>${nomeDono}</td><td data-label="Pagamento" class="fw-bold ${cor}">${nPgto}</td><td data-label="Valor Líquido" class="text-success-custom fw-bold">+ ${val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td data-label="Ação" class="coluna-acao text-light">${acaoExtra}</td></tr>`;

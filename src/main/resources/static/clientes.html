@@ -219,41 +219,54 @@
                 const sideUser = document.getElementById('sidebar-user-name');
                 if(sideUser) sideUser.innerText = 'Usuário: ' + me.nome;
 
+                const select = document.getElementById('filtro-barbeiro');
+                if (select) select.innerHTML = '';
+
                 if (me.perfil === 'ADMIN' || me.perfil === 'ROLE_ADMIN' || me.perfil === 'SUPER_ADMIN') {
                     document.getElementById('menu-usuarios').classList.remove('d-none');
 
                     const resFunc = await fetch('/api/admin/funcionarios', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
                     if (resFunc.ok) {
                         const funcs = await resFunc.json();
-                        const select = document.getElementById('filtro-barbeiro');
-                        if (select) {
-                            select.innerHTML = '';
 
-                            if (me.perfil === 'SUPER_ADMIN') {
-                                barbeirosPermitidos = funcs.map(f => f.id);
-                                select.innerHTML += '<option value="TODOS">Todos os Barbeiros</option>';
+                        if (me.perfil === 'SUPER_ADMIN') {
+                            barbeirosPermitidos = funcs.map(f => f.id);
+                            if (select) {
+                                select.innerHTML += '<option value="TODOS">Visão Geral (Salão)</option>';
                                 funcs.forEach(f => select.innerHTML += `<option value="${f.id}">${f.nome}</option>`);
                                 select.value = 'TODOS';
-                            } else {
-                                // ADMIN: Somente ele mesmo e Barbeiros. Sem "TODOS".
-                                barbeirosPermitidos = [me.id];
-                                const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO');
-                                subordinados.forEach(s => barbeirosPermitidos.push(s.id));
+                            }
+                        } else {
+                            // Admin não tem mais TODOS
+                            barbeirosPermitidos = [me.id];
+                            const subordinados = funcs.filter(f => f.perfil === 'BARBEIRO' || f.perfil === 'USER');
+                            subordinados.forEach(s => barbeirosPermitidos.push(s.id));
 
+                            if (select) {
                                 select.innerHTML += `<option value="${me.id}">${me.nome}</option>`;
                                 subordinados.forEach(f => select.innerHTML += `<option value="${f.id}">Barbeiro: ${f.nome}</option>`);
                                 select.value = me.id;
                             }
-
-                            document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                         }
+
+                        document.getElementById('container-filtro-barbeiro').classList.remove('d-none');
                     }
                 } else {
                     barbeirosPermitidos = [me.id];
+                    if (select) {
+                        select.innerHTML = `<option value="${me.id}">${me.nome}</option>`;
+                        select.value = me.id;
+                    }
                 }
             }
         } catch(e) {}
     }
+
+    const checkDonoValido = (donoObj, fBarbeiro) => {
+        if (fBarbeiro === 'TODOS') return true;
+        let idD = donoObj ? donoObj.id : idLogado;
+        return (idD == fBarbeiro);
+    };
 
     async function carregarCRM() {
         try {
@@ -273,10 +286,11 @@
                 let estaNoPeriodo = dataAg >= dataInicio && dataAg <= dataFim;
                 let ehConcluido = ag.status === 'CONCLUIDO';
 
+                // Isolamento
                 const idDono = ag.donoDoRegistro ? ag.donoDoRegistro.id : idLogado;
                 if (!barbeirosPermitidos.includes(idDono)) return false;
 
-                let ehDono = (fBarbeiro === 'TODOS') ? true : (idDono == fBarbeiro);
+                let ehDono = checkDonoValido(ag.donoDoRegistro, fBarbeiro);
 
                 return ehConcluido && ehDono && estaNoPeriodo;
             });
@@ -322,7 +336,7 @@
         else if (ordem === 'SUMIDOS') clientesGlobal.sort((a, b) => a.ultimaVisita - b.ultimaVisita);
         else if (ordem === 'FREQUENTES') clientesGlobal.sort((a, b) => b.totalVisitas - a.totalVisitas);
 
-        let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN');
+        let isAdmin = (perfilLogado === 'ADMIN' || perfilLogado === 'ROLE_ADMIN' || perfilLogado === 'SUPER_ADMIN');
 
         const corpoTabela = document.getElementById('tabela-clientes');
         corpoTabela.innerHTML = '';
